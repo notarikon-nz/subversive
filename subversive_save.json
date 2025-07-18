@@ -1,0 +1,39 @@
+{
+  "credits": 1750,
+  "current_day": 2,
+  "agent_levels": [
+    1,
+    1,
+    1
+  ],
+  "agent_experience": [
+    10,
+    10,
+    10
+  ],
+  "agent_recovery": [
+    3,
+    3,
+    3
+  ],
+  "regions": [
+    {
+      "name": "Neo-Tokyo Central",
+      "threat_level": 1,
+      "alert_level": 0,
+      "alert_decay_timer": 0
+    },
+    {
+      "name": "Corporate District",
+      "threat_level": 2,
+      "alert_level": 0,
+      "alert_decay_timer": 0
+    },
+    {
+      "name": "Underground Labs",
+      "threat_level": 3,
+      "alert_level": 0,
+      "alert_decay_timer": 0
+    }
+  ]
+}

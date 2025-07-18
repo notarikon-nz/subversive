@@ -322,64 +322,23 @@ pub fn inventory_system(
     });
 }
 
+#[derive(Resource, Default)]
+pub struct PostMissionProcessed(pub bool);
+
 pub fn post_mission_system(
     mut commands: Commands,
     post_mission: Res<PostMissionResults>,
     mut next_state: ResMut<NextState<GameState>>,
     mut global_data: ResMut<GlobalData>,
+    mut processed: ResMut<PostMissionProcessed>,
     agent_query: Query<&Agent>,
     input: Res<ButtonInput<KeyCode>>,
     ui_query: Query<Entity, With<PostMissionUI>>,
 ) {
-    // Update global data with mission results
-    let selected_region = global_data.selected_region;
-    
-    if post_mission.success {
-        global_data.credits += post_mission.credits_earned;
-        global_data.current_day += 1;
-        let new_day = global_data.current_day;
-        
-        // Award experience and set recovery time based on mission difficulty
-        let experience_gained = 10 + (post_mission.enemies_killed * 5);
-        let recovery_days = if post_mission.time_taken > 240.0 { 2 } else { 1 }; // Longer missions = more recovery
-        
-        for (i, _agent) in agent_query.iter().enumerate() {
-            if i < 3 {
-                global_data.agent_experience[i] += experience_gained;
-                global_data.agent_recovery[i] = new_day + recovery_days;
-                
-                // Check for level up
-                let current_level = global_data.agent_levels[i];
-                let required_exp = experience_for_level(current_level + 1);
-                if global_data.agent_experience[i] >= required_exp && current_level < 10 {
-                    global_data.agent_levels[i] += 1;
-                }
-            }
-        }
-        
-        // Successful stealth missions may reduce alert (if fast and no kills)
-        if post_mission.enemies_killed == 0 && post_mission.time_taken < 180.0 {
-            // Perfect stealth - no alert increase, may even reduce
-        } else {
-            // Normal success still raises alert slightly
-            global_data.regions[selected_region].raise_alert(new_day);
-        }
-    } else {
-        // Failed missions raise alert significantly and advance time
-        global_data.current_day += 1;
-        let new_day = global_data.current_day;
-        global_data.regions[selected_region].raise_alert(new_day);
-        global_data.regions[selected_region].raise_alert(new_day); // Double penalty for failure
-        
-        for i in 0..3 {
-            global_data.agent_recovery[i] = new_day + 3; // Longer recovery on failure
-        }
-    }
-    
-    // Update all region alert levels for decay
-    let current_day = global_data.current_day;
-    for region in &mut global_data.regions {
-        region.update_alert(current_day);
+    // Only process mission results once
+    if !processed.0 {
+        update_global_data_with_mission_results(&mut global_data, &post_mission, &agent_query);
+        processed.0 = true;
     }
     
     // Clear existing UI
@@ -479,12 +438,70 @@ pub fn post_mission_system(
     
     // Handle input
     if input.just_pressed(KeyCode::KeyR) {
+        processed.0 = false; // Reset for next mission
         next_state.set(GameState::GlobalMap);
         info!("Returning to global map...");
     }
     
     if input.just_pressed(KeyCode::Escape) {
         std::process::exit(0);
+    }
+}
+
+fn update_global_data_with_mission_results(
+    global_data: &mut GlobalData,
+    post_mission: &PostMissionResults,
+    agent_query: &Query<&Agent>,
+) {
+    let selected_region = global_data.selected_region;
+    
+    if post_mission.success {
+        global_data.credits += post_mission.credits_earned;
+        global_data.current_day += 1;
+        let new_day = global_data.current_day;
+        
+        // Award experience and set recovery time based on mission difficulty
+        let experience_gained = 10 + (post_mission.enemies_killed * 5);
+        let recovery_days = if post_mission.time_taken > 240.0 { 2 } else { 1 }; // Longer missions = more recovery
+        
+        for (i, _agent) in agent_query.iter().enumerate() {
+            if i < 3 {
+                global_data.agent_experience[i] += experience_gained;
+                global_data.agent_recovery[i] = new_day + recovery_days;
+                
+                // Check for level up
+                let current_level = global_data.agent_levels[i];
+                let required_exp = experience_for_level(current_level + 1);
+                if global_data.agent_experience[i] >= required_exp && current_level < 10 {
+                    global_data.agent_levels[i] += 1;
+                    info!("Agent {} leveled up to level {}!", i + 1, global_data.agent_levels[i]);
+                }
+            }
+        }
+        
+        // Successful stealth missions may reduce alert (if fast and no kills)
+        if post_mission.enemies_killed == 0 && post_mission.time_taken < 180.0 {
+            // Perfect stealth - no alert increase, may even reduce
+        } else {
+            // Normal success still raises alert slightly
+            global_data.regions[selected_region].raise_alert(new_day);
+        }
+    } else {
+        // Failed missions raise alert significantly and advance time
+        global_data.current_day += 1;
+        let new_day = global_data.current_day;
+        global_data.regions[selected_region].raise_alert(new_day);
+        global_data.regions[selected_region].raise_alert(new_day); // Double penalty for failure
+        
+        for i in 0..3 {
+            global_data.agent_recovery[i] = new_day + 3; // Longer recovery on failure
+        }
+    }
+    
+    // Update all region alert levels for decay
+    let current_day = global_data.current_day;
+    for region in &mut global_data.regions {
+        region.update_alert(current_day);
     }
 }
 
@@ -725,6 +742,15 @@ fn create_global_map_ui(commands: &mut Commands, global_data: &GlobalData) {
                 ..default()
             },
         ));
+
+        parent.spawn(TextBundle::from_section(
+            "\nF5: Save Game",
+            TextStyle {
+                font_size: 14.0,
+                color: Color::srgb(0.5, 0.8, 0.5),
+                ..default()
+            },
+        ));        
     });
 }
 

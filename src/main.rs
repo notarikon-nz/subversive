@@ -7,6 +7,7 @@ mod systems;
 
 use core::*;
 use systems::*;
+use pool::*;
 
 fn main() {
     App::new()
@@ -30,12 +31,17 @@ fn main() {
         .init_resource::<PostMissionResults>()
         .init_resource::<GlobalData>()
         .init_resource::<UIState>()
+        .init_resource::<PostMissionProcessed>()
+        .init_resource::<EntityPool>()
         .add_event::<ActionEvent>()
         .add_event::<CombatEvent>()
         .add_systems(Startup, (setup, setup_physics))
         .add_systems(Update, (
             input::handle_input,
             ui::fps_system,
+            pool::cleanup_inactive_entities,
+            save::auto_save_system,
+            save::save_input_system,            
         ))
         .add_systems(Update, (
             ui::global_map_system,
@@ -56,7 +62,7 @@ fn main() {
             mission::restart_system,
         ).run_if(in_state(GameState::Mission)))
         .add_systems(Update, (
-            ui::post_mission_system,
+            mission::post_mission_system, 
         ).run_if(in_state(GameState::PostMission)))
         .run();
 }
@@ -82,7 +88,9 @@ fn setup(mut commands: Commands) {
     });
 
     // Spawn test scenario
-    let global_data = GlobalData::default();
+    let global_data = load_game().unwrap_or_default();
+    commands.insert_resource(global_data.clone());
+
     spawn_agents(&mut commands, 3, &global_data);
     spawn_civilians(&mut commands, 5);
     spawn_enemy(&mut commands, &global_data);

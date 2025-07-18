@@ -38,6 +38,9 @@ pub struct UIState {
     pub fps_visible: bool,
 }
 
+#[derive(Resource, Default)]
+pub struct PostMissionProcessed(pub bool);
+
 #[derive(Component)]
 pub struct FpsText;
 
@@ -175,7 +178,7 @@ impl Default for PostMissionResults {
     }
 }
 
-#[derive(Resource)]
+#[derive(Resource, Clone)]
 pub struct GlobalData {
     pub credits: u32,
     pub selected_region: usize,
