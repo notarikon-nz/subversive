@@ -30,6 +30,33 @@ impl Default for Agent {
 }
 
 #[derive(Component)]
+pub struct InventoryUI {
+    pub is_open: bool,
+    pub selected_category: InventoryCategory,
+    pub selected_item: Option<usize>,
+}
+
+impl Default for InventoryUI {
+    fn default() -> Self {
+        Self {
+            is_open: false,
+            selected_category: InventoryCategory::Weapons,
+            selected_item: None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum InventoryCategory {
+    Weapons,
+    Tools,
+    Cybernetics,
+    AccessCards,
+    SkillMatrices,
+    Intel,
+}
+
+#[derive(Component)]
 pub struct Civilian {
     pub health: f32,
     pub occupation: OccupationType,
@@ -206,7 +233,7 @@ pub enum OccupationType {
     Civilian,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum SecurityLevel {
     None,
     Low,
@@ -274,6 +301,8 @@ pub struct EquipmentInventory {
     pub cybernetics: Vec<CyberneticType>,
     pub access_cards: Vec<SecurityLevel>,
     pub currency: u32,
+    pub skill_matrices: Vec<SkillType>,
+    pub intel_documents: Vec<String>,
 }
 
 impl Default for EquipmentInventory {
@@ -281,9 +310,11 @@ impl Default for EquipmentInventory {
         Self {
             weapons: vec![],
             tools: vec![],
-            cybernetics: vec![],
+            cybernetics: vec![CyberneticType::Neurovector], // Start with neurovector
             access_cards: vec![SecurityLevel::None],
-            currency: 0,
+            currency: 100, // Starting money
+            skill_matrices: vec![],
+            intel_documents: vec![],
         }
     }
 }

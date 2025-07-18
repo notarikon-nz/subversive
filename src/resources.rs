@@ -152,6 +152,25 @@ impl Default for InteractionState {
     }
 }
 
+#[derive(Resource)]
+pub struct InventoryState {
+    pub ui_open: bool,
+    pub selected_agent: Option<Entity>,
+    pub pending_rewards: Vec<InteractionReward>,
+    pub recent_acquisitions: Vec<String>, // For notification display
+}
+
+impl Default for InventoryState {
+    fn default() -> Self {
+        Self {
+            ui_open: false,
+            selected_agent: None,
+            pending_rewards: vec![],
+            recent_acquisitions: vec![],
+        }
+    }
+}
+
 #[derive(Actionlike, PartialEq, Eq, Hash, Clone, Copy, Debug, Reflect)]
 pub enum PlayerAction {
     Pause,
@@ -160,6 +179,7 @@ pub enum PlayerAction {
     Attack,
     UseNeurovector,
     Interact,
+    ToggleInventory,
     CancelAction,
     CameraUp,
     CameraDown,

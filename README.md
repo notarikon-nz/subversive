@@ -2,46 +2,58 @@
 
 A quick and dirty 2D top-down squad-based tactical stealth game built with Rust and Bevy, inspired by the classic Syndicate series.
 
-## Current Features (Playable MVP)
-
-### Core Mechanics
-- **Real-time with pause**: Press `Space` to pause/resume time
-- **Agent movement**: Right-click to move agents
-- **Camera control**: WASD or arrow keys to move camera
-- **Basic selection**: Left-click to select units (visual feedback)
-- **Mission structure**: Simple infiltration objective
-
-### Neurovector Mind Control
-
-- Targeting mode: Press N to enter neurovector targeting
-- Range indicator: Blue circle shows neurovector range (red when on cooldown)
-- Target selection: Click on highlighted civilians to control them
-- Visual feedback: Purple lines connect agents to controlled civilians
-- Controlled movement: Controlled civilians (purple) follow movement orders
-- Cooldown system: 5-second cooldown between neurovector uses
-
-### Interactive Terminal System
-
-- Color-coded terminals: Red (critical), Blue (secondary), Green (optional)
-- Proximity detection: Get close to terminals to see interaction prompts
-- 'E' to interact: Hold position while accessing terminals
-- Progress system: Visual progress bars show interaction timing
-- Loot rewards: Terminals provide currency, intel, and skill matrices
-
 ### What You'll See
-- **3 Green Agents**: Your controllable squad members
-- **5 Yellow Civilians**: Potential neurovector targets
-- **1 Red Enemy**: Patrolling guard with detection range
+- **3 Green Agents**: Your controllable squad members with neurovector capabilities
+- **5 Yellow Civilians**: Potential neurovector targets (turn purple when controlled)
+- **1 Red Enemy**: Patrolling guard with **visible vision cone** and detection range
 - **1 Purple Objective**: Target infiltration point
+- **3 Terminals**: Red (mission critical), Blue (cybernetics), Green (intel/lore)
+- **Vision Cones**: Yellow/orange/red areas showing enemy sight ranges
 
 ## Controls
 
 | Key/Mouse | Action |
 |-----------|--------|
 | `Space` | Pause/Resume |
-| `Right Click` | Move selected agents |
-| `Left Click` | Select agent/unit |
+| `Left Click` | Select agent |
+| `Right Click` | Move selected agents/controlled civilians |
+| `N` | Enter/Exit neurovector targeting mode |
+| `E` | Interact with nearby terminals |
+| `I` | Open/Close inventory for selected agent |
+| `Escape` | Cancel neurovector targeting, terminal interaction, or close inventory |
 | `WASD` / `Arrow Keys` | Move camera |
+
+### Neurovector Usage
+1. **Select an agent** (left-click) - you'll see a blue range circle
+2. **Press N** to enter targeting mode - valid targets get yellow highlights
+3. **Click a civilian** within range to control them
+4. **Use right-click** to move both agents and controlled civilians together
+### Equipment Management
+1. **Access terminals** to collect weapons, tools, cybernetics, and intel
+2. **Press 'I'** to open the inventory panel for your selected agent
+3. **View organized categories** - each item type has its own section
+4. **Watch for notifications** - green popups show newly acquired items
+5. **Track currency** - credits earned from terminal rewards
+6. **Read intel documents** - lore and mission information stored automatically
+
+### Stealth Gameplay
+1. **Watch enemy vision cones** - yellow areas show where enemies can see
+2. **Stay out of sight** when moving to terminals
+3. **Monitor detection circles** - red circles above enemies show if you're being spotted
+4. **Use pause strategically** - plan movements when enemies face away
+5. **Controlled civilians** can also be detected, adding complexity
+
+### Terminal Interaction
+1. **Move agent near a terminal** - you'll see a colored interaction range
+2. **Press E** to start accessing the terminal
+3. **Stay in position** while the progress bar fills
+4. **Collect rewards** automatically when interaction completes
+5. **Use Escape** to cancel interaction if needed
+
+Color coding:
+- **Red terminals**: Mission-critical objectives  
+- **Blue terminals**: Valuable cybernetics and skill matrices
+- **Green terminals**: Optional lore and intel
 
 ## Architecture Overview
 
@@ -63,10 +75,13 @@ A quick and dirty 2D top-down squad-based tactical stealth game built with Rust 
 
 ## Next Development Phases
 
+**Next Milestone**: Basic combat system and equipment effects
+
 ### Phase 2 - Tactical Features (Next Up)
 - [X] Mind control
 - [X] Interactive terminal system with color-coding*
 - [X] Stealth detection mechanics (enemy vision cones)
+- [x] Equipment inventory and reward management
 - [ ] Basic combat system
 - [ ] Equipment and cybernetics
 

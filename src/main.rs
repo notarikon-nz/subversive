@@ -26,7 +26,7 @@ fn main() {
         }))
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.0))
         .add_plugins(RapierDebugRenderPlugin::default())
-        // .add_plugins(InputManagerPlugin::<PlayerAction>::default())  // Temporarily disabled
+        .add_plugins(InputManagerPlugin::<PlayerAction>::default())
         .init_state::<GameState>()
         .init_state::<MissionState>()
         .init_resource::<GlobalGameData>()
@@ -34,6 +34,7 @@ fn main() {
         .init_resource::<SelectionState>()
         .init_resource::<NeurovectorTargeting>()
         .init_resource::<InteractionState>()
+        .init_resource::<InventoryState>()
         .add_event::<AgentActionEvent>()
         .add_event::<MissionEvent>()
         .add_event::<AlertEvent>()
@@ -51,14 +52,19 @@ fn main() {
             handle_pause_input,
             camera_movement,
             selection_system,
-            
+            inventory_ui_render_system,
+            equipment_notification_system,            
             // Mission-specific systems
             agent_movement_system,
             agent_action_system,
+        ).run_if(in_state(GameState::Mission)))
+        .add_systems(Update, (
             interaction_detection_system,
             interaction_system,
             interaction_progress_system,
             interaction_visual_system,
+            inventory_management_system,
+            inventory_ui_system,
             enemy_vision_visual_system,
             neurovector_system,
             neurovector_targeting_system,

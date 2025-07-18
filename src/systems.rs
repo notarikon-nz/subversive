@@ -23,6 +23,12 @@ const PROGRESS_BAR_WIDTH: f32 = 40.0;
 const PROGRESS_BAR_HEIGHT: f32 = 6.0;
 const INTERACTION_PROMPT_RADIUS: f32 = 35.0;
 
+// Equipment constants
+const INVENTORY_PANEL_WIDTH: f32 = 400.0;
+const INVENTORY_PANEL_HEIGHT: f32 = 500.0;
+const INVENTORY_ITEM_HEIGHT: f32 = 30.0;
+const NOTIFICATION_DURATION: f32 = 3.0;
+
 // Component to mark neurovector commands for processing
 #[derive(Component)]
 pub struct NeurovectorCommand {
@@ -1137,5 +1143,345 @@ fn draw_vision_cone(gizmos: &mut Gizmos, position: Vec2, vision: &AgentVision, c
         let point2 = position + dir2 * vision.range;
         
         gizmos.line_2d(point1, point2, color);
+    }
+}
+
+// Equipment inventory management system
+pub fn inventory_management_system(
+    mut completion_events: EventReader<InteractionCompleteEvent>,
+    mut agent_query: Query<&mut EquipmentInventory, With<Agent>>,
+    mut inventory_state: ResMut<InventoryState>,
+) {
+    // Process completed interactions and add rewards to inventory
+    for event in completion_events.read() {
+        if let Ok(mut inventory) = agent_query.get_mut(event.agent) {
+            for reward in &event.rewards {
+                match reward {
+                    InteractionReward::Equipment(equipment) => {
+                        match equipment {
+                            Equipment::Weapon(weapon) => {
+                                inventory.weapons.push(weapon.clone());
+                                inventory_state.recent_acquisitions.push(format!("Acquired weapon: {:?}", weapon));
+                            }
+                            Equipment::Tool(tool) => {
+                                inventory.tools.push(tool.clone());
+                                inventory_state.recent_acquisitions.push(format!("Acquired tool: {:?}", tool));
+                            }
+                            Equipment::Armor(_armor) => {
+                                // Armor would be handled here
+                                inventory_state.recent_acquisitions.push("Acquired armor".to_string());
+                            }
+                        }
+                    }
+                    InteractionReward::SkillMatrix(skill) => {
+                        inventory.skill_matrices.push(skill.clone());
+                        inventory_state.recent_acquisitions.push(format!("Acquired skill: {:?}", skill));
+                    }
+                    InteractionReward::Currency(amount) => {
+                        inventory.currency += amount;
+                        inventory_state.recent_acquisitions.push(format!("Credits: +{}", amount));
+                    }
+                    InteractionReward::Intel(document) => {
+                        inventory.intel_documents.push(document.clone());
+                        inventory_state.recent_acquisitions.push("New intel acquired".to_string());
+                    }
+                    InteractionReward::AccessCard(level) => {
+                        if !inventory.access_cards.contains(level) {
+                            inventory.access_cards.push(*level);
+                            inventory_state.recent_acquisitions.push(format!("Access card: {:?}", level));
+                        }
+                    }
+                    InteractionReward::ObjectiveProgress => {
+                        inventory_state.recent_acquisitions.push("Objective completed!".to_string());
+                    }
+                }
+            }
+            
+            info!("Equipment added to inventory for agent {:?}", event.agent);
+        }
+    }
+}
+
+// Inventory UI toggle system
+pub fn inventory_ui_system(
+    input: Query<&ActionState<PlayerAction>>,
+    mut inventory_state: ResMut<InventoryState>,
+    selection_state: Res<SelectionState>,
+    keyboard: Res<ButtonInput<KeyCode>>,
+) {
+    if let Ok(_action_state) = input.get_single() {
+        // Toggle inventory with 'I' key
+        if keyboard.just_pressed(KeyCode::KeyI) {
+            inventory_state.ui_open = !inventory_state.ui_open;
+            
+            // Set selected agent if inventory is opening
+            if inventory_state.ui_open {
+                inventory_state.selected_agent = selection_state.selected_agents.first().copied();
+            }
+            
+            info!("Inventory UI {}", if inventory_state.ui_open { "opened" } else { "closed" });
+        }
+        
+        // Close with Escape
+        if keyboard.just_pressed(KeyCode::Escape) && inventory_state.ui_open {
+            inventory_state.ui_open = false;
+        }
+    }
+}
+
+// Inventory UI rendering system
+pub fn inventory_ui_render_system(
+    mut commands: Commands,
+    inventory_state: Res<InventoryState>,
+    agent_query: Query<&EquipmentInventory, With<Agent>>,
+    ui_query: Query<Entity, (With<Node>, Without<Camera>)>,
+) {
+    // Clear existing UI
+    for entity in ui_query.iter() {
+        commands.entity(entity).despawn_recursive();
+    }
+    
+    if !inventory_state.ui_open {
+        return;
+    }
+    
+    // Get inventory data
+    let inventory = if let Some(agent_entity) = inventory_state.selected_agent {
+        agent_query.get(agent_entity).ok()
+    } else {
+        None
+    };
+    
+    // Create inventory panel
+    commands.spawn(NodeBundle {
+        style: Style {
+            width: Val::Px(INVENTORY_PANEL_WIDTH),
+            height: Val::Px(INVENTORY_PANEL_HEIGHT),
+            position_type: PositionType::Absolute,
+            left: Val::Px(50.0),
+            top: Val::Px(50.0),
+            flex_direction: FlexDirection::Column,
+            padding: UiRect::all(Val::Px(10.0)),
+            ..default()
+        },
+        background_color: Color::srgba(0.1, 0.1, 0.1, 0.9).into(),
+        ..default()
+    }).with_children(|parent| {
+        // Title
+        parent.spawn(TextBundle::from_section(
+            "AGENT INVENTORY",
+            TextStyle {
+                font_size: 24.0,
+                color: Color::WHITE,
+                ..default()
+            },
+        ));
+        
+        if let Some(inv) = inventory {
+            // Currency display
+            parent.spawn(TextBundle::from_section(
+                format!("Credits: {}", inv.currency),
+                TextStyle {
+                    font_size: 18.0,
+                    color: Color::srgb(0.8, 0.8, 0.2),
+                    ..default()
+                },
+            ));
+            
+            // Weapons section
+            if !inv.weapons.is_empty() {
+                parent.spawn(TextBundle::from_section(
+                    "WEAPONS:",
+                    TextStyle {
+                        font_size: 16.0,
+                        color: Color::srgb(0.8, 0.3, 0.3),
+                        ..default()
+                    },
+                ));
+                
+                for weapon in &inv.weapons {
+                    parent.spawn(TextBundle::from_section(
+                        format!("• {:?}", weapon),
+                        TextStyle {
+                            font_size: 14.0,
+                            color: Color::WHITE,
+                            ..default()
+                        },
+                    ));
+                }
+            }
+            
+            // Tools section
+            if !inv.tools.is_empty() {
+                parent.spawn(TextBundle::from_section(
+                    "TOOLS:",
+                    TextStyle {
+                        font_size: 16.0,
+                        color: Color::srgb(0.3, 0.8, 0.3),
+                        ..default()
+                    },
+                ));
+                
+                for tool in &inv.tools {
+                    parent.spawn(TextBundle::from_section(
+                        format!("• {:?}", tool),
+                        TextStyle {
+                            font_size: 14.0,
+                            color: Color::WHITE,
+                            ..default()
+                        },
+                    ));
+                }
+            }
+            
+            // Cybernetics section
+            if !inv.cybernetics.is_empty() {
+                parent.spawn(TextBundle::from_section(
+                    "CYBERNETICS:",
+                    TextStyle {
+                        font_size: 16.0,
+                        color: Color::srgb(0.3, 0.3, 0.8),
+                        ..default()
+                    },
+                ));
+                
+                for cybernetic in &inv.cybernetics {
+                    parent.spawn(TextBundle::from_section(
+                        format!("• {:?}", cybernetic),
+                        TextStyle {
+                            font_size: 14.0,
+                            color: Color::WHITE,
+                            ..default()
+                        },
+                    ));
+                }
+            }
+            
+            // Skill matrices section
+            if !inv.skill_matrices.is_empty() {
+                parent.spawn(TextBundle::from_section(
+                    "SKILL MATRICES:",
+                    TextStyle {
+                        font_size: 16.0,
+                        color: Color::srgb(0.8, 0.3, 0.8),
+                        ..default()
+                    },
+                ));
+                
+                for skill in &inv.skill_matrices {
+                    parent.spawn(TextBundle::from_section(
+                        format!("• {:?}", skill),
+                        TextStyle {
+                            font_size: 14.0,
+                            color: Color::WHITE,
+                            ..default()
+                        },
+                    ));
+                }
+            }
+            
+            // Intel documents section
+            if !inv.intel_documents.is_empty() {
+                parent.spawn(TextBundle::from_section(
+                    "INTEL DOCUMENTS:",
+                    TextStyle {
+                        font_size: 16.0,
+                        color: Color::srgb(0.8, 0.8, 0.3),
+                        ..default()
+                    },
+                ));
+                
+                for (i, document) in inv.intel_documents.iter().enumerate() {
+                    let preview = if document.len() > 50 {
+                        format!("{}...", &document[..47])
+                    } else {
+                        document.clone()
+                    };
+                    
+                    parent.spawn(TextBundle::from_section(
+                        format!("• Document {}: {}", i + 1, preview),
+                        TextStyle {
+                            font_size: 12.0,
+                            color: Color::WHITE,
+                            ..default()
+                        },
+                    ));
+                }
+            }
+        } else {
+            parent.spawn(TextBundle::from_section(
+                "No agent selected",
+                TextStyle {
+                    font_size: 16.0,
+                    color: Color::srgb(0.8, 0.3, 0.3),
+                    ..default()
+                },
+            ));
+        }
+        
+        // Instructions
+        parent.spawn(TextBundle::from_section(
+            "\nPress 'I' to close inventory",
+            TextStyle {
+                font_size: 12.0,
+                color: Color::srgb(0.7, 0.7, 0.7),
+                ..default()
+            },
+        ));
+    });
+}
+
+// Notification system for equipment acquisitions
+pub fn equipment_notification_system(
+    mut commands: Commands,
+    mut inventory_state: ResMut<InventoryState>,
+) {
+    // Display recent acquisitions as notifications
+    if !inventory_state.recent_acquisitions.is_empty() {
+        // Find a position that doesn't conflict with inventory panel
+        let notification_x = if inventory_state.ui_open { 
+            INVENTORY_PANEL_WIDTH + 70.0 
+        } else { 
+            50.0 
+        };
+        
+        commands.spawn(NodeBundle {
+            style: Style {
+                position_type: PositionType::Absolute,
+                left: Val::Px(notification_x),
+                top: Val::Px(50.0),
+                flex_direction: FlexDirection::Column,
+                ..default()
+            },
+            ..default()
+        }).with_children(|parent| {
+            for (i, notification) in inventory_state.recent_acquisitions.iter().enumerate() {
+                if i < 5 { // Limit to 5 recent notifications
+                    parent.spawn(NodeBundle {
+                        style: Style {
+                            padding: UiRect::all(Val::Px(8.0)),
+                            margin: UiRect::bottom(Val::Px(4.0)),
+                            ..default()
+                        },
+                        background_color: Color::srgba(0.2, 0.8, 0.2, 0.8).into(),
+                        ..default()
+                    }).with_children(|notification_parent| {
+                        notification_parent.spawn(TextBundle::from_section(
+                            notification,
+                            TextStyle {
+                                font_size: 14.0,
+                                color: Color::WHITE,
+                                ..default()
+                            },
+                        ));
+                    });
+                }
+            }
+        });
+        
+        // Clear notifications after displaying (simplified)
+        if inventory_state.recent_acquisitions.len() > 10 {
+            inventory_state.recent_acquisitions.clear();
+        }
     }
 }
