@@ -390,12 +390,16 @@ pub struct Inventory {
     pub intel_documents: Vec<String>,
 }
 
+#[derive(Component)]
+pub struct InventoryVersion(pub u32);
+
 impl Inventory {
     pub fn add_weapon(&mut self, weapon: WeaponType) {
         if self.equipped_weapon.is_none() {
             self.equipped_weapon = Some(weapon.clone());
         }
         self.weapons.push(weapon);
+        // No version bump needed - Bevy's change detection handles it
     }
     
     pub fn add_currency(&mut self, amount: u32) {

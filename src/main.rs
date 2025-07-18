@@ -36,6 +36,15 @@ fn main() {
         .add_event::<ActionEvent>()
         .add_event::<CombatEvent>()
         .add_systems(Startup, (setup, setup_physics))
+        .add_systems(OnEnter(GameState::PostMission), (
+            ui::cleanup_mission_ui,
+        ))
+        .add_systems(OnEnter(GameState::GlobalMap), (
+            ui::cleanup_global_map_ui,
+        ))
+        .add_systems(OnEnter(GameState::Mission), (
+            ui::cleanup_global_map_ui,  // Clean up when starting mission too
+        ))        
         .add_systems(Update, (
             input::handle_input,
             ui::fps_system,
@@ -43,9 +52,11 @@ fn main() {
             save::auto_save_system,
             save::save_input_system,            
         ))
+
         .add_systems(Update, (
             ui::global_map_system,
         ).run_if(in_state(GameState::GlobalMap)))
+
         .add_systems(Update, (
             camera::movement,
             selection::system,
@@ -54,15 +65,18 @@ fn main() {
             interaction::system,
             combat::system,
             combat::death_system,
-            ui::system,
-            ui::inventory_system,
-            ui::pause_system,
+            ui::system,              // gizmos/world-space UI
+            ui::inventory_system,    
+            ui::pause_system,        // bevy_ui
+            ui::fps_system,          // simple toggle system
             mission::timer_system,
             mission::check_completion,
             mission::restart_system,
         ).run_if(in_state(GameState::Mission)))
+
         .add_systems(Update, (
-            mission::post_mission_system, 
+            mission::process_mission_results,  // Separated from UI
+            ui::post_mission_ui_system,        // New clean UI system
         ).run_if(in_state(GameState::PostMission)))
         .run();
 }
