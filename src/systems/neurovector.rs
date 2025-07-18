@@ -6,6 +6,7 @@ pub fn system(
     mut commands: Commands,
     input: Query<&ActionState<PlayerAction>>,
     mut action_events: EventReader<ActionEvent>,
+    mut audio_events: EventWriter<AudioEvent>,
     mut neurovector_query: Query<(&Transform, &mut NeurovectorCapability), With<Agent>>,
     mut target_query: Query<(Entity, &Transform, &mut Sprite), (With<NeurovectorTarget>, Without<NeurovectorControlled>)>,
     mut controlled_query: Query<(Entity, &Transform, &mut Sprite), With<NeurovectorControlled>>,
@@ -30,7 +31,7 @@ pub fn system(
         if action_state.just_pressed(&PlayerAction::Select) {
             if let Some(target) = find_neurovector_target(*agent, &neurovector_query, &target_query, &windows, &cameras) {
                 // Directly execute the neurovector control instead of sending an event
-                execute_neurovector_control(&mut commands, *agent, target, &mut neurovector_query);
+                execute_neurovector_control(&mut commands, *agent, target, &mut neurovector_query, &mut audio_events);
             }
         }
     }
@@ -38,7 +39,7 @@ pub fn system(
     // Process neurovector actions from events
     for event in action_events.read() {
         if let Action::NeurovectorControl { target } = event.action {
-            execute_neurovector_control(&mut commands, event.entity, target, &mut neurovector_query);
+            execute_neurovector_control(&mut commands, event.entity, target, &mut neurovector_query, &mut audio_events);
         }
     }
 
@@ -82,6 +83,7 @@ fn execute_neurovector_control(
     agent: Entity,
     target: Entity,
     neurovector_query: &mut Query<(&Transform, &mut NeurovectorCapability), With<Agent>>,
+    audio_events: &mut EventWriter<AudioEvent>, 
 ) {
     let Ok((_, mut neurovector)) = neurovector_query.get_mut(agent) else { return; };
 
@@ -89,6 +91,13 @@ fn execute_neurovector_control(
         commands.entity(target).insert(NeurovectorControlled { controller: agent });
         neurovector.controlled.push(target);
         neurovector.current_cooldown = neurovector.cooldown;
+
+        // Play neurovector sound
+        audio_events.send(AudioEvent {
+            sound: AudioType::Neurovector,
+            volume: 0.5,
+        });
+
         info!("Neurovector control successful");
     }
 }

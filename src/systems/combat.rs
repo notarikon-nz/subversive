@@ -8,6 +8,7 @@ pub fn system(
     input: Query<&ActionState<PlayerAction>>,
     mut action_events: EventReader<ActionEvent>,
     mut combat_events: EventWriter<CombatEvent>,
+    mut audio_events: EventWriter<AudioEvent>,
     selection: Res<SelectionState>,
     agent_query: Query<&Transform, With<Agent>>,
     mut enemy_query: Query<(Entity, &Transform, &mut Health), (With<Enemy>, Without<Dead>)>,
@@ -56,7 +57,7 @@ pub fn system(
             if action_state.just_pressed(&PlayerAction::Select) {
                 if let Some(target) = find_combat_target(*agent, &agent_query, &enemy_query, &windows, &cameras) {
                     // Directly execute attack instead of sending event
-                    execute_attack(*agent, target, &mut enemy_query, &mut combat_events);
+                    execute_attack(*agent, target, &mut enemy_query, &mut combat_events, &mut audio_events);
                 }
             }
         }
@@ -65,7 +66,7 @@ pub fn system(
     // Process attack actions from events
     for event in action_events.read() {
         if let Action::Attack(target) = event.action {
-            execute_attack(event.entity, target, &mut enemy_query, &mut combat_events);
+            execute_attack(event.entity, target, &mut enemy_query, &mut combat_events, &mut audio_events);
         }
     }
 
@@ -128,6 +129,7 @@ fn execute_attack(
     target: Entity,
     enemy_query: &mut Query<(Entity, &Transform, &mut Health), (With<Enemy>, Without<Dead>)>,
     combat_events: &mut EventWriter<CombatEvent>,
+    audio_events: &mut EventWriter<AudioEvent>,
 ) {
     if let Ok((_, _, mut health)) = enemy_query.get_mut(target) {
         let damage = 35.0;
@@ -135,6 +137,10 @@ fn execute_attack(
         
         if hit {
             health.0 -= damage;
+            audio_events.send(AudioEvent {
+                sound: AudioType::Gunshot,
+                volume: 0.7,
+            });            
             if health.0 <= 0.0 {
                 health.0 = 0.0;
                 info!("Enemy defeated!");

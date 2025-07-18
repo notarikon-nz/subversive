@@ -4,6 +4,12 @@ use leafwing_input_manager::prelude::*;
 pub mod events;
 pub use events::*;
 
+pub mod audio;
+pub use audio::*;
+
+pub mod sprites;
+pub use sprites::*;
+
 // === STATES ===
 #[derive(States, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum GameState {

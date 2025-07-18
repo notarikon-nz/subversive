@@ -81,19 +81,19 @@ pub fn load_scene(name: &str) -> SceneData {
         })
 }
 
-pub fn spawn_from_scene(commands: &mut Commands, scene: &SceneData, global_data: &GlobalData) {
+pub fn spawn_from_scene(commands: &mut Commands, scene: &SceneData, global_data: &GlobalData, sprites: &GameSprites) {
     for (i, agent_data) in scene.agents.iter().enumerate() {
         let level = if i < 3 { global_data.agent_levels[i] } else { agent_data.level };
-        spawn_agent(commands, Vec2::from(agent_data.position), level);
+        spawn_agent(commands, Vec2::from(agent_data.position), level, sprites);
     }
     
     for civilian_data in &scene.civilians {
-        spawn_civilian(commands, Vec2::from(civilian_data.position));
+        spawn_civilian(commands, Vec2::from(civilian_data.position), sprites);
     }
     
     for enemy_data in &scene.enemies {
         let patrol_points = enemy_data.patrol_points.iter().map(|&p| Vec2::from(p)).collect();
-        spawn_enemy_with_patrol(commands, Vec2::from(enemy_data.position), patrol_points, global_data);
+        spawn_enemy_with_patrol(commands, Vec2::from(enemy_data.position), patrol_points, global_data, sprites);
     }
     
     for terminal_data in &scene.terminals {
@@ -103,21 +103,16 @@ pub fn spawn_from_scene(commands: &mut Commands, scene: &SceneData, global_data:
             "intel" => TerminalType::Intel,
             _ => TerminalType::Objective,
         };
-        spawn_terminal(commands, Vec2::from(terminal_data.position), terminal_type);
+        spawn_terminal(commands, Vec2::from(terminal_data.position), terminal_type, sprites);
     }
 }
 
-fn spawn_agent(commands: &mut Commands, position: Vec2, level: u8) {
+fn spawn_agent(commands: &mut Commands, position: Vec2, level: u8, sprites: &GameSprites) {
+    let mut sprite_bundle = crate::core::sprites::create_agent_sprite(sprites);
+    sprite_bundle.transform = Transform::from_translation(position.extend(1.0));
+    
     commands.spawn((
-        SpriteBundle {
-            sprite: Sprite {
-                color: Color::srgb(0.2, 0.8, 0.2),
-                custom_size: Some(Vec2::new(20.0, 20.0)),
-                ..default()
-            },
-            transform: Transform::from_translation(position.extend(1.0)),
-            ..default()
-        },
+        sprite_bundle,
         Agent { experience: 0, level },
         Health(100.0),
         MovementSpeed(150.0),
@@ -133,17 +128,12 @@ fn spawn_agent(commands: &mut Commands, position: Vec2, level: u8) {
     ));
 }
 
-fn spawn_civilian(commands: &mut Commands, position: Vec2) {
+fn spawn_civilian(commands: &mut Commands, position: Vec2, sprites: &GameSprites) {
+    let mut sprite_bundle = crate::core::sprites::create_civilian_sprite(sprites);
+    sprite_bundle.transform = Transform::from_translation(position.extend(1.0));
+    
     commands.spawn((
-        SpriteBundle {
-            sprite: Sprite {
-                color: Color::srgb(0.8, 0.8, 0.2),
-                custom_size: Some(Vec2::new(15.0, 15.0)),
-                ..default()
-            },
-            transform: Transform::from_translation(position.extend(1.0)),
-            ..default()
-        },
+        sprite_bundle,
         Civilian,
         Health(50.0),
         MovementSpeed(100.0),
@@ -156,20 +146,15 @@ fn spawn_civilian(commands: &mut Commands, position: Vec2) {
     ));
 }
 
-fn spawn_enemy_with_patrol(commands: &mut Commands, position: Vec2, patrol_points: Vec<Vec2>, global_data: &GlobalData) {
+fn spawn_enemy_with_patrol(commands: &mut Commands, position: Vec2, patrol_points: Vec<Vec2>, global_data: &GlobalData, sprites: &GameSprites) {
     let region = &global_data.regions[global_data.selected_region];
     let difficulty = region.mission_difficulty_modifier();
     
+    let mut sprite_bundle = crate::core::sprites::create_enemy_sprite(sprites);
+    sprite_bundle.transform = Transform::from_translation(position.extend(1.0));
+    
     commands.spawn((
-        SpriteBundle {
-            sprite: Sprite {
-                color: alert_color(region.alert_level),
-                custom_size: Some(Vec2::new(18.0, 18.0)),
-                ..default()
-            },
-            transform: Transform::from_translation(position.extend(1.0)),
-            ..default()
-        },
+        sprite_bundle,
         Enemy,
         Health(100.0 * difficulty),
         MovementSpeed(120.0 * difficulty),
@@ -182,23 +167,12 @@ fn spawn_enemy_with_patrol(commands: &mut Commands, position: Vec2, patrol_point
     ));
 }
 
-fn spawn_terminal(commands: &mut Commands, position: Vec2, terminal_type: TerminalType) {
-    let color = match terminal_type {
-        TerminalType::Objective => Color::srgb(0.9, 0.2, 0.2),
-        TerminalType::Equipment => Color::srgb(0.2, 0.5, 0.9),
-        TerminalType::Intel => Color::srgb(0.2, 0.8, 0.3),
-    };
+fn spawn_terminal(commands: &mut Commands, position: Vec2, terminal_type: TerminalType, sprites: &GameSprites) {
+    let mut sprite_bundle = crate::core::sprites::create_terminal_sprite(sprites, &terminal_type);
+    sprite_bundle.transform = Transform::from_translation(position.extend(1.0));
     
     commands.spawn((
-        SpriteBundle {
-            sprite: Sprite {
-                color,
-                custom_size: Some(Vec2::new(20.0, 20.0)),
-                ..default()
-            },
-            transform: Transform::from_translation(position.extend(1.0)),
-            ..default()
-        },
+        sprite_bundle,
         Terminal { terminal_type, range: 30.0, accessed: false },
         Selectable { radius: 15.0 },
     ));

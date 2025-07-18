@@ -4,6 +4,7 @@ use crate::core::*;
 pub fn system(
     mut gizmos: Gizmos,
     mut action_events: EventReader<ActionEvent>,
+    mut audio_events: EventWriter<AudioEvent>,
     selection: Res<SelectionState>,
     agent_query: Query<&Transform, With<Agent>>,
     mut agent_inventory_query: Query<&mut Inventory, With<Agent>>,
@@ -74,7 +75,8 @@ pub fn system(
                         &mut agent_inventory_query, 
                         terminal_entity, 
                         event.entity, 
-                        &mut mission_data
+                        &mut mission_data,
+                        &mut audio_events
                     );
                 }
             }
@@ -88,12 +90,19 @@ fn execute_terminal_interaction(
     terminal_entity: Entity,
     agent_entity: Entity,
     mission_data: &mut ResMut<MissionData>,
+    audio_events: &mut EventWriter<AudioEvent>,
 ) {
     if let Ok((_, _, mut terminal)) = terminal_query.get_mut(terminal_entity) {
         if let Ok(mut inventory) = agent_inventory_query.get_mut(agent_entity) {
             terminal.accessed = true;
             mission_data.terminals_accessed += 1;
             
+           // Play terminal access sound
+            audio_events.send(AudioEvent {
+                sound: AudioType::TerminalAccess,
+                volume: 0.6,
+            });
+
             match terminal.terminal_type {
                 TerminalType::Objective => {
                     inventory.add_currency(500);
