@@ -8,6 +8,13 @@ use crate::resources::*;
 use crate::events::*;
 use crate::states::*;
 
+// Vision and detection constants
+const DETECTION_BUILDUP_RATE: f32 = 2.0; // How fast detection builds up
+const DETECTION_DECAY_RATE: f32 = 1.5;   // How fast detection decays when not visible
+const FULL_DETECTION_THRESHOLD: f32 = 1.0; // When agent is fully detected
+const VISION_CONE_SEGMENTS: usize = 16;   // Visual quality of vision cones
+
+// Interaction constants
 const INTERACTION_PULSE_SPEED: f32 = 3.0;
 const INTERACTION_PULSE_AMPLITUDE: f32 = 0.2;
 const INTERACTION_PULSE_BASE: f32 = 0.8;
@@ -60,6 +67,7 @@ pub fn spawn_test_mission(
                 angle: PI / 3.0, // 60 degrees
                 direction: Vec2::new(1.0, 0.0),
                 can_see: vec![],
+                detection_buildup: 0.0,
             },
             NeurovectorCapability::default(),
             RigidBody::Dynamic,
@@ -145,6 +153,7 @@ pub fn spawn_test_mission(
             angle: PI / 4.0, // 45 degrees
             direction: Vec2::new(1.0, 0.0),
             can_see: vec![],
+            detection_buildup: 0.0,
         },
         RigidBody::Dynamic,
         Collider::ball(9.0),
@@ -1044,5 +1053,89 @@ pub fn interaction_visual_system(
                 Color::srgb(0.2, 0.8, 0.4),
             );
         }
+    }
+}
+
+// Enemy vision cone visual system
+pub fn enemy_vision_visual_system(
+    mut gizmos: Gizmos,
+    enemy_query: Query<(&Transform, &AgentVision, &Enemy)>,
+    mission_data: Res<MissionData>,
+) {
+    for (transform, vision, enemy) in enemy_query.iter() {
+        let enemy_pos = transform.translation.truncate();
+        
+        // Determine vision cone color based on alert level
+        let cone_color = match enemy.alert_level {
+            AlertLevel::Green => Color::srgba(1.0, 1.0, 0.3, 0.2),   // Yellow - normal patrol
+            AlertLevel::Yellow => Color::srgba(1.0, 0.7, 0.0, 0.3),  // Orange - suspicious
+            AlertLevel::Orange => Color::srgba(1.0, 0.4, 0.0, 0.4),  // Dark orange - searching
+            AlertLevel::Red => Color::srgba(1.0, 0.2, 0.2, 0.5),     // Red - full alert
+        };
+
+        // Draw vision cone using triangle fan
+        draw_vision_cone(&mut gizmos, enemy_pos, vision, cone_color);
+        
+        // Draw detection buildup indicator
+        if vision.detection_buildup > 0.0 {
+            let detection_color = Color::srgb(
+                1.0, 
+                1.0 - vision.detection_buildup, 
+                1.0 - vision.detection_buildup
+            );
+            
+            // Draw detection progress circle above enemy
+            let detection_pos = enemy_pos + Vec2::new(0.0, 30.0);
+            let detection_radius = 8.0 + (vision.detection_buildup * 12.0);
+            gizmos.circle_2d(detection_pos, detection_radius, detection_color);
+        }
+    }
+}
+
+// Helper function to draw vision cone
+fn draw_vision_cone(gizmos: &mut Gizmos, position: Vec2, vision: &AgentVision, color: Color) {
+    let half_angle = vision.angle / 2.0;
+    let base_direction = vision.direction;
+    
+    // Calculate cone edges
+    let left_direction = Vec2::new(
+        base_direction.x * half_angle.cos() - base_direction.y * half_angle.sin(),
+        base_direction.x * half_angle.sin() + base_direction.y * half_angle.cos(),
+    );
+    
+    let right_direction = Vec2::new(
+        base_direction.x * half_angle.cos() + base_direction.y * half_angle.sin(),
+        -base_direction.x * half_angle.sin() + base_direction.y * half_angle.cos(),
+    );
+    
+    // Draw cone outline
+    let left_end = position + left_direction * vision.range;
+    let right_end = position + right_direction * vision.range;
+    
+    gizmos.line_2d(position, left_end, color);
+    gizmos.line_2d(position, right_end, color);
+    
+    // Draw arc for the cone end
+    for i in 0..VISION_CONE_SEGMENTS {
+        let t1 = i as f32 / VISION_CONE_SEGMENTS as f32;
+        let t2 = (i + 1) as f32 / VISION_CONE_SEGMENTS as f32;
+        
+        let angle1 = -half_angle + (vision.angle * t1);
+        let angle2 = -half_angle + (vision.angle * t2);
+        
+        let dir1 = Vec2::new(
+            base_direction.x * angle1.cos() - base_direction.y * angle1.sin(),
+            base_direction.x * angle1.sin() + base_direction.y * angle1.cos(),
+        );
+        
+        let dir2 = Vec2::new(
+            base_direction.x * angle2.cos() - base_direction.y * angle2.sin(),
+            base_direction.x * angle2.sin() + base_direction.y * angle2.cos(),
+        );
+        
+        let point1 = position + dir1 * vision.range;
+        let point2 = position + dir2 * vision.range;
+        
+        gizmos.line_2d(point1, point2, color);
     }
 }

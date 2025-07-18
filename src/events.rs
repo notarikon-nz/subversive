@@ -83,6 +83,14 @@ pub struct InteractionCompleteEvent {
     pub rewards: Vec<InteractionReward>,
 }
 
+#[derive(Event)]
+pub struct DetectionEvent {
+    pub detector: Entity,  // Enemy that spotted something
+    pub target: Entity,    // Agent/civilian that was spotted
+    pub detection_level: f32, // 0.0 to 1.0
+    pub position: Vec2,    // Where the detection occurred
+}
+
 #[derive(Debug, Clone)]
 pub enum InteractionEventType {
     StartInteraction,

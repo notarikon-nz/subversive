@@ -40,6 +40,7 @@ fn main() {
         .add_event::<NeurovectorEvent>()
         .add_event::<InteractionEvent>()
         .add_event::<InteractionCompleteEvent>()
+        .add_event::<DetectionEvent>()
         .add_systems(Startup, (
             setup_camera,
             // setup_input,  // Temporarily disabled
@@ -58,6 +59,7 @@ fn main() {
             interaction_system,
             interaction_progress_system,
             interaction_visual_system,
+            enemy_vision_visual_system,
             neurovector_system,
             neurovector_targeting_system,
             neurovector_cooldown_system,

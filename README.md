@@ -65,8 +65,8 @@ A quick and dirty 2D top-down squad-based tactical stealth game built with Rust 
 
 ### Phase 2 - Tactical Features (Next Up)
 - [X] Mind control
-- [ ] Interactive terminal system with color-coding*
-- [ ] Stealth detection mechanics
+- [X] Interactive terminal system with color-coding*
+- [X] Stealth detection mechanics (enemy vision cones)
 - [ ] Basic combat system
 - [ ] Equipment and cybernetics
 

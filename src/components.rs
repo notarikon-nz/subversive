@@ -77,6 +77,7 @@ pub struct AgentVision {
     pub angle: f32,
     pub direction: Vec2,
     pub can_see: Vec<Entity>,
+    pub detection_buildup: f32,
 }
 
 #[derive(Component)]
@@ -320,3 +321,4 @@ pub enum InteractionReward {
     AccessCard(SecurityLevel),
     ObjectiveProgress, // Advances mission objectives
 }
+
