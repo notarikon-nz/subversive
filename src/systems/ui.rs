@@ -322,9 +322,31 @@ pub fn post_mission_system(
     mut commands: Commands,
     post_mission: Res<PostMissionResults>,
     mut next_state: ResMut<NextState<GameState>>,
+    mut global_data: ResMut<GlobalData>,
+    agent_query: Query<&Agent>,
     input: Res<ButtonInput<KeyCode>>,
     ui_query: Query<Entity, With<PostMissionUI>>,
 ) {
+    // Update global data with mission results
+    if post_mission.success {
+        global_data.credits += post_mission.credits_earned;
+        
+        // Award experience to agents (10 base + 5 per enemy killed)
+        let experience_gained = 10 + (post_mission.enemies_killed * 5);
+        for (i, _agent) in agent_query.iter().enumerate() {
+            if i < 3 {
+                global_data.agent_experience[i] += experience_gained;
+                
+                // Check for level up
+                let current_level = global_data.agent_levels[i];
+                let required_exp = experience_for_level(current_level + 1);
+                if global_data.agent_experience[i] >= required_exp && current_level < 10 {
+                    global_data.agent_levels[i] += 1;
+                }
+            }
+        }
+    }
+    
     // Clear existing UI
     for entity in ui_query.iter() {
         commands.entity(entity).despawn_recursive();
@@ -364,7 +386,7 @@ pub fn post_mission_system(
         // Stats
         parent.spawn(TextBundle::from_section(
             format!(
-                "\nTime: {:.1}s\nEnemies Eliminated: {}\nTerminals Accessed: {}\nCredits Earned: {}\nAlert Level: {:?}\n\nPress R to return to map\nPress ESC to quit",
+                "\nTime: {:.1}s\nEnemies Eliminated: {}\nTerminals Accessed: {}\nCredits Earned: {}\nAlert Level: {:?}",
                 post_mission.time_taken,
                 post_mission.enemies_killed,
                 post_mission.terminals_accessed,
@@ -374,6 +396,47 @@ pub fn post_mission_system(
             TextStyle {
                 font_size: 24.0,
                 color: Color::WHITE,
+                ..default()
+            },
+        ));
+        
+        // Agent progression (only if successful)
+        if post_mission.success {
+            let exp_gained = 10 + (post_mission.enemies_killed * 5);
+            parent.spawn(TextBundle::from_section(
+                format!("\nAGENT PROGRESSION:\nExperience Gained: {}", exp_gained),
+                TextStyle {
+                    font_size: 20.0,
+                    color: Color::srgb(0.2, 0.8, 0.8),
+                    ..default()
+                },
+            ));
+            
+            for i in 0..3 {
+                let level_text = format!(
+                    "Agent {}: Level {} ({}/{})",
+                    i + 1,
+                    global_data.agent_levels[i],
+                    global_data.agent_experience[i],
+                    experience_for_level(global_data.agent_levels[i] + 1)
+                );
+                
+                parent.spawn(TextBundle::from_section(
+                    level_text,
+                    TextStyle {
+                        font_size: 16.0,
+                        color: Color::WHITE,
+                        ..default()
+                    },
+                ));
+            }
+        }
+        
+        parent.spawn(TextBundle::from_section(
+            "\nPress R to return to map\nPress ESC to quit",
+            TextStyle {
+                font_size: 16.0,
+                color: Color::srgb(0.7, 0.7, 0.7),
                 ..default()
             },
         ));
@@ -452,7 +515,39 @@ pub fn global_map_system(
             },
         ));
         
-        // Region list
+        // Agent roster
+        parent.spawn(TextBundle::from_section(
+            "\nAGENT ROSTER:",
+            TextStyle {
+                font_size: 20.0,
+                color: Color::WHITE,
+                ..default()
+            },
+        ));
+        
+        for i in 0..3 {
+            let level_color = match global_data.agent_levels[i] {
+                1 => Color::srgb(0.2, 0.8, 0.2),     // Green - Rookie
+                2 => Color::srgb(0.2, 0.2, 0.8),     // Blue - Veteran
+                3 => Color::srgb(0.8, 0.2, 0.8),     // Purple - Elite
+                _ => Color::srgb(0.8, 0.8, 0.2),     // Gold - Master
+            };
+            
+            parent.spawn(TextBundle::from_section(
+                format!(
+                    "Agent {}: Level {} ({}/{})",
+                    i + 1,
+                    global_data.agent_levels[i],
+                    global_data.agent_experience[i],
+                    experience_for_level(global_data.agent_levels[i] + 1)
+                ),
+                TextStyle {
+                    font_size: 16.0,
+                    color: level_color,
+                    ..default()
+                },
+            ));
+        }
         for (i, region) in global_data.regions.iter().enumerate() {
             let is_selected = i == global_data.selected_region;
             let color = if is_selected { Color::srgb(0.2, 0.8, 0.2) } else { Color::WHITE };

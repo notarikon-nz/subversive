@@ -43,12 +43,13 @@ pub fn check_completion(
 
 pub fn restart_system(
     mut commands: Commands,
-    restart_check: Option<Res<crate::core::ShouldRestart>>,
+    restart_check: Option<Res<ShouldRestart>>,
     entities: Query<Entity, (Without<Camera>, Without<Window>)>,
     mut mission_data: ResMut<MissionData>,
     mut game_mode: ResMut<GameMode>,
     mut selection: ResMut<SelectionState>,
     mut inventory_state: ResMut<InventoryState>,
+    global_data: Res<GlobalData>,
 ) {
     if restart_check.is_some() {
         // Clear all entities except camera and window
@@ -63,10 +64,10 @@ pub fn restart_system(
         *inventory_state = InventoryState::default();
         
         // Remove restart flag
-        commands.remove_resource::<crate::core::ShouldRestart>();
+        commands.remove_resource::<ShouldRestart>();
         
-        // Respawn mission
-        crate::spawn_agents(&mut commands, 3);
+        // Respawn mission with persistent agent data
+        crate::spawn_agents(&mut commands, 3, &*global_data);
         crate::spawn_civilians(&mut commands, 5);
         crate::spawn_enemy(&mut commands);
         crate::spawn_terminals(&mut commands);

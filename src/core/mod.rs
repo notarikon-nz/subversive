@@ -85,7 +85,16 @@ pub enum PlayerAction {
 
 // === CORE COMPONENTS ===
 #[derive(Component)]
-pub struct Agent;
+pub struct Agent {
+    pub experience: u32,
+    pub level: u8,
+}
+
+impl Default for Agent {
+    fn default() -> Self {
+        Self { experience: 0, level: 1 }
+    }
+}
 
 #[derive(Component)]
 pub struct Civilian;
@@ -157,6 +166,8 @@ pub struct GlobalData {
     pub credits: u32,
     pub selected_region: usize,
     pub regions: Vec<Region>,
+    pub agent_levels: [u8; 3],
+    pub agent_experience: [u32; 3],
 }
 
 impl Default for GlobalData {
@@ -169,8 +180,14 @@ impl Default for GlobalData {
                 Region { name: "Corporate District".to_string(), threat_level: 2 },
                 Region { name: "Underground Labs".to_string(), threat_level: 3 },
             ],
+            agent_levels: [1, 1, 1],
+            agent_experience: [0, 0, 0],
         }
     }
+}
+
+pub fn experience_for_level(level: u8) -> u32 {
+    (level as u32) * 100
 }
 
 #[derive(Clone)]

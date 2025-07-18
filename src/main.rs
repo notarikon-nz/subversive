@@ -77,13 +77,14 @@ fn setup(mut commands: Commands) {
     });
 
     // Spawn test scenario
-    spawn_agents(&mut commands, 3);
+    let global_data = GlobalData::default();
+    spawn_agents(&mut commands, 3, &global_data);
     spawn_civilians(&mut commands, 5);
     spawn_enemy(&mut commands);
     spawn_terminals(&mut commands);
 }
 
-fn spawn_agents(commands: &mut Commands, count: usize) {
+fn spawn_agents(commands: &mut Commands, count: usize, global_data: &GlobalData) {
     for i in 0..count {
         commands.spawn((
             SpriteBundle {
@@ -99,7 +100,7 @@ fn spawn_agents(commands: &mut Commands, count: usize) {
                 )),
                 ..default()
             },
-            Agent,
+            Agent { experience:0, level:1 },
             Health(100.0),
             MovementSpeed(150.0),
             Controllable,
