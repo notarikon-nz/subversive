@@ -318,6 +318,191 @@ pub fn inventory_system(
     });
 }
 
+pub fn post_mission_system(
+    mut commands: Commands,
+    post_mission: Res<PostMissionResults>,
+    mut next_state: ResMut<NextState<GameState>>,
+    input: Res<ButtonInput<KeyCode>>,
+    ui_query: Query<Entity, With<PostMissionUI>>,
+) {
+    // Clear existing UI
+    for entity in ui_query.iter() {
+        commands.entity(entity).despawn_recursive();
+    }
+    
+    // Create results screen
+    commands.spawn((
+        NodeBundle {
+            style: Style {
+                width: Val::Percent(100.0),
+                height: Val::Percent(100.0),
+                position_type: PositionType::Absolute,
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                flex_direction: FlexDirection::Column,
+                ..default()
+            },
+            background_color: Color::srgba(0.0, 0.0, 0.0, 0.8).into(),
+            z_index: ZIndex::Global(200),
+            ..default()
+        },
+        PostMissionUI,
+    )).with_children(|parent| {
+        // Title
+        let title = if post_mission.success { "MISSION SUCCESS" } else { "MISSION FAILED" };
+        let title_color = if post_mission.success { Color::srgb(0.2, 0.8, 0.2) } else { Color::srgb(0.8, 0.2, 0.2) };
+        
+        parent.spawn(TextBundle::from_section(
+            title,
+            TextStyle {
+                font_size: 48.0,
+                color: title_color,
+                ..default()
+            },
+        ));
+        
+        // Stats
+        parent.spawn(TextBundle::from_section(
+            format!(
+                "\nTime: {:.1}s\nEnemies Eliminated: {}\nTerminals Accessed: {}\nCredits Earned: {}\nAlert Level: {:?}\n\nPress R to return to map\nPress ESC to quit",
+                post_mission.time_taken,
+                post_mission.enemies_killed,
+                post_mission.terminals_accessed,
+                post_mission.credits_earned,
+                post_mission.alert_level
+            ),
+            TextStyle {
+                font_size: 24.0,
+                color: Color::WHITE,
+                ..default()
+            },
+        ));
+    });
+    
+    // Handle input
+    if input.just_pressed(KeyCode::KeyR) {
+        next_state.set(GameState::GlobalMap);
+        info!("Returning to global map...");
+    }
+    
+    if input.just_pressed(KeyCode::Escape) {
+        std::process::exit(0);
+    }
+}
+
+#[derive(Component)]
+pub struct PostMissionUI;
+
+pub fn global_map_system(
+    mut commands: Commands,
+    mut next_state: ResMut<NextState<GameState>>,
+    mut global_data: ResMut<GlobalData>,
+    input: Res<ButtonInput<KeyCode>>,
+    ui_query: Query<Entity, With<GlobalMapUI>>,
+) {
+    // Clear existing UI
+    for entity in ui_query.iter() {
+        commands.entity(entity).despawn_recursive();
+    }
+    
+    // Create global map UI
+    commands.spawn((
+        NodeBundle {
+            style: Style {
+                width: Val::Percent(100.0),
+                height: Val::Percent(100.0),
+                position_type: PositionType::Absolute,
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                flex_direction: FlexDirection::Column,
+                ..default()
+            },
+            background_color: Color::srgb(0.1, 0.1, 0.2).into(),
+            ..default()
+        },
+        GlobalMapUI,
+    )).with_children(|parent| {
+        // Title
+        parent.spawn(TextBundle::from_section(
+            "SUBVERSIVE - GLOBAL MAP",
+            TextStyle {
+                font_size: 36.0,
+                color: Color::WHITE,
+                ..default()
+            },
+        ));
+        
+        // Credits
+        parent.spawn(TextBundle::from_section(
+            format!("Credits: {}", global_data.credits),
+            TextStyle {
+                font_size: 20.0,
+                color: Color::srgb(0.8, 0.8, 0.2),
+                ..default()
+            },
+        ));
+        
+        // Region selection
+        parent.spawn(TextBundle::from_section(
+            "\nSELECT REGION:",
+            TextStyle {
+                font_size: 24.0,
+                color: Color::WHITE,
+                ..default()
+            },
+        ));
+        
+        // Region list
+        for (i, region) in global_data.regions.iter().enumerate() {
+            let is_selected = i == global_data.selected_region;
+            let color = if is_selected { Color::srgb(0.2, 0.8, 0.2) } else { Color::WHITE };
+            let prefix = if is_selected { "> " } else { "  " };
+            
+            parent.spawn(TextBundle::from_section(
+                format!("{}{} (Threat: {})", prefix, region.name, region.threat_level),
+                TextStyle {
+                    font_size: 18.0,
+                    color,
+                    ..default()
+                },
+            ));
+        }
+        
+        // Controls
+        parent.spawn(TextBundle::from_section(
+            "\nUP/DOWN: Select Region\nENTER: Start Mission\nESC: Quit",
+            TextStyle {
+                font_size: 16.0,
+                color: Color::srgb(0.7, 0.7, 0.7),
+                ..default()
+            },
+        ));
+    });
+    
+    // Handle input
+    if input.just_pressed(KeyCode::ArrowUp) {
+        if global_data.selected_region > 0 {
+            global_data.selected_region -= 1;
+        }
+    }
+    
+    if input.just_pressed(KeyCode::ArrowDown) {
+        if global_data.selected_region < global_data.regions.len() - 1 {
+            global_data.selected_region += 1;
+        }
+    }
+    
+    if input.just_pressed(KeyCode::Enter) {
+        commands.insert_resource(ShouldRestart);
+        next_state.set(GameState::Mission);
+        info!("Starting mission in: {}", global_data.regions[global_data.selected_region].name);
+    }
+    
+    if input.just_pressed(KeyCode::Escape) {
+        std::process::exit(0);
+    }
+}
+
 fn draw_vision_cone(gizmos: &mut Gizmos, position: Vec2, vision: &Vision) {
     let half_angle = vision.angle / 2.0;
     let segments = 16;

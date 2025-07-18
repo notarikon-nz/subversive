@@ -27,9 +27,14 @@ fn main() {
         .init_resource::<SelectionState>()
         .init_resource::<MissionData>()
         .init_resource::<InventoryState>()
+        .init_resource::<PostMissionResults>()
+        .init_resource::<GlobalData>()
         .add_event::<ActionEvent>()
         .add_event::<CombatEvent>()
         .add_systems(Startup, (setup, setup_physics))
+        .add_systems(Update, (
+            ui::global_map_system,
+        ).run_if(in_state(GameState::GlobalMap)))
         .add_systems(Update, (
             input::handle_input,
             camera::movement,
@@ -42,7 +47,12 @@ fn main() {
             ui::system,
             ui::inventory_system,
             ui::pause_system,
+            mission::check_completion,
+            mission::restart_system,
         ).run_if(in_state(GameState::Mission)))
+        .add_systems(Update, (
+            ui::post_mission_system,
+        ).run_if(in_state(GameState::PostMission)))
         .run();
 }
 

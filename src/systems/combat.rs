@@ -80,19 +80,16 @@ pub fn system(
 pub fn death_system(
     mut commands: Commands,
     mut enemy_query: Query<(Entity, &mut Health, &mut Sprite), (With<Enemy>, Without<Dead>)>,
+    mut mission_data: ResMut<MissionData>,
 ) {
     for (entity, mut health, mut sprite) in enemy_query.iter_mut() {
         if health.0 <= 0.0 {
-            // Mark as dead
             commands.entity(entity).insert(Dead);
-            
-            // Change visual appearance
-            sprite.color = Color::srgb(0.3, 0.1, 0.1); // Dark red for dead
-            
-            // Stop movement by removing velocity
+            sprite.color = Color::srgb(0.3, 0.1, 0.1);
             commands.entity(entity).remove::<Velocity>();
             
-            info!("Enemy {} marked as dead", entity.index());
+            mission_data.enemies_killed += 1;
+            info!("Enemy {} defeated. Total kills: {}", entity.index(), mission_data.enemies_killed);
         }
     }
 }

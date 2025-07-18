@@ -6,3 +6,4 @@ pub mod neurovector;
 pub mod interaction;
 pub mod combat;
 pub mod ui;
+pub mod mission;

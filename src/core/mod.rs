@@ -7,11 +7,13 @@ pub use events::*;
 // === STATES ===
 #[derive(States, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum GameState {
+    GlobalMap,
     Mission,
+    PostMission,
 }
 
 impl Default for GameState {
-    fn default() -> Self { GameState::Mission }
+    fn default() -> Self { GameState::GlobalMap }
 }
 
 // === RESOURCES ===
@@ -42,11 +44,22 @@ pub struct SelectionState {
 pub struct MissionData {
     pub timer: f32,
     pub alert_level: AlertLevel,
+    pub objectives_completed: u32,
+    pub total_objectives: u32,
+    pub enemies_killed: u32,
+    pub terminals_accessed: u32,
 }
 
 impl Default for MissionData {
     fn default() -> Self {
-        Self { timer: 0.0, alert_level: AlertLevel::Green }
+        Self { 
+            timer: 0.0, 
+            alert_level: AlertLevel::Green,
+            objectives_completed: 0,
+            total_objectives: 1,
+            enemies_killed: 0,
+            terminals_accessed: 0,
+        }
     }
 }
 
@@ -112,6 +125,65 @@ pub struct NeurovectorControlled {
 pub struct MoveTarget {
     pub position: Vec2,
 }
+
+#[derive(Component)]
+pub struct Objective;
+
+#[derive(Resource)]
+pub struct PostMissionResults {
+    pub success: bool,
+    pub time_taken: f32,
+    pub enemies_killed: u32,
+    pub terminals_accessed: u32,
+    pub credits_earned: u32,
+    pub alert_level: AlertLevel,
+}
+
+impl Default for PostMissionResults {
+    fn default() -> Self {
+        Self {
+            success: false,
+            time_taken: 0.0,
+            enemies_killed: 0,
+            terminals_accessed: 0,
+            credits_earned: 0,
+            alert_level: AlertLevel::Green,
+        }
+    }
+}
+
+#[derive(Resource)]
+pub struct GlobalData {
+    pub credits: u32,
+    pub selected_region: usize,
+    pub regions: Vec<Region>,
+}
+
+impl Default for GlobalData {
+    fn default() -> Self {
+        Self {
+            credits: 1000,
+            selected_region: 0,
+            regions: vec![
+                Region { name: "Neo-Tokyo Central".to_string(), threat_level: 1 },
+                Region { name: "Corporate District".to_string(), threat_level: 2 },
+                Region { name: "Underground Labs".to_string(), threat_level: 3 },
+            ],
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct Region {
+    pub name: String,
+    pub threat_level: u8,
+}
+
+#[derive(Component)]
+pub struct GlobalMapUI;
+
+#[derive(Resource)]
+pub struct ShouldRestart;
 
 // === COMPLEX COMPONENTS ===
 #[derive(Component)]
