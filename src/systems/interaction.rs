@@ -1,10 +1,8 @@
 use bevy::prelude::*;
-use leafwing_input_manager::prelude::*;
 use crate::core::*;
 
 pub fn system(
     mut gizmos: Gizmos,
-    input: Query<&ActionState<PlayerAction>>,
     mut action_events: EventReader<ActionEvent>,
     selection: Res<SelectionState>,
     agent_query: Query<&Transform, With<Agent>>,
@@ -15,11 +13,7 @@ pub fn system(
 ) {
     if game_mode.paused { return; }
 
-    let Ok(action_state) = input.get_single() else { return; };
-    let mut interaction_target = None;
-    let mut selected_agent_entity = None;
-
-    // Draw interaction prompts and detect interaction input
+    // Draw interaction prompts for selected agents
     for &selected_agent in &selection.selected {
         if let Ok(agent_transform) = agent_query.get(selected_agent) {
             let agent_pos = agent_transform.translation.truncate();
@@ -37,24 +31,53 @@ pub fn system(
                         TerminalType::Intel => Color::srgba(0.2, 0.8, 0.3, 0.3),
                     };
                     
+                    // Draw interaction range
                     gizmos.circle_2d(terminal_pos, terminal.range, color);
                     
-                    if action_state.just_pressed(&PlayerAction::Interact) {
-                        interaction_target = Some(terminal_entity);
-                        selected_agent_entity = Some(selected_agent);
-                    }
+                    // Draw "E" prompt
+                    gizmos.rect_2d(
+                        terminal_pos + Vec2::new(0.0, 25.0), 
+                        0.0, 
+                        Vec2::new(15.0, 15.0), 
+                        Color::srgba(1.0, 1.0, 1.0, 0.8)
+                    );
                 }
             }
         }
     }
 
-    if let (Some(terminal_entity), Some(agent_entity)) = (interaction_target, selected_agent_entity) {
-        execute_terminal_interaction(&mut terminal_query, &mut agent_inventory_query, terminal_entity, agent_entity, &mut mission_data);
-    }
-
+    // Process interaction events
     for event in action_events.read() {
-        if let Action::InteractWith(terminal_entity) = event.action {
-            execute_terminal_interaction(&mut terminal_query, &mut agent_inventory_query, terminal_entity, event.entity, &mut mission_data);
+        if let Action::InteractWith(_) = event.action {
+            // Find the closest terminal to interact with
+            if let Ok(agent_transform) = agent_query.get(event.entity) {
+                let agent_pos = agent_transform.translation.truncate();
+                
+                let mut closest_terminal = None;
+                let mut closest_distance = f32::INFINITY;
+                
+                for (terminal_entity, terminal_transform, terminal) in terminal_query.iter() {
+                    if terminal.accessed { continue; }
+                    
+                    let terminal_pos = terminal_transform.translation.truncate();
+                    let distance = agent_pos.distance(terminal_pos);
+                    
+                    if distance <= terminal.range && distance < closest_distance {
+                        closest_distance = distance;
+                        closest_terminal = Some(terminal_entity);
+                    }
+                }
+                
+                if let Some(terminal_entity) = closest_terminal {
+                    execute_terminal_interaction(
+                        &mut terminal_query, 
+                        &mut agent_inventory_query, 
+                        terminal_entity, 
+                        event.entity, 
+                        &mut mission_data
+                    );
+                }
+            }
         }
     }
 }
