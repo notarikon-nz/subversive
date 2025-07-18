@@ -81,7 +81,7 @@ fn setup(mut commands: Commands) {
     let global_data = GlobalData::default();
     spawn_agents(&mut commands, 3, &global_data);
     spawn_civilians(&mut commands, 5);
-    spawn_enemy(&mut commands);
+    spawn_enemy(&mut commands, &global_data);
     spawn_terminals(&mut commands);
 }
 
@@ -146,11 +146,18 @@ fn spawn_civilians(commands: &mut Commands, count: usize) {
     }
 }
 
-fn spawn_enemy(commands: &mut Commands) {
+fn spawn_enemy(commands: &mut Commands, global_data: &GlobalData) {
+    let region = &global_data.regions[global_data.selected_region];
+    let difficulty = region.mission_difficulty_modifier();
+    
+    let enemy_health = 100.0 * difficulty;
+    let enemy_speed = 120.0 * difficulty;
+    let vision_range = 120.0 * difficulty;
+    
     commands.spawn((
         SpriteBundle {
             sprite: Sprite {
-                color: Color::srgb(0.8, 0.2, 0.2),
+                color: alert_color(region.alert_level),
                 custom_size: Some(Vec2::new(18.0, 18.0)),
                 ..default()
             },
@@ -158,9 +165,9 @@ fn spawn_enemy(commands: &mut Commands) {
             ..default()
         },
         Enemy,
-        Health(100.0),
-        MovementSpeed(120.0),
-        Vision::new(120.0, 45.0),
+        Health(enemy_health),
+        MovementSpeed(enemy_speed),
+        Vision::new(vision_range, 45.0),
         Patrol::new(vec![
             Vec2::new(200.0, -100.0),
             Vec2::new(300.0, -100.0),
@@ -172,6 +179,15 @@ fn spawn_enemy(commands: &mut Commands) {
         Velocity::default(),
         Damping { linear_damping: 10.0, angular_damping: 10.0 },
     ));
+}
+
+fn alert_color(alert_level: AlertLevel) -> Color {
+    match alert_level {
+        AlertLevel::Green => Color::srgb(0.8, 0.2, 0.2),      // Normal red
+        AlertLevel::Yellow => Color::srgb(0.8, 0.5, 0.2),     // Orange-red
+        AlertLevel::Orange => Color::srgb(0.8, 0.8, 0.2),     // Yellow-red  
+        AlertLevel::Red => Color::srgb(1.0, 0.2, 0.2),        // Bright red
+    }
 }
 
 fn spawn_terminals(commands: &mut Commands) {

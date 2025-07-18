@@ -96,7 +96,7 @@ pub fn restart_system(
         // Respawn mission with persistent agent data
         crate::spawn_agents(&mut commands, 3, &*global_data);
         crate::spawn_civilians(&mut commands, 5);
-        crate::spawn_enemy(&mut commands);
+        crate::spawn_enemy(&mut commands, &*global_data);
         crate::spawn_terminals(&mut commands);
         
         info!("Mission restarted successfully!");

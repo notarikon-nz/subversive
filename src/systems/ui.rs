@@ -328,9 +328,12 @@ pub fn post_mission_system(
     ui_query: Query<Entity, With<PostMissionUI>>,
 ) {
     // Update global data with mission results
+    let selected_region = global_data.selected_region;
+    
     if post_mission.success {
         global_data.credits += post_mission.credits_earned;
         global_data.current_day += 1;
+        let new_day = global_data.current_day;
         
         // Award experience and set recovery time based on mission difficulty
         let experience_gained = 10 + (post_mission.enemies_killed * 5);
@@ -339,7 +342,7 @@ pub fn post_mission_system(
         for (i, _agent) in agent_query.iter().enumerate() {
             if i < 3 {
                 global_data.agent_experience[i] += experience_gained;
-                global_data.agent_recovery[i] = global_data.current_day + recovery_days;
+                global_data.agent_recovery[i] = new_day + recovery_days;
                 
                 // Check for level up
                 let current_level = global_data.agent_levels[i];
@@ -349,12 +352,30 @@ pub fn post_mission_system(
                 }
             }
         }
-    } else {
-        // Failed missions still advance time and require recovery
-        global_data.current_day += 1;
-        for i in 0..3 {
-            global_data.agent_recovery[i] = global_data.current_day + 3; // Longer recovery on failure
+        
+        // Successful stealth missions may reduce alert (if fast and no kills)
+        if post_mission.enemies_killed == 0 && post_mission.time_taken < 180.0 {
+            // Perfect stealth - no alert increase, may even reduce
+        } else {
+            // Normal success still raises alert slightly
+            global_data.regions[selected_region].raise_alert(new_day);
         }
+    } else {
+        // Failed missions raise alert significantly and advance time
+        global_data.current_day += 1;
+        let new_day = global_data.current_day;
+        global_data.regions[selected_region].raise_alert(new_day);
+        global_data.regions[selected_region].raise_alert(new_day); // Double penalty for failure
+        
+        for i in 0..3 {
+            global_data.agent_recovery[i] = new_day + 3; // Longer recovery on failure
+        }
+    }
+    
+    // Update all region alert levels for decay
+    let current_day = global_data.current_day;
+    for region in &mut global_data.regions {
+        region.update_alert(current_day);
     }
     
     // Clear existing UI
@@ -616,7 +637,14 @@ pub fn global_map_system(
     
     if input.just_pressed(KeyCode::KeyW) {
         global_data.current_day += 1;
-        info!("Waited 1 day. Current day: {}", global_data.current_day);
+        
+        // Update all region alert levels for decay
+        let current_day = global_data.current_day;
+        for region in &mut global_data.regions {
+            region.update_alert(current_day);
+        }
+        
+        info!("Waited 1 day. Current day: {}", current_day);
     }
     
     if input.just_pressed(KeyCode::Enter) {
