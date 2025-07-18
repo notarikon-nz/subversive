@@ -15,3 +15,5 @@ pub use save::*;
 pub mod scenes;
 pub use scenes::*;
 
+pub mod ai;
+pub use ai::*;

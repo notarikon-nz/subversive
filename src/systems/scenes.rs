@@ -145,6 +145,27 @@ fn spawn_civilian(commands: &mut Commands, position: Vec2, sprites: &GameSprites
         Damping { linear_damping: 10.0, angular_damping: 10.0 },
     ));
 }
+/*
+fn spawn_enemy_with_patrol(commands: &mut Commands, position: Vec2, patrol_points: Vec<Vec2>, global_data: &GlobalData, sprites: &GameSprites) {
+    let region = &global_data.regions[global_data.selected_region];
+    let difficulty = region.mission_difficulty_modifier();
+    
+    let mut sprite_bundle = crate::core::sprites::create_enemy_sprite(sprites);
+    sprite_bundle.transform = Transform::from_translation(position.extend(1.0));
+    
+    commands.spawn((
+        sprite_bundle,
+        Enemy,
+        Health(100.0 * difficulty),
+        MovementSpeed(120.0 * difficulty),
+        Vision::new(120.0 * difficulty, 45.0),
+        Patrol::new(patrol_points),
+        RigidBody::Dynamic,
+        Collider::ball(9.0),
+        Velocity::default(),
+        Damping { linear_damping: 10.0, angular_damping: 10.0 },
+    ));
+}*/
 
 fn spawn_enemy_with_patrol(commands: &mut Commands, position: Vec2, patrol_points: Vec<Vec2>, global_data: &GlobalData, sprites: &GameSprites) {
     let region = &global_data.regions[global_data.selected_region];
@@ -160,6 +181,7 @@ fn spawn_enemy_with_patrol(commands: &mut Commands, position: Vec2, patrol_point
         MovementSpeed(120.0 * difficulty),
         Vision::new(120.0 * difficulty, 45.0),
         Patrol::new(patrol_points),
+        AIState::default(), // Add this
         RigidBody::Dynamic,
         Collider::ball(9.0),
         Velocity::default(),

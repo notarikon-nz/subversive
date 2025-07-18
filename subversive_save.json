@@ -1,20 +1,20 @@
 {
-  "credits": 2500,
-  "current_day": 3,
+  "credits": 1500,
+  "current_day": 2,
   "agent_levels": [
     1,
     1,
     1
   ],
   "agent_experience": [
-    20,
-    20,
-    20
+    10,
+    10,
+    10
   ],
   "agent_recovery": [
-    4,
-    4,
-    4
+    3,
+    3,
+    3
   ],
   "regions": [
     {

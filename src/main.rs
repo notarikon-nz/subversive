@@ -66,6 +66,8 @@ fn main() {
             camera::movement,
             selection::system,
             movement::system,
+            ai::enemy_ai_system,        
+            ai::sound_detection_system, 
             neurovector::system,
             interaction::system,
             combat::system,
