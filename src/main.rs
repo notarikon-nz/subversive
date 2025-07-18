@@ -79,6 +79,8 @@ fn main() {
             interaction::system,
             combat::system,
             combat::death_system,
+        ).run_if(in_state(GameState::Mission)))
+        .add_systems(Update, (            
             ui::system,              // gizmos/world-space UI
             ui::inventory_system,    
             ui::pause_system,        // bevy_ui
@@ -87,7 +89,9 @@ fn main() {
             mission::restart_system,
             // GOAP Debug and Config systems
             goap::goap_debug_system,     // GOAP debug visualization
-            goap::apply_goap_config_system, // Apply config changes            
+            goap::apply_goap_config_system, // Apply config changes 
+            cover::cover_management_system,
+            cover::cover_exit_system,                       
         ).run_if(in_state(GameState::Mission)))
 
         .add_systems(Update, (

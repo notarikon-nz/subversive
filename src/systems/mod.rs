@@ -17,3 +17,5 @@ pub use scenes::*;
 
 pub mod ai;
 pub use ai::*;
+
+pub mod cover;

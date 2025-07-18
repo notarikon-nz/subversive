@@ -105,6 +105,9 @@ pub fn spawn_from_scene(commands: &mut Commands, scene: &SceneData, global_data:
         };
         spawn_terminal(commands, Vec2::from(terminal_data.position), terminal_type, sprites);
     }
+
+    // Add cover points to every scene
+    spawn_cover_points(commands);    
 }
 
 fn spawn_agent(commands: &mut Commands, position: Vec2, level: u8, sprites: &GameSprites) {
@@ -145,51 +148,6 @@ fn spawn_civilian(commands: &mut Commands, position: Vec2, sprites: &GameSprites
         Damping { linear_damping: 10.0, angular_damping: 10.0 },
     ));
 }
-/*
-fn spawn_enemy_with_patrol(commands: &mut Commands, position: Vec2, patrol_points: Vec<Vec2>, global_data: &GlobalData, sprites: &GameSprites) {
-    let region = &global_data.regions[global_data.selected_region];
-    let difficulty = region.mission_difficulty_modifier();
-    
-    let mut sprite_bundle = crate::core::sprites::create_enemy_sprite(sprites);
-    sprite_bundle.transform = Transform::from_translation(position.extend(1.0));
-    
-    commands.spawn((
-        sprite_bundle,
-        Enemy,
-        Health(100.0 * difficulty),
-        MovementSpeed(120.0 * difficulty),
-        Vision::new(120.0 * difficulty, 45.0),
-        Patrol::new(patrol_points),
-        RigidBody::Dynamic,
-        Collider::ball(9.0),
-        Velocity::default(),
-        Damping { linear_damping: 10.0, angular_damping: 10.0 },
-    ));
-}
-
-fn spawn_enemy_with_patrol(commands: &mut Commands, position: Vec2, patrol_points: Vec<Vec2>, global_data: &GlobalData, sprites: &GameSprites) {
-    let region = &global_data.regions[global_data.selected_region];
-    let difficulty = region.mission_difficulty_modifier();
-    
-    let mut sprite_bundle = crate::core::sprites::create_enemy_sprite(sprites);
-    sprite_bundle.transform = Transform::from_translation(position.extend(1.0));
-    
-    commands.spawn((
-        sprite_bundle,
-        Enemy,
-        Health(100.0 * difficulty),
-        MovementSpeed(120.0 * difficulty),
-        Vision::new(120.0 * difficulty, 45.0),
-        Patrol::new(patrol_points),
-        AIState::default(), // Add this
-        RigidBody::Dynamic,
-        Collider::ball(9.0),
-        Velocity::default(),
-        Damping { linear_damping: 10.0, angular_damping: 10.0 },
-    ));
-}
-*/
-
 
 fn spawn_enemy_with_patrol(commands: &mut Commands, position: Vec2, patrol_points: Vec<Vec2>, global_data: &GlobalData, sprites: &GameSprites) {
     let region = &global_data.regions[global_data.selected_region];
@@ -226,6 +184,36 @@ fn spawn_terminal(commands: &mut Commands, position: Vec2, terminal_type: Termin
         Selectable { radius: 15.0 },
     ));
 }
+
+pub fn spawn_cover_points(commands: &mut Commands) {
+    let cover_positions = [
+        Vec2::new(50.0, -50.0),   // Near terminals
+        Vec2::new(250.0, -150.0), // Corner positions
+        Vec2::new(-50.0, 100.0),  // Scattered around map
+        Vec2::new(300.0, 50.0),
+        Vec2::new(150.0, 150.0),
+    ];
+    
+    for &pos in &cover_positions {
+        commands.spawn((
+            SpriteBundle {
+                sprite: Sprite {
+                    color: Color::srgba(0.4, 0.2, 0.1, 0.7), // Brown, semi-transparent
+                    custom_size: Some(Vec2::new(20.0, 40.0)), // Rectangular cover
+                    ..default()
+                },
+                transform: Transform::from_translation(pos.extend(0.5)), // Slightly behind other objects
+                ..default()
+            },
+            CoverPoint {
+                capacity: 2,
+                current_users: 0,
+                cover_direction: Vec2::X, // Covers from the right (will be calculated dynamically)
+            },
+        ));
+    }
+}
+
 
 fn alert_color(alert_level: AlertLevel) -> Color {
     match alert_level {

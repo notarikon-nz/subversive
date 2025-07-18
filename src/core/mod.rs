@@ -1,3 +1,4 @@
+// src/core/mod.rs - Add GOAP module
 use bevy::prelude::*;
 use leafwing_input_manager::prelude::*;
 
@@ -10,8 +11,15 @@ pub use audio::*;
 pub mod sprites;
 pub use sprites::*;
 
-pub mod goap; 
+pub mod goap; // Add this line
 pub use goap::*;
+
+// Also include the config if you want it as a separate module
+// pub mod goap_config;
+// pub use goap_config::*;
+
+// Rest of your existing code remains the same...
+// (I'll just show the key parts that might need updating)
 
 // === STATES ===
 #[derive(States, Debug, Clone, PartialEq, Eq, Hash)]
@@ -468,8 +476,6 @@ pub enum ToolType {
     Lockpick,
     MedKit,
 }
-
-
 
 // === UTILITY FUNCTIONS ===
 pub fn get_world_mouse_position(

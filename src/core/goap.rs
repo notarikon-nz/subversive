@@ -33,6 +33,11 @@ pub enum WorldKey {
     // Alert states
     IsAlert,
     IsInvestigating,
+
+    // Cover states
+    InCover,
+    CoverAvailable,
+    UnderFire,
 }
 
 pub type WorldState = HashMap<WorldKey, bool>;
@@ -56,6 +61,7 @@ pub enum ActionType {
     Search { area: Vec2 },
     Reload,
     CallForHelp,
+    TakeCover,
 }
 
 // === GOALS ===
@@ -106,7 +112,6 @@ impl GoapAgent {
                 preconditions: hashmap![
                     WorldKey::IsAlert => false,
                     WorldKey::HasTarget => false
-                    // Removed AtPatrolPoint requirement - we can always start patrolling
                 ],
                 effects: hashmap![
                     WorldKey::AtPatrolPoint => true
@@ -129,6 +134,21 @@ impl GoapAgent {
                 action_type: ActionType::Patrol,
             },
             
+            // Take cover action
+            GoapAction {
+                name: "take_cover",
+                cost: 2.0,
+                preconditions: hashmap![
+                    WorldKey::HasTarget => true,
+                    WorldKey::InCover => false,
+                    WorldKey::CoverAvailable => true
+                ],
+                effects: hashmap![
+                    WorldKey::InCover => true
+                ],
+                action_type: ActionType::TakeCover,
+            },
+
             // Calm down action - simple way to become unalert
             GoapAction {
                 name: "calm_down",
@@ -388,6 +408,7 @@ use crate::core::*;
 use crate::systems::ai::AIState;
 
 pub fn goap_ai_system(
+    mut commands: Commands,  // Add Commands for spawning components
     mut enemy_query: Query<(
         Entity, 
         &Transform, 
@@ -397,6 +418,7 @@ pub fn goap_ai_system(
         &Patrol
     ), (With<Enemy>, Without<Dead>)>,
     agent_query: Query<(Entity, &Transform), With<Agent>>,
+    cover_query: Query<(Entity, &Transform, &CoverPoint), Without<Enemy>>,  // Add cover query
     mut action_events: EventWriter<ActionEvent>,
     mut audio_events: EventWriter<AudioEvent>,
     time: Res<Time>,
@@ -415,7 +437,8 @@ pub fn goap_ai_system(
             &vision,
             &agent_query,
             &mut ai_state,
-            patrol  // Pass patrol for position checking
+            patrol,
+            &cover_query  // Pass cover query
         );
         
         // Check if current plan is still valid or if we need to replan
@@ -444,7 +467,9 @@ pub fn goap_ai_system(
                 &mut audio_events,
                 patrol,
                 &agent_query,
-                &vision,  // Pass the vision component
+                &vision,
+                &cover_query,  // Pass cover query
+                &mut commands, // Pass commands
             );
         }
     }
@@ -456,7 +481,8 @@ fn update_world_state_from_perception(
     vision: &Vision,
     agent_query: &Query<(Entity, &Transform), With<Agent>>,
     ai_state: &mut AIState,
-    patrol: &Patrol,  // Add patrol parameter to check current position
+    patrol: &Patrol,
+    cover_query: &Query<(Entity, &Transform, &CoverPoint), Without<Enemy>>,  // Add cover query
 ) {
     let enemy_pos = enemy_transform.translation.truncate();
     
@@ -481,10 +507,14 @@ fn update_world_state_from_perception(
         true // If no patrol points, consider ourselves "at patrol point"
     };
     
+    // Check if cover is available
+    let cover_available = find_nearest_cover(enemy_pos, cover_query).is_some();
+    
     // Update world state
     goap_agent.update_world_state(WorldKey::TargetVisible, target_visible);
     goap_agent.update_world_state(WorldKey::HasTarget, has_target);
     goap_agent.update_world_state(WorldKey::AtPatrolPoint, at_patrol_point);
+    goap_agent.update_world_state(WorldKey::CoverAvailable, cover_available);
     
     // Debug output when target status changes
     let old_has_target = goap_agent.world_state.get(&WorldKey::HasTarget).copied().unwrap_or(false);
@@ -541,7 +571,9 @@ fn execute_goap_action(
     audio_events: &mut EventWriter<AudioEvent>,
     patrol: &Patrol,
     agent_query: &Query<(Entity, &Transform), With<Agent>>,
-    vision: &Vision,  // Add vision parameter
+    vision: &Vision,
+    cover_query: &Query<(Entity, &Transform, &CoverPoint), Without<Enemy>>,  // Add cover query
+    commands: &mut Commands,  // Add commands
 ) {
     match &action.action_type {
         ActionType::Patrol => {
@@ -647,6 +679,25 @@ fn execute_goap_action(
         ActionType::Reload => {
             // Handle reload logic - for now just a placeholder
             info!("Enemy {} reloading weapon", enemy_entity.index());
+        },
+        
+        ActionType::TakeCover => {
+            info!("GOAP: Executing take cover action...");
+            
+            if let Some((cover_entity, cover_pos)) = find_nearest_cover(enemy_transform.translation.truncate(), cover_query) {
+                // Move to cover position
+                action_events.send(ActionEvent {
+                    entity: enemy_entity,
+                    action: Action::MoveTo(cover_pos),
+                });
+                
+                // Add InCover component when we reach the cover
+                commands.entity(enemy_entity).insert(InCover { cover_entity });
+                
+                info!("GOAP: Enemy {} taking cover at {:?}", enemy_entity.index(), cover_pos);
+            } else {
+                info!("GOAP: No cover available!");
+            }
         },
         
         ActionType::CallForHelp => {
@@ -805,4 +856,42 @@ pub fn apply_goap_config_system(
             goap_agent.abort_plan(); // Force immediate replanning when debug is enabled
         }
     }
+}
+
+#[derive(Component)]
+pub struct CoverPoint {
+    pub capacity: u8,      // How many enemies can use this cover
+    pub current_users: u8, // Currently occupied spots
+    pub cover_direction: Vec2, // Direction this cover protects from
+}
+
+#[derive(Component)]
+pub struct InCover {
+    pub cover_entity: Entity, // Which cover point we're using
+}
+
+// Cover utility function
+fn find_nearest_cover(
+    enemy_pos: Vec2, 
+    cover_query: &Query<(Entity, &Transform, &CoverPoint), Without<Enemy>>
+) -> Option<(Entity, Vec2)> {
+    let mut nearest_cover = None;
+    let mut nearest_distance = f32::INFINITY;
+    
+    for (cover_entity, cover_transform, cover_point) in cover_query.iter() {
+        // Only consider cover that has available capacity
+        if cover_point.current_users >= cover_point.capacity {
+            continue;
+        }
+        
+        let cover_pos = cover_transform.translation.truncate();
+        let distance = enemy_pos.distance(cover_pos);
+        
+        if distance < nearest_distance {
+            nearest_distance = distance;
+            nearest_cover = Some((cover_entity, cover_pos));
+        }
+    }
+    
+    nearest_cover
 }
