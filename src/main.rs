@@ -33,6 +33,7 @@ fn main() {
         .init_resource::<PostMissionProcessed>()
         .init_resource::<EntityPool>()
         .init_resource::<SelectionDrag>()
+        .init_resource::<GoapConfig>()
         .add_event::<ActionEvent>()
         .add_event::<CombatEvent>()
         .add_event::<AudioEvent>()
@@ -49,6 +50,7 @@ fn main() {
             save::auto_save_system,
             save::save_input_system,
             audio::audio_system,
+            goap::goap_config_system,
         ))
         .add_systems(OnEnter(GameState::PostMission), (
             ui::cleanup_mission_ui,
@@ -67,8 +69,12 @@ fn main() {
             camera::movement,
             selection::system,
             movement::system,
-            ai::enemy_ai_system,        
-            ai::sound_detection_system, 
+            // GOAP AI Systems (primary)
+            goap::goap_ai_system,        // Main GOAP AI
+            ai::goap_sound_detection_system, // GOAP sound detection
+            // Legacy AI Systems (fallback for non-GOAP enemies)
+            ai::legacy_enemy_ai_system,   // Renamed old enemy_ai_system
+            ai::sound_detection_system,   // Legacy sound detection
             neurovector::system,
             interaction::system,
             combat::system,
@@ -76,10 +82,12 @@ fn main() {
             ui::system,              // gizmos/world-space UI
             ui::inventory_system,    
             ui::pause_system,        // bevy_ui
-            ui::fps_system,          // simple toggle system
             mission::timer_system,
             mission::check_completion,
             mission::restart_system,
+            // GOAP Debug and Config systems
+            goap::goap_debug_system,     // GOAP debug visualization
+            goap::apply_goap_config_system, // Apply config changes            
         ).run_if(in_state(GameState::Mission)))
 
         .add_systems(Update, (

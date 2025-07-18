@@ -1,5 +1,7 @@
+// src/systems/ai.rs - Updated to integrate with GOAP
 use bevy::prelude::*;
 use crate::core::*;
+use crate::core::goap::*; // Add this import
 
 #[derive(Component)]
 pub struct AIState {
@@ -7,6 +9,7 @@ pub struct AIState {
     pub last_known_target: Option<Vec2>,
     pub investigation_timer: f32,
     pub alert_cooldown: f32,
+    pub use_goap: bool, // Toggle between GOAP and legacy AI
 }
 
 #[derive(Debug, Clone)]
@@ -24,12 +27,14 @@ impl Default for AIState {
             last_known_target: None,
             investigation_timer: 0.0,
             alert_cooldown: 0.0,
+            use_goap: true, // Enable GOAP by default for new enemies
         }
     }
 }
 
-pub fn enemy_ai_system(
-    mut enemy_query: Query<(Entity, &Transform, &mut AIState, &mut Vision, &mut Patrol), (With<Enemy>, Without<Dead>)>,
+// Keep the legacy AI system for backward compatibility
+pub fn legacy_enemy_ai_system(
+    mut enemy_query: Query<(Entity, &Transform, &mut AIState, &mut Vision, &mut Patrol), (With<Enemy>, Without<Dead>, Without<GoapAgent>)>,
     agent_query: Query<(Entity, &Transform), With<Agent>>,
     mut audio_events: EventWriter<AudioEvent>,
     mut action_events: EventWriter<ActionEvent>,
@@ -226,4 +231,30 @@ fn check_line_of_sight(
     }
     
     None
+}
+
+// GOAP Sound Detection System - updates GOAP world state
+pub fn goap_sound_detection_system(
+    mut enemy_query: Query<(Entity, &Transform, &mut GoapAgent), (With<Enemy>, Without<Dead>)>,
+    mut combat_events: EventReader<CombatEvent>,
+    combat_transforms: Query<&Transform, With<Agent>>,
+) {
+    // React to gunshots by updating GOAP world state
+    for combat_event in combat_events.read() {
+        if let Ok(shooter_transform) = combat_transforms.get(combat_event.attacker) {
+            let gunshot_pos = shooter_transform.translation.truncate();
+            
+            for (_, enemy_transform, mut goap_agent) in enemy_query.iter_mut() {
+                let distance = enemy_transform.translation.truncate().distance(gunshot_pos);
+                
+                // Hear gunshots within 200 units
+                if distance <= 200.0 {
+                    goap_agent.update_world_state(WorldKey::HeardSound, true);
+                    // Force replanning
+                    goap_agent.abort_plan();
+                    info!("GOAP Enemy heard gunshot");
+                }
+            }
+        }
+    }
 }

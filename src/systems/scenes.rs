@@ -165,7 +165,7 @@ fn spawn_enemy_with_patrol(commands: &mut Commands, position: Vec2, patrol_point
         Velocity::default(),
         Damping { linear_damping: 10.0, angular_damping: 10.0 },
     ));
-}*/
+}
 
 fn spawn_enemy_with_patrol(commands: &mut Commands, position: Vec2, patrol_points: Vec<Vec2>, global_data: &GlobalData, sprites: &GameSprites) {
     let region = &global_data.regions[global_data.selected_region];
@@ -188,6 +188,33 @@ fn spawn_enemy_with_patrol(commands: &mut Commands, position: Vec2, patrol_point
         Damping { linear_damping: 10.0, angular_damping: 10.0 },
     ));
 }
+*/
+
+
+fn spawn_enemy_with_patrol(commands: &mut Commands, position: Vec2, patrol_points: Vec<Vec2>, global_data: &GlobalData, sprites: &GameSprites) {
+    let region = &global_data.regions[global_data.selected_region];
+    let difficulty = region.mission_difficulty_modifier();
+    
+    let mut sprite_bundle = crate::core::sprites::create_enemy_sprite(sprites);
+    sprite_bundle.transform = Transform::from_translation(position.extend(1.0));
+    
+    // Spawn with both AI systems - GOAP is primary, legacy as fallback
+    commands.spawn((
+        sprite_bundle,
+        Enemy,
+        Health(100.0 * difficulty),
+        MovementSpeed(120.0 * difficulty),
+        Vision::new(120.0 * difficulty, 45.0),
+        Patrol::new(patrol_points),
+        AIState::default(), // Legacy AI state
+        GoapAgent::default(), // GOAP AI agent
+        RigidBody::Dynamic,
+        Collider::ball(9.0),
+        Velocity::default(),
+        Damping { linear_damping: 10.0, angular_damping: 10.0 },
+    ));
+}
+
 
 fn spawn_terminal(commands: &mut Commands, position: Vec2, terminal_type: TerminalType, sprites: &GameSprites) {
     let mut sprite_bundle = crate::core::sprites::create_terminal_sprite(sprites, &terminal_type);

@@ -10,6 +10,9 @@ pub use audio::*;
 pub mod sprites;
 pub use sprites::*;
 
+pub mod goap; 
+pub use goap::*;
+
 // === STATES ===
 #[derive(States, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum GameState {
