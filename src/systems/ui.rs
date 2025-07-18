@@ -9,11 +9,34 @@ pub fn system(
     mut gizmos: Gizmos,
     game_mode: Res<GameMode>,
     selected_query: Query<(&Transform, &NeurovectorCapability), (With<Agent>, With<Selected>)>,
+    all_selected_query: Query<&Transform, (With<Agent>, With<Selected>)>, // For selection indicators
     target_query: Query<&Transform, With<NeurovectorTarget>>,
     controlled_query: Query<&Transform, With<NeurovectorControlled>>,
     enemy_query: Query<(&Transform, &Vision), With<Enemy>>,
     neurovector_query: Query<(&Transform, &NeurovectorCapability), With<Agent>>,
+    selection: Res<SelectionState>,
 ) {
+    // Draw selection indicators for all selected agents
+    for transform in all_selected_query.iter() {
+        let pos = transform.translation.truncate();
+        
+        // Draw selection circle
+        gizmos.circle_2d(pos, 18.0, Color::srgb(0.2, 0.8, 0.2));
+        
+        // Draw selection corners for visual clarity
+        let size = 12.0;
+        let positions = [
+            pos + Vec2::new(-size, -size),
+            pos + Vec2::new(size, -size),
+            pos + Vec2::new(size, size),
+            pos + Vec2::new(-size, size),
+        ];
+        
+        for corner in positions {
+            gizmos.rect_2d(corner, 0.0, Vec2::new(3.0, 3.0), Color::srgb(0.2, 0.8, 0.2));
+        }
+    }
+
     // Draw neurovector ranges for selected agents
     for (transform, neurovector) in selected_query.iter() {
         let color = if neurovector.current_cooldown > 0.0 {
@@ -23,6 +46,11 @@ pub fn system(
         };
         
         gizmos.circle_2d(transform.translation.truncate(), neurovector.range, color);
+    }
+
+    // Draw formation indicators when multiple agents are selected
+    if selection.selected.len() > 1 {
+        draw_formation_indicators(&mut gizmos, &all_selected_query, &selection);
     }
 
     // Highlight targets when in neurovector targeting mode
@@ -61,6 +89,46 @@ pub fn system(
         draw_vision_cone(&mut gizmos, transform.translation.truncate(), vision);
     }
 }
+
+fn draw_formation_indicators(
+    gizmos: &mut Gizmos,
+    selected_query: &Query<&Transform, (With<Agent>, With<Selected>)>,
+    selection: &SelectionState,
+) {
+    if selection.selected.len() < 2 { return; }
+    
+    // Calculate center of selected agents
+    let mut center = Vec2::ZERO;
+    let mut count = 0;
+    
+    for transform in selected_query.iter() {
+        center += transform.translation.truncate();
+        count += 1;
+    }
+    
+    if count > 0 {
+        center /= count as f32;
+        
+        // Draw formation center
+        gizmos.circle_2d(center, 8.0, Color::srgba(0.8, 0.8, 0.2, 0.5));
+        
+        // Draw lines connecting selected agents
+        let positions: Vec<Vec2> = selected_query.iter()
+            .map(|t| t.translation.truncate())
+            .collect();
+        
+        for i in 0..positions.len() {
+            for j in (i + 1)..positions.len() {
+                gizmos.line_2d(
+                    positions[i],
+                    positions[j],
+                    Color::srgba(0.8, 0.8, 0.2, 0.3),
+                );
+            }
+        }
+    }
+}
+
 
 #[derive(Component)]
 pub struct PauseUI;

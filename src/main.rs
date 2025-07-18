@@ -32,6 +32,7 @@ fn main() {
         .init_resource::<UIState>()
         .init_resource::<PostMissionProcessed>()
         .init_resource::<EntityPool>()
+        .init_resource::<SelectionDrag>()
         .add_event::<ActionEvent>()
         .add_event::<CombatEvent>()
         .add_event::<AudioEvent>()

@@ -22,6 +22,20 @@ impl Default for GameState {
     fn default() -> Self { GameState::GlobalMap }
 }
 
+// === SQUAD GOALS ===
+#[derive(Component)]
+pub struct SelectionBox {
+    pub start: Vec2,
+    pub end: Vec2,
+}
+
+#[derive(Resource, Default)]
+pub struct SelectionDrag {
+    pub dragging: bool,
+    pub start_pos: Vec2,
+    pub current_pos: Vec2,
+}
+
 // === RESOURCES ===
 #[derive(Resource)]
 pub struct GameMode {
@@ -451,6 +465,8 @@ pub enum ToolType {
     Lockpick,
     MedKit,
 }
+
+
 
 // === UTILITY FUNCTIONS ===
 pub fn get_world_mouse_position(

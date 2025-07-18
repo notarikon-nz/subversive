@@ -8,23 +8,35 @@ A quick & dirty 2D top-down squad-based tactical stealth game built with Rust an
 |-------|--------|
 | Space | Pause/Resume |
 | Left Click | Select agent |
-| Right Click | Move |
+| Shift+Left Click | Add/Remove agent from squad |
+| Drag | Select multiple agents in box |
+| Right Click | Move selected agents |
 | N | Neurovector targeting |
 | F | Combat targeting |
 | E | Interact with terminals |
-| WASD | Camera |
+| WASD | Camera movement |
 | I | Inventory |
 | F3 | Toggle FPS |
 | F5 | Save game (global map) |
 
 ## Gameplay
 
-- Control 3 agents (green squares)
+- **Squad Control**: Select and command up to 3 agents simultaneously
+- **Multi-selection**: Use shift+click or drag boxes to build your squad
+- **Formation movement**: Selected agents move together maintaining formation
 - Use neurovector to control civilians (yellow → purple when controlled)
-- Avoid enemy vision cones (red square with yellow cone)
+- Avoid enemy vision cones and detection - enemies will investigate sounds
 - Access terminals: Red (objectives), Blue (equipment), Green (intel)
-- Agent progression with experience and levels
-- Persistent save/load system
+- Agent progression with experience, levels, and persistent save system
+
+## Squad Mechanics
+
+- **Individual Selection**: Left-click to select a single agent
+- **Multi-Selection**: Shift+left-click to add/remove agents from your squad
+- **Box Selection**: Click and drag to select all agents within the area
+- **Group Commands**: Right-click to move all selected agents together
+- **Formation Indicators**: Visual lines show your squad formation
+- **Smart Targeting**: Special abilities use the primary selected agent
 
 ## Build
 
@@ -46,25 +58,31 @@ src/
 ├── core/
 │   ├── mod.rs          # Components & resources
 │   ├── events.rs       # Minimal event system
-│   ├── scenes.rs       # JSON scene system
-│   └── save.rs         # Save/load persistence
+│   ├── audio.rs        # Event-driven audio system
+│   ├── sprites.rs      # Sprite management
+│   └── ai.rs           # Enemy AI behavior
 └── systems/            # Focused single-purpose systems
     ├── input.rs        # Clean action handling
     ├── movement.rs     # Entity movement & pathfinding
-    ├── selection.rs    # Agent selection
+    ├── selection.rs    # Multi-agent selection system
     ├── neurovector.rs  # Mind control targeting
     ├── interaction.rs  # Terminal access
     ├── combat.rs       # Attack system with health bars
     ├── camera.rs       # Simple camera movement
     ├── mission.rs      # Mission logic & post-mission
-    └── ui.rs          # Visual feedback & gizmos
+│   ├── scenes.rs       # JSON scene system
+│   ├── save.rs         # Save/load persistence
+    └── ui.rs           # Visual feedback & gizmos
 ```
 
 **Key Features:**
+- Squad-based multi-agent selection and control
+- Enemy AI with sight, sound detection, and state machines
 - JSON scene system for data-driven missions
 - Entity pooling for performance
+- Audio system with context-aware sound effects
+- Sprite system with graceful fallbacks
 - Auto-save progression system
-- Component composition over monolithic structures
-- Proper Rust patterns with consistent error handling
+- Reactive UI with proper state management
 
 **Engine:** [Bevy 0.14 ECS](https://bevy.org/) with [Rapier2D physics](https://rapier.rs/)

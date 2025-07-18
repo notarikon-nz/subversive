@@ -86,11 +86,12 @@ fn toggle_neurovector_targeting(game_mode: &mut GameMode, agent: Entity) {
         }
         _ => {
             game_mode.targeting = Some(TargetingMode::Neurovector { agent });
-            info!("Neurovector targeting activated");
+            info!("Neurovector targeting activated for agent");
         }
     }
 }
 
+// In toggle_combat_targeting:
 fn toggle_combat_targeting(game_mode: &mut GameMode, agent: Entity) {
     match &game_mode.targeting {
         Some(TargetingMode::Combat { .. }) => {
@@ -99,7 +100,7 @@ fn toggle_combat_targeting(game_mode: &mut GameMode, agent: Entity) {
         }
         _ => {
             game_mode.targeting = Some(TargetingMode::Combat { agent });
-            info!("Combat targeting activated");
+            info!("Combat targeting activated for agent");
         }
     }
 }
