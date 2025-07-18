@@ -4,12 +4,29 @@ A quick and dirty 2D top-down squad-based tactical stealth game built with Rust 
 
 ## Current Features (Playable MVP)
 
-### Core Mechanics ✅
+### Core Mechanics
 - **Real-time with pause**: Press `Space` to pause/resume time
 - **Agent movement**: Right-click to move agents
 - **Camera control**: WASD or arrow keys to move camera
 - **Basic selection**: Left-click to select units (visual feedback)
 - **Mission structure**: Simple infiltration objective
+
+### Neurovector Mind Control
+
+- Targeting mode: Press N to enter neurovector targeting
+- Range indicator: Blue circle shows neurovector range (red when on cooldown)
+- Target selection: Click on highlighted civilians to control them
+- Visual feedback: Purple lines connect agents to controlled civilians
+- Controlled movement: Controlled civilians (purple) follow movement orders
+- Cooldown system: 5-second cooldown between neurovector uses
+
+### Interactive Terminal System
+
+- Color-coded terminals: Red (critical), Blue (secondary), Green (optional)
+- Proximity detection: Get close to terminals to see interaction prompts
+- 'E' to interact: Hold position while accessing terminals
+- Progress system: Visual progress bars show interaction timing
+- Loot rewards: Terminals provide currency, intel, and skill matrices
 
 ### What You'll See
 - **3 Green Agents**: Your controllable squad members
@@ -48,9 +65,12 @@ A quick and dirty 2D top-down squad-based tactical stealth game built with Rust 
 
 ### Phase 2 - Tactical Features (Next Up)
 - [X] Mind control
+- [ ] Interactive terminal system with color-coding*
 - [ ] Stealth detection mechanics
 - [ ] Basic combat system
 - [ ] Equipment and cybernetics
+
+* Terminal systems can hide both mission-relevant and lore data - colour-coding allows the player to know which is which, in case the lore is not of interest.
 
 ### Phase 3 - Strategy Layer
 - [ ] Global map and region control

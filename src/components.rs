@@ -230,4 +230,93 @@ pub enum ObjectiveType {
     Infiltrate(Vec2),
     Sabotage(Entity),
     Survive(f32), // duration in seconds
+    AccessTerminal(Entity), // New objective type for terminal access
+}
+
+#[derive(Component)]
+pub struct InteractableTerminal {
+    pub terminal_type: TerminalType,
+    pub priority_color: PriorityColor,
+    pub access_requirements: Vec<AccessRequirement>,
+    pub loot_table: Vec<InteractionReward>,
+    pub interaction_range: f32,
+    pub is_accessed: bool,
+    pub access_time: f32, // Time required to interact
+}
+
+impl Default for InteractableTerminal {
+    fn default() -> Self {
+        Self {
+            terminal_type: TerminalType::DataTerminal,
+            priority_color: PriorityColor::Optional,
+            access_requirements: vec![],
+            loot_table: vec![InteractionReward::Currency(100)],
+            interaction_range: 30.0,
+            is_accessed: false,
+            access_time: 2.0,
+        }
+    }
+}
+
+#[derive(Component)]
+pub struct InteractionPrompt {
+    pub target_terminal: Entity,
+    pub interacting_agent: Entity,
+    pub progress: f32,
+    pub total_time: f32,
+}
+
+#[derive(Component)]
+pub struct EquipmentInventory {
+    pub weapons: Vec<WeaponType>,
+    pub tools: Vec<ToolType>,
+    pub cybernetics: Vec<CyberneticType>,
+    pub access_cards: Vec<SecurityLevel>,
+    pub currency: u32,
+}
+
+impl Default for EquipmentInventory {
+    fn default() -> Self {
+        Self {
+            weapons: vec![],
+            tools: vec![],
+            cybernetics: vec![],
+            access_cards: vec![SecurityLevel::None],
+            currency: 0,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum TerminalType {
+    DataTerminal,     // Basic info/lore
+    SecurityTerminal, // Access cards, system control
+    SupplyCache,      // Equipment and tools
+    CyberneticNode,   // Skill matrices and cybernetics
+    ObjectiveTerminal, // Mission-critical access
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum PriorityColor {
+    Critical,    // Red - mission objectives
+    Secondary,   // Blue - valuable bonuses
+    Optional,    // Green - lore/flavor
+}
+
+#[derive(Debug, Clone)]
+pub enum AccessRequirement {
+    SecurityClearance(SecurityLevel),
+    Tool(ToolType),
+    Cybernetic(CyberneticType),
+    NoGuards, // Must not be spotted
+}
+
+#[derive(Debug, Clone)]
+pub enum InteractionReward {
+    Equipment(Equipment),
+    SkillMatrix(SkillType),
+    Currency(u32),
+    Intel(String), // Lore document content
+    AccessCard(SecurityLevel),
+    ObjectiveProgress, // Advances mission objectives
 }

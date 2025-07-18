@@ -33,10 +33,13 @@ fn main() {
         .init_resource::<MissionData>()
         .init_resource::<SelectionState>()
         .init_resource::<NeurovectorTargeting>()
+        .init_resource::<InteractionState>()
         .add_event::<AgentActionEvent>()
         .add_event::<MissionEvent>()
         .add_event::<AlertEvent>()
         .add_event::<NeurovectorEvent>()
+        .add_event::<InteractionEvent>()
+        .add_event::<InteractionCompleteEvent>()
         .add_systems(Startup, (
             setup_camera,
             // setup_input,  // Temporarily disabled
@@ -51,6 +54,10 @@ fn main() {
             // Mission-specific systems
             agent_movement_system,
             agent_action_system,
+            interaction_detection_system,
+            interaction_system,
+            interaction_progress_system,
+            interaction_visual_system,
             neurovector_system,
             neurovector_targeting_system,
             neurovector_cooldown_system,

@@ -8,6 +8,14 @@ use crate::resources::*;
 use crate::events::*;
 use crate::states::*;
 
+const INTERACTION_PULSE_SPEED: f32 = 3.0;
+const INTERACTION_PULSE_AMPLITUDE: f32 = 0.2;
+const INTERACTION_PULSE_BASE: f32 = 0.8;
+const INTERACTION_RANGE_ALPHA: f32 = 0.3;
+const PROGRESS_BAR_WIDTH: f32 = 40.0;
+const PROGRESS_BAR_HEIGHT: f32 = 6.0;
+const INTERACTION_PROMPT_RADIUS: f32 = 35.0;
+
 // Component to mark neurovector commands for processing
 #[derive(Component)]
 pub struct NeurovectorCommand {
@@ -794,4 +802,247 @@ fn get_world_mouse_position(
     
     window.cursor_position()
         .and_then(|cursor| camera.viewport_to_world_2d(camera_transform, cursor))
+}
+
+// Interaction detection system - finds terminals near selected agents
+pub fn interaction_detection_system(
+    mut interaction_state: ResMut<InteractionState>,
+    selection_state: Res<SelectionState>,
+    agent_query: Query<&Transform, With<Agent>>,
+    terminal_query: Query<(Entity, &Transform, &InteractableTerminal)>,
+) {
+    interaction_state.available_terminals.clear();
+
+    // Check for terminals near selected agents
+    for &selected_agent in &selection_state.selected_agents {
+        if let Ok(agent_transform) = agent_query.get(selected_agent) {
+            let agent_pos = agent_transform.translation.truncate();
+
+            for (terminal_entity, terminal_transform, terminal) in terminal_query.iter() {
+                if terminal.is_accessed {
+                    continue; // Skip already accessed terminals
+                }
+
+                let terminal_pos = terminal_transform.translation.truncate();
+                let distance = agent_pos.distance(terminal_pos);
+
+                if distance <= terminal.interaction_range {
+                    if !interaction_state.available_terminals.contains(&terminal_entity) {
+                        interaction_state.available_terminals.push(terminal_entity);
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Interaction system - handles starting and managing interactions
+pub fn interaction_system(
+    mut commands: Commands,
+    input: Query<&ActionState<PlayerAction>>,
+    mut interaction_events: EventWriter<InteractionEvent>,
+    interaction_state: Res<InteractionState>,
+    selection_state: Res<SelectionState>,
+    terminal_query: Query<(Entity, &Transform, &InteractableTerminal)>,
+    agent_query: Query<&Transform, With<Agent>>,
+    active_interactions: Query<&InteractionPrompt>,
+    keyboard: Res<ButtonInput<KeyCode>>,
+    windows: Query<&Window>,
+    cameras: Query<(&Camera, &GlobalTransform)>,
+) {
+    if let Ok(action_state) = input.get_single() {
+        // Handle interaction input with 'E' key
+        if keyboard.just_pressed(KeyCode::KeyE) {
+            // Check if we have a selected agent and available terminals
+            if let Some(&selected_agent) = selection_state.selected_agents.first() {
+                if let Ok(agent_transform) = agent_query.get(selected_agent) {
+                    let agent_pos = agent_transform.translation.truncate();
+
+                    // Find closest available terminal
+                    let mut closest_terminal = None;
+                    let mut closest_distance = f32::INFINITY;
+
+                    for &terminal_entity in &interaction_state.available_terminals {
+                        if let Ok((_, terminal_transform, terminal)) = terminal_query.get(terminal_entity) {
+                            let distance = agent_pos.distance(terminal_transform.translation.truncate());
+                            if distance < closest_distance {
+                                closest_distance = distance;
+                                closest_terminal = Some(terminal_entity);
+                            }
+                        }
+                    }
+
+                    // Start interaction with closest terminal
+                    if let Some(terminal_entity) = closest_terminal {
+                        if let Ok((_, _, terminal)) = terminal_query.get(terminal_entity) {
+                            // Check if agent is already interacting
+                            let already_interacting = active_interactions.iter()
+                                .any(|prompt| prompt.interacting_agent == selected_agent);
+
+                            if !already_interacting {
+                                // Create interaction prompt
+                                commands.spawn(InteractionPrompt {
+                                    target_terminal: terminal_entity,
+                                    interacting_agent: selected_agent,
+                                    progress: 0.0,
+                                    total_time: terminal.access_time,
+                                });
+
+                                interaction_events.send(InteractionEvent {
+                                    agent: selected_agent,
+                                    terminal: terminal_entity,
+                                    interaction_type: InteractionEventType::StartInteraction,
+                                });
+
+                                info!("Started interaction with {:?} terminal", terminal.terminal_type);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Cancel interaction with Escape
+        if keyboard.just_pressed(KeyCode::Escape) {
+            for prompt in active_interactions.iter() {
+                interaction_events.send(InteractionEvent {
+                    agent: prompt.interacting_agent,
+                    terminal: prompt.target_terminal,
+                    interaction_type: InteractionEventType::CancelInteraction,
+                });
+            }
+        }
+    }
+}
+
+// Interaction progress system - handles timing and completion
+pub fn interaction_progress_system(
+    mut commands: Commands,
+    mut interaction_prompts: Query<(Entity, &mut InteractionPrompt)>,
+    mut terminal_query: Query<&mut InteractableTerminal>,
+    mut interaction_events: EventWriter<InteractionEvent>,
+    mut completion_events: EventWriter<InteractionCompleteEvent>,
+    time: Res<Time>,
+    mission_data: Res<MissionData>,
+) {
+    if mission_data.time_scale == 0.0 {
+        return; // Don't progress when paused
+    }
+
+    for (prompt_entity, mut prompt) in interaction_prompts.iter_mut() {
+        prompt.progress += time.delta_seconds();
+
+        if prompt.progress >= prompt.total_time {
+            // Interaction complete
+            if let Ok(mut terminal) = terminal_query.get_mut(prompt.target_terminal) {
+                terminal.is_accessed = true;
+
+                completion_events.send(InteractionCompleteEvent {
+                    agent: prompt.interacting_agent,
+                    terminal: prompt.target_terminal,
+                    rewards: terminal.loot_table.clone(),
+                });
+
+                interaction_events.send(InteractionEvent {
+                    agent: prompt.interacting_agent,
+                    terminal: prompt.target_terminal,
+                    interaction_type: InteractionEventType::CompleteInteraction,
+                });
+
+                info!("Interaction completed! Rewards: {:?}", terminal.loot_table);
+            }
+
+            // Remove the interaction prompt
+            commands.entity(prompt_entity).despawn();
+        }
+    }
+
+    // Handle interaction event cleanup
+    /*
+    // error[E0599]: no method named `read` found for struct `bevy::prelude::EventWriter` in the current scope: method not found in `EventWriter<'_, InteractionEvent>`
+    for mut event in interaction_events.read() {
+        match event.interaction_type {
+            InteractionEventType::CancelInteraction => {
+                // Find and remove matching interaction prompts
+                for (prompt_entity, prompt) in interaction_prompts.iter() {
+                    if prompt.interacting_agent == event.agent && prompt.target_terminal == event.terminal {
+                        commands.entity(prompt_entity).despawn();
+                        info!("Interaction cancelled");
+                        break;
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+    */
+}
+
+// Interaction visual system - shows prompts and progress
+pub fn interaction_visual_system(
+    mut gizmos: Gizmos,
+    time: Res<Time>,
+    interaction_state: Res<InteractionState>,
+    selection_state: Res<SelectionState>,
+    terminal_query: Query<(&Transform, &InteractableTerminal)>,
+    agent_query: Query<&Transform, With<Agent>>,
+    interaction_prompts: Query<&InteractionPrompt>,
+) {
+    // Show interaction ranges and prompts for available terminals
+    for &terminal_entity in &interaction_state.available_terminals {
+        if let Ok((terminal_transform, terminal)) = terminal_query.get(terminal_entity) {
+            let terminal_pos = terminal_transform.translation.truncate();
+
+            // Draw interaction range
+            let range_color = match terminal.priority_color {
+                PriorityColor::Critical => Color::srgba(0.9, 0.2, 0.2, 0.3),
+                PriorityColor::Secondary => Color::srgba(0.2, 0.5, 0.9, 0.3),
+                PriorityColor::Optional => Color::srgba(0.2, 0.8, 0.3, 0.3),
+            };
+
+            gizmos.circle_2d(terminal_pos, terminal.interaction_range, range_color);
+
+            // Show "E to interact" indicator for terminals in range
+            let indicator_color = match terminal.priority_color {
+                PriorityColor::Critical => Color::srgb(1.0, 0.3, 0.3),
+                PriorityColor::Secondary => Color::srgb(0.3, 0.6, 1.0),
+                PriorityColor::Optional => Color::srgb(0.3, 1.0, 0.4),
+            };
+
+            // Pulsing effect for interaction prompt
+            let pulse_factor = (time.elapsed_seconds() * INTERACTION_PULSE_SPEED).sin() 
+                * INTERACTION_PULSE_AMPLITUDE + INTERACTION_PULSE_BASE;
+
+            gizmos.circle_2d(terminal_pos, INTERACTION_PROMPT_RADIUS * pulse_factor, indicator_color);
+        }
+    }
+
+    // Show interaction progress bars
+    for prompt in interaction_prompts.iter() {
+        if let Ok((terminal_transform, _)) = terminal_query.get(prompt.target_terminal) {
+            let terminal_pos = terminal_transform.translation.truncate();
+            let progress = prompt.progress / prompt.total_time;
+
+            // Draw progress bar above terminal
+            let bar_width = 40.0;
+            let bar_height = 6.0;
+            let bar_pos = terminal_pos + Vec2::new(0.0, 40.0);
+
+            // Background
+            gizmos.rect_2d(
+                bar_pos,
+                0.0,
+                Vec2::new(bar_width, bar_height),
+                Color::srgb(0.3, 0.3, 0.3),
+            );
+
+            // Progress fill
+            gizmos.rect_2d(
+                bar_pos - Vec2::new((bar_width * (1.0 - progress)) / 2.0, 0.0),
+                0.0,
+                Vec2::new(bar_width * progress, bar_height),
+                Color::srgb(0.2, 0.8, 0.4),
+            );
+        }
+    }
 }

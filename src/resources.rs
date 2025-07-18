@@ -135,6 +135,23 @@ impl Default for NeurovectorTargeting {
     }
 }
 
+#[derive(Resource)]
+pub struct InteractionState {
+    pub active_interactions: Vec<Entity>, // InteractionPrompt entities
+    pub available_terminals: Vec<Entity>, // Terminals in range of selected agents
+    pub show_interaction_prompts: bool,
+}
+
+impl Default for InteractionState {
+    fn default() -> Self {
+        Self {
+            active_interactions: vec![],
+            available_terminals: vec![],
+            show_interaction_prompts: true,
+        }
+    }
+}
+
 #[derive(Actionlike, PartialEq, Eq, Hash, Clone, Copy, Debug, Reflect)]
 pub enum PlayerAction {
     Pause,
@@ -142,6 +159,7 @@ pub enum PlayerAction {
     Move,
     Attack,
     UseNeurovector,
+    Interact,
     CancelAction,
     CameraUp,
     CameraDown,

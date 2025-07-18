@@ -68,3 +68,24 @@ pub enum ObjectiveEventType {
     Failed,
     Updated,
 }
+
+#[derive(Event)]
+pub struct InteractionEvent {
+    pub agent: Entity,
+    pub terminal: Entity,
+    pub interaction_type: InteractionEventType,
+}
+
+#[derive(Event)]
+pub struct InteractionCompleteEvent {
+    pub agent: Entity,
+    pub terminal: Entity,
+    pub rewards: Vec<InteractionReward>,
+}
+
+#[derive(Debug, Clone)]
+pub enum InteractionEventType {
+    StartInteraction,
+    CancelInteraction,
+    CompleteInteraction,
+}
