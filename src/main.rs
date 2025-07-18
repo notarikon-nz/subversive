@@ -1,18 +1,12 @@
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
-use leafwing_input_manager::prelude::*;  // Temporarily disabled
+use leafwing_input_manager::prelude::*;
 
-mod components;
+mod core;
 mod systems;
-mod states;
-mod resources;
-mod events;
 
-use components::*;
+use core::*;
 use systems::*;
-use states::*;
-use resources::*;
-use events::*;
 
 fn main() {
     App::new()
@@ -28,69 +22,28 @@ fn main() {
         .add_plugins(RapierDebugRenderPlugin::default())
         .add_plugins(InputManagerPlugin::<PlayerAction>::default())
         .init_state::<GameState>()
-        .init_state::<MissionState>()
-        .init_resource::<GlobalGameData>()
-        .init_resource::<MissionData>()
+        .init_resource::<GameMode>()
         .init_resource::<SelectionState>()
-        .init_resource::<NeurovectorTargeting>()
-        .init_resource::<InteractionState>()
-        .init_resource::<InventoryState>()
-        .init_resource::<CombatTargeting>()
-        .add_event::<AgentActionEvent>()
-        .add_event::<MissionEvent>()
-        .add_event::<AlertEvent>()
-        .add_event::<NeurovectorEvent>()
-        .add_event::<InteractionEvent>()
-        .add_event::<InteractionCompleteEvent>()
-        .add_event::<DetectionEvent>()
+        .init_resource::<MissionData>()
+        .add_event::<ActionEvent>()
         .add_event::<CombatEvent>()
-        .add_event::<DeathEvent>()
-        .add_systems(Startup, (
-            setup_camera,
-            setup_input,  // Temporarily disabled
-            spawn_test_mission,
-        ))
+        .add_systems(Startup, setup)
         .add_systems(Update, (
-            // Core systems that always run
-            handle_pause_input,
-            camera_movement,
-            selection_system,
-            inventory_ui_render_system,
-            equipment_notification_system,            
-            // Mission-specific systems
-            agent_movement_system,
-            agent_action_system,
+            input::handle_input,
+            camera::movement,
+            selection::system,
+            movement::system,
+            neurovector::system,
+            interaction::system,
+            combat::system,
+            ui::system,
         ).run_if(in_state(GameState::Mission)))
-        .add_systems(Update, (
-            interaction_detection_system,
-            interaction_system,
-            interaction_progress_system,
-            interaction_visual_system,
-            inventory_management_system,
-            inventory_ui_system,
-            enemy_vision_visual_system,
-            neurovector_system,
-            neurovector_targeting_system,
-            neurovector_cooldown_system,
-            neurovector_visual_system,
-            controlled_civilian_visual_system,
-            mission_timer_system,
-            visibility_system,
-            alert_system,
-        ).run_if(in_state(GameState::Mission)))
-        .add_systems(Update, (
-            // Paused state systems
-            pause_ui_system,
-            queued_orders_system,
-        ).run_if(in_state(GameState::Mission).and_then(in_state(MissionState::Paused))))
         .run();
 }
 
-fn setup_camera(mut commands: Commands) {
+fn setup(mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
-}
-
-fn setup_input(mut commands: Commands) {
+    
     commands.spawn(InputManagerBundle::<PlayerAction> {
         input_map: InputMap::default()
             .insert(PlayerAction::Pause, KeyCode::Space)
@@ -99,4 +52,123 @@ fn setup_input(mut commands: Commands) {
             .build(),
         ..default()
     });
+
+    // Spawn test scenario
+    spawn_agents(&mut commands, 3);
+    spawn_civilians(&mut commands, 5);
+    spawn_enemy(&mut commands);
+    spawn_terminals(&mut commands);
+}
+
+fn spawn_agents(commands: &mut Commands, count: usize) {
+    for i in 0..count {
+        commands.spawn((
+            SpriteBundle {
+                sprite: Sprite {
+                    color: Color::srgb(0.2, 0.8, 0.2),
+                    custom_size: Some(Vec2::new(20.0, 20.0)),
+                    ..default()
+                },
+                transform: Transform::from_translation(Vec3::new(
+                    -200.0 + i as f32 * 50.0,
+                    0.0,
+                    1.0,
+                )),
+                ..default()
+            },
+            Agent,
+            Health(100.0),
+            MovementSpeed(150.0),
+            Controllable,
+            Selectable { radius: 15.0 },
+            Vision::new(150.0, 60.0),
+            NeurovectorCapability::default(),
+            Inventory::default(),
+            RigidBody::Dynamic,
+            Collider::ball(10.0),
+            Velocity::default(),
+            Damping { linear_damping: 10.0, angular_damping: 10.0 },
+        ));
+    }
+}
+
+fn spawn_civilians(commands: &mut Commands, count: usize) {
+    for i in 0..count {
+        commands.spawn((
+            SpriteBundle {
+                sprite: Sprite {
+                    color: Color::srgb(0.8, 0.8, 0.2),
+                    custom_size: Some(Vec2::new(15.0, 15.0)),
+                    ..default()
+                },
+                transform: Transform::from_translation(Vec3::new(
+                    100.0 + i as f32 * 60.0,
+                    100.0 + (i as f32 * 20.0).sin() * 50.0,
+                    1.0,
+                )),
+                ..default()
+            },
+            Civilian,
+            Health(50.0),
+            MovementSpeed(100.0),
+            Controllable,
+            NeurovectorTarget,
+            RigidBody::Dynamic,
+            Collider::ball(7.5),
+            Velocity::default(),
+            Damping { linear_damping: 10.0, angular_damping: 10.0 },
+        ));
+    }
+}
+
+fn spawn_enemy(commands: &mut Commands) {
+    commands.spawn((
+        SpriteBundle {
+            sprite: Sprite {
+                color: Color::srgb(0.8, 0.2, 0.2),
+                custom_size: Some(Vec2::new(18.0, 18.0)),
+                ..default()
+            },
+            transform: Transform::from_translation(Vec3::new(200.0, -100.0, 1.0)),
+            ..default()
+        },
+        Enemy,
+        Health(100.0),
+        MovementSpeed(120.0),
+        Vision::new(120.0, 45.0),
+        Patrol::new(vec![
+            Vec2::new(200.0, -100.0),
+            Vec2::new(300.0, -100.0),
+            Vec2::new(300.0, 50.0),
+            Vec2::new(200.0, 50.0),
+        ]),
+        RigidBody::Dynamic,
+        Collider::ball(9.0),
+        Velocity::default(),
+        Damping { linear_damping: 10.0, angular_damping: 10.0 },
+    ));
+}
+
+fn spawn_terminals(commands: &mut Commands) {
+    let terminals = [
+        (Vec3::new(320.0, -50.0, 1.0), Color::srgb(0.9, 0.2, 0.2), TerminalType::Objective),
+        (Vec3::new(150.0, -80.0, 1.0), Color::srgb(0.2, 0.5, 0.9), TerminalType::Equipment),
+        (Vec3::new(50.0, 120.0, 1.0), Color::srgb(0.2, 0.8, 0.3), TerminalType::Intel),
+    ];
+
+    for (pos, color, terminal_type) in terminals {
+        commands.spawn((
+            SpriteBundle {
+                sprite: Sprite {
+                    color,
+                    custom_size: Some(Vec2::new(20.0, 20.0)),
+                    ..default()
+                },
+                transform: Transform::from_translation(pos),
+                ..default()
+            },
+            Terminal { terminal_type, range: 30.0, accessed: false },
+            Selectable { radius: 15.0 },
+        ));
+    }
 }
