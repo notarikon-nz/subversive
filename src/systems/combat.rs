@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy_rapier2d::prelude::*;
 use leafwing_input_manager::prelude::*;
 use crate::core::*;
 
@@ -9,7 +10,7 @@ pub fn system(
     mut combat_events: EventWriter<CombatEvent>,
     selection: Res<SelectionState>,
     agent_query: Query<&Transform, With<Agent>>,
-    mut enemy_query: Query<(Entity, &Transform, &mut Health), With<Enemy>>,
+    mut enemy_query: Query<(Entity, &Transform, &mut Health), (With<Enemy>, Without<Dead>)>,
     game_mode: Res<GameMode>,
     windows: Query<&Window>,
     cameras: Query<(&Camera, &GlobalTransform)>,
@@ -26,7 +27,7 @@ pub fn system(
             // Draw combat range
             gizmos.circle_2d(agent_pos, 150.0, Color::srgba(0.8, 0.2, 0.2, 0.3));
             
-            // Highlight valid targets
+            // Highlight valid targets (only living enemies)
             for (enemy_entity, enemy_transform, enemy_health) in enemy_query.iter() {
                 if enemy_health.0 <= 0.0 { continue; }
                 
@@ -68,7 +69,7 @@ pub fn system(
         }
     }
 
-    // Draw health bars for damaged enemies
+    // Draw health bars for damaged enemies (only living ones)
     for (_, transform, health) in enemy_query.iter() {
         if health.0 < 100.0 && health.0 > 0.0 {
             draw_health_bar(&mut gizmos, transform.translation.truncate(), health.0, 100.0);
@@ -76,10 +77,30 @@ pub fn system(
     }
 }
 
+pub fn death_system(
+    mut commands: Commands,
+    mut enemy_query: Query<(Entity, &mut Health, &mut Sprite), (With<Enemy>, Without<Dead>)>,
+) {
+    for (entity, mut health, mut sprite) in enemy_query.iter_mut() {
+        if health.0 <= 0.0 {
+            // Mark as dead
+            commands.entity(entity).insert(Dead);
+            
+            // Change visual appearance
+            sprite.color = Color::srgb(0.3, 0.1, 0.1); // Dark red for dead
+            
+            // Stop movement by removing velocity
+            commands.entity(entity).remove::<Velocity>();
+            
+            info!("Enemy {} marked as dead", entity.index());
+        }
+    }
+}
+
 fn find_combat_target(
     agent: Entity,
     agent_query: &Query<&Transform, With<Agent>>,
-    enemy_query: &Query<(Entity, &Transform, &mut Health), With<Enemy>>,
+    enemy_query: &Query<(Entity, &Transform, &mut Health), (With<Enemy>, Without<Dead>)>,
     windows: &Query<&Window>,
     cameras: &Query<(&Camera, &GlobalTransform)>,
 ) -> Option<Entity> {
@@ -108,7 +129,7 @@ fn find_combat_target(
 fn execute_attack(
     attacker: Entity,
     target: Entity,
-    enemy_query: &mut Query<(Entity, &Transform, &mut Health), With<Enemy>>,
+    enemy_query: &mut Query<(Entity, &Transform, &mut Health), (With<Enemy>, Without<Dead>)>,
     combat_events: &mut EventWriter<CombatEvent>,
 ) {
     if let Ok((_, _, mut health)) = enemy_query.get_mut(target) {
@@ -117,7 +138,10 @@ fn execute_attack(
         
         if hit {
             health.0 -= damage;
-            if health.0 < 0.0 { health.0 = 0.0; }
+            if health.0 <= 0.0 {
+                health.0 = 0.0;
+                info!("Enemy defeated!");
+            }
         }
         
         combat_events.send(CombatEvent {

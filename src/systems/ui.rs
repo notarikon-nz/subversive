@@ -56,14 +56,266 @@ pub fn system(
     for (transform, vision) in enemy_query.iter() {
         draw_vision_cone(&mut gizmos, transform.translation.truncate(), vision);
     }
+}
 
-    // Show pause indicator
+#[derive(Component)]
+pub struct PauseUI;
+
+pub fn pause_system(
+    mut commands: Commands,
+    game_mode: Res<GameMode>,
+    pause_ui_query: Query<Entity, With<PauseUI>>,
+) {
     if game_mode.paused {
-        // Simple pause indicator using gizmos
-        let screen_center = Vec2::ZERO; // Would need camera position in real implementation
-        gizmos.circle_2d(screen_center, 50.0, Color::srgba(1.0, 1.0, 1.0, 0.8));
-        gizmos.circle_2d(screen_center, 30.0, Color::srgba(0.0, 0.0, 0.0, 0.8));
+        // Only create pause UI if it doesn't exist
+        if pause_ui_query.is_empty() {
+            commands.spawn((
+                NodeBundle {
+                    style: Style {
+                        width: Val::Percent(100.0),
+                        height: Val::Percent(100.0),
+                        position_type: PositionType::Absolute,
+                        justify_content: JustifyContent::Center,
+                        align_items: AlignItems::Center,
+                        ..default()
+                    },
+                    background_color: Color::srgba(0.0, 0.0, 0.0, 0.5).into(),
+                    z_index: ZIndex::Global(100),
+                    ..default()
+                },
+                PauseUI, // Marker component
+            )).with_children(|parent| {
+                parent.spawn(TextBundle::from_section(
+                    "PAUSED\nPress SPACE to resume",
+                    TextStyle {
+                        font_size: 32.0,
+                        color: Color::WHITE,
+                        ..default()
+                    },
+                ));
+            });
+        }
+    } else {
+        // Clear pause UI when not paused
+        for entity in pause_ui_query.iter() {
+            commands.entity(entity).despawn_recursive();
+        }
     }
+}
+
+pub fn inventory_system(
+    mut commands: Commands,
+    inventory_state: Res<InventoryState>,
+    agent_query: Query<&Inventory, With<Agent>>,
+    inventory_ui_query: Query<Entity, (With<Node>, With<InventoryUI>)>,
+) {
+    // Clear existing inventory UI
+    for entity in inventory_ui_query.iter() {
+        commands.entity(entity).despawn_recursive();
+    }
+    
+    if !inventory_state.ui_open {
+        return;
+    }
+    
+    // Get inventory data
+    let inventory = if let Some(agent_entity) = inventory_state.selected_agent {
+        agent_query.get(agent_entity).ok()
+    } else {
+        None
+    };
+    
+    // Create inventory panel with marker component
+    commands.spawn((
+        NodeBundle {
+            style: Style {
+                width: Val::Px(400.0),
+                height: Val::Px(500.0),
+                position_type: PositionType::Absolute,
+                left: Val::Px(50.0),
+                top: Val::Px(50.0),
+                flex_direction: FlexDirection::Column,
+                padding: UiRect::all(Val::Px(10.0)),
+                ..default()
+            },
+            background_color: Color::srgba(0.1, 0.1, 0.1, 0.9).into(),
+            z_index: ZIndex::Global(50),
+            ..default()
+        },
+        InventoryUI, // Marker component
+    )).with_children(|parent| {
+        // Title
+        parent.spawn(TextBundle::from_section(
+            "AGENT INVENTORY",
+            TextStyle {
+                font_size: 24.0,
+                color: Color::WHITE,
+                ..default()
+            },
+        ));
+        
+        if let Some(inv) = inventory {
+            // Currency display
+            parent.spawn(TextBundle::from_section(
+                format!("Credits: {}", inv.currency),
+                TextStyle {
+                    font_size: 18.0,
+                    color: Color::srgb(0.8, 0.8, 0.2),
+                    ..default()
+                },
+            ));
+            
+            // Equipped weapon section
+            if let Some(weapon) = &inv.equipped_weapon {
+                parent.spawn(TextBundle::from_section(
+                    format!("EQUIPPED WEAPON: {:?}", weapon),
+                    TextStyle {
+                        font_size: 16.0,
+                        color: Color::srgb(0.9, 0.5, 0.2),
+                        ..default()
+                    },
+                ));
+            } else {
+                parent.spawn(TextBundle::from_section(
+                    "EQUIPPED WEAPON: None",
+                    TextStyle {
+                        font_size: 16.0,
+                        color: Color::srgb(0.8, 0.3, 0.3),
+                        ..default()
+                    },
+                ));
+            }
+            
+            // Equipped tools section
+            if !inv.equipped_tools.is_empty() {
+                parent.spawn(TextBundle::from_section(
+                    format!("EQUIPPED TOOLS: {:?}", inv.equipped_tools),
+                    TextStyle {
+                        font_size: 16.0,
+                        color: Color::srgb(0.3, 0.8, 0.3),
+                        ..default()
+                    },
+                ));
+            }
+            
+            // Weapons section
+            if !inv.weapons.is_empty() {
+                parent.spawn(TextBundle::from_section(
+                    "WEAPONS:",
+                    TextStyle {
+                        font_size: 16.0,
+                        color: Color::srgb(0.8, 0.3, 0.3),
+                        ..default()
+                    },
+                ));
+                
+                for weapon in &inv.weapons {
+                    parent.spawn(TextBundle::from_section(
+                        format!("• {:?}", weapon),
+                        TextStyle {
+                            font_size: 14.0,
+                            color: Color::WHITE,
+                            ..default()
+                        },
+                    ));
+                }
+            }
+            
+            // Tools section
+            if !inv.tools.is_empty() {
+                parent.spawn(TextBundle::from_section(
+                    "TOOLS:",
+                    TextStyle {
+                        font_size: 16.0,
+                        color: Color::srgb(0.3, 0.8, 0.3),
+                        ..default()
+                    },
+                ));
+                
+                for tool in &inv.tools {
+                    parent.spawn(TextBundle::from_section(
+                        format!("• {:?}", tool),
+                        TextStyle {
+                            font_size: 14.0,
+                            color: Color::WHITE,
+                            ..default()
+                        },
+                    ));
+                }
+            }
+            
+            // Cybernetics section
+            if !inv.cybernetics.is_empty() {
+                parent.spawn(TextBundle::from_section(
+                    "CYBERNETICS:",
+                    TextStyle {
+                        font_size: 16.0,
+                        color: Color::srgb(0.3, 0.3, 0.8),
+                        ..default()
+                    },
+                ));
+                
+                for cybernetic in &inv.cybernetics {
+                    parent.spawn(TextBundle::from_section(
+                        format!("• {:?}", cybernetic),
+                        TextStyle {
+                            font_size: 14.0,
+                            color: Color::WHITE,
+                            ..default()
+                        },
+                    ));
+                }
+            }
+            
+            // Intel documents section
+            if !inv.intel_documents.is_empty() {
+                parent.spawn(TextBundle::from_section(
+                    "INTEL DOCUMENTS:",
+                    TextStyle {
+                        font_size: 16.0,
+                        color: Color::srgb(0.8, 0.8, 0.3),
+                        ..default()
+                    },
+                ));
+                
+                for (i, document) in inv.intel_documents.iter().enumerate() {
+                    let preview = if document.len() > 50 {
+                        format!("{}...", &document[..47])
+                    } else {
+                        document.clone()
+                    };
+                    
+                    parent.spawn(TextBundle::from_section(
+                        format!("• Document {}: {}", i + 1, preview),
+                        TextStyle {
+                            font_size: 12.0,
+                            color: Color::WHITE,
+                            ..default()
+                        },
+                    ));
+                }
+            }
+        } else {
+            parent.spawn(TextBundle::from_section(
+                "No agent selected",
+                TextStyle {
+                    font_size: 16.0,
+                    color: Color::srgb(0.8, 0.3, 0.3),
+                    ..default()
+                },
+            ));
+        }
+        
+        // Instructions
+        parent.spawn(TextBundle::from_section(
+            "\nPress 'I' to close inventory",
+            TextStyle {
+                font_size: 12.0,
+                color: Color::srgb(0.7, 0.7, 0.7),
+                ..default()
+            },
+        ));
+    });
 }
 
 fn draw_vision_cone(gizmos: &mut Gizmos, position: Vec2, vision: &Vision) {

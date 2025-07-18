@@ -5,6 +5,7 @@ use crate::core::*;
 pub fn handle_input(
     input: Query<&ActionState<PlayerAction>>,
     mut game_mode: ResMut<GameMode>,
+    mut inventory_state: ResMut<InventoryState>,
     mut action_events: EventWriter<ActionEvent>,
     selection: Res<SelectionState>,
     windows: Query<&Window>,
@@ -15,6 +16,15 @@ pub fn handle_input(
     if action_state.just_pressed(&PlayerAction::Pause) {
         game_mode.paused = !game_mode.paused;
         info!("Game {}", if game_mode.paused { "paused" } else { "resumed" });
+    }
+
+    // Handle inventory toggle
+    if action_state.just_pressed(&PlayerAction::Inventory) {
+        inventory_state.ui_open = !inventory_state.ui_open;
+        if inventory_state.ui_open {
+            inventory_state.selected_agent = selection.selected.first().copied();
+        }
+        info!("Inventory {}", if inventory_state.ui_open { "opened" } else { "closed" });
     }
 
     if game_mode.paused { return; }

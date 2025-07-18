@@ -84,6 +84,9 @@ pub struct Enemy;
 pub struct Health(pub f32);
 
 #[derive(Component)]
+pub struct Dead;
+
+#[derive(Component)]
 pub struct MovementSpeed(pub f32);
 
 #[derive(Component)]
@@ -185,12 +188,33 @@ pub enum TerminalType {
     Intel,
 }
 
+#[derive(Component)]
+pub struct InventoryUI;
+
+#[derive(Resource)]
+pub struct InventoryState {
+    pub ui_open: bool,
+    pub selected_agent: Option<Entity>,
+}
+
+impl Default for InventoryState {
+    fn default() -> Self {
+        Self {
+            ui_open: false,
+            selected_agent: None,
+        }
+    }
+}
+
 #[derive(Component, Default)]
 pub struct Inventory {
     pub weapons: Vec<WeaponType>,
     pub tools: Vec<ToolType>,
     pub currency: u32,
     pub equipped_weapon: Option<WeaponType>,
+    pub equipped_tools: Vec<ToolType>,
+    pub cybernetics: Vec<CyberneticType>,
+    pub intel_documents: Vec<String>,
 }
 
 impl Inventory {
@@ -204,18 +228,45 @@ impl Inventory {
     pub fn add_currency(&mut self, amount: u32) {
         self.currency += amount;
     }
+    
+    pub fn add_tool(&mut self, tool: ToolType) {
+        if self.equipped_tools.len() < 2 {
+            self.equipped_tools.push(tool.clone());
+        }
+        self.tools.push(tool);
+    }
+    
+    pub fn add_cybernetic(&mut self, cybernetic: CyberneticType) {
+        self.cybernetics.push(cybernetic);
+    }
+    
+    pub fn add_intel(&mut self, document: String) {
+        self.intel_documents.push(document);
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum CyberneticType {
+    Neurovector,
+    CombatEnhancer,
+    StealthModule,
+    TechInterface,
 }
 
 #[derive(Debug, Clone)]
 pub enum WeaponType {
     Pistol,
     Rifle,
+    Minigun,
+    Flamethrower,
 }
 
 #[derive(Debug, Clone)]
 pub enum ToolType {
     Hacker,
     Scanner,
+    Lockpick,
+    MedKit,
 }
 
 // === UTILITY FUNCTIONS ===

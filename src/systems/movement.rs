@@ -7,7 +7,7 @@ pub fn system(
     mut action_events: EventReader<ActionEvent>,
     mut controllable_query: Query<(Entity, &mut Velocity, &MovementSpeed, &Transform), (With<Controllable>, Without<Enemy>)>,
     mut target_query: Query<&mut MoveTarget>,
-    mut enemy_query: Query<(&mut Patrol, &Transform, &mut Velocity, &MovementSpeed), With<Enemy>>,
+    mut enemy_query: Query<(&mut Patrol, &Transform, &mut Velocity, &MovementSpeed), (With<Enemy>, Without<Dead>)>,
     game_mode: Res<GameMode>,
     time: Res<Time>,
 ) {
@@ -49,7 +49,7 @@ pub fn system(
         commands.entity(entity).remove::<MoveTarget>();
     }
 
-    // Handle enemy patrol (separate query to avoid conflicts)
+    // Handle enemy patrol (separate query to avoid conflicts) - only living enemies
     for (mut patrol, transform, mut velocity, speed) in enemy_query.iter_mut() {
         if let Some(target) = patrol.current_target() {
             let current_pos = transform.translation.truncate();

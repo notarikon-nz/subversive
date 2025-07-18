@@ -57,7 +57,5 @@ src/
 - ~60% smaller codebase with modular systems
 - Proper Rust patterns with consistent error handling
 
-**Engine:** Bevy 0.14 ECS with Rapier2D physics
-
-
+**Engine:** [Bevy 0.14 ECS](https://bevy.org/) with [Rapier2D physics](https://rapier.rs/)
 

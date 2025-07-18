@@ -19,15 +19,17 @@ fn main() {
             ..default()
         }))
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.0))
+        .add_systems(Startup, setup_physics)
         .add_plugins(RapierDebugRenderPlugin::default())
         .add_plugins(InputManagerPlugin::<PlayerAction>::default())
         .init_state::<GameState>()
         .init_resource::<GameMode>()
         .init_resource::<SelectionState>()
         .init_resource::<MissionData>()
+        .init_resource::<InventoryState>()
         .add_event::<ActionEvent>()
         .add_event::<CombatEvent>()
-        .add_systems(Startup, setup)
+        .add_systems(Startup, (setup, setup_physics))
         .add_systems(Update, (
             input::handle_input,
             camera::movement,
@@ -36,9 +38,16 @@ fn main() {
             neurovector::system,
             interaction::system,
             combat::system,
+            combat::death_system,
             ui::system,
+            ui::inventory_system,
+            ui::pause_system,
         ).run_if(in_state(GameState::Mission)))
         .run();
+}
+
+fn setup_physics(mut rapier_config: ResMut<RapierConfiguration>) {
+    rapier_config.gravity = Vec2::ZERO;
 }
 
 fn setup(mut commands: Commands) {
@@ -49,6 +58,10 @@ fn setup(mut commands: Commands) {
             .insert(PlayerAction::Pause, KeyCode::Space)
             .insert(PlayerAction::Select, MouseButton::Left)
             .insert(PlayerAction::Move, MouseButton::Right)
+            .insert(PlayerAction::Neurovector, KeyCode::KeyN)
+            .insert(PlayerAction::Combat, KeyCode::KeyF)
+            .insert(PlayerAction::Interact, KeyCode::KeyE)
+            .insert(PlayerAction::Inventory, KeyCode::KeyI)
             .build(),
         ..default()
     });
