@@ -1,6 +1,33 @@
 use bevy::prelude::*;
 use crate::core::*;
 
+pub fn timer_system(
+    mut mission_data: ResMut<MissionData>,
+    mut next_state: ResMut<NextState<GameState>>,
+    mut post_mission: ResMut<PostMissionResults>,
+    game_mode: Res<GameMode>,
+    time: Res<Time>,
+) {
+    if game_mode.paused { return; }
+    
+    mission_data.timer += time.delta_seconds();
+    
+    // Check time limit
+    if mission_data.timer >= mission_data.time_limit {
+        *post_mission = PostMissionResults {
+            success: false,
+            time_taken: mission_data.timer,
+            enemies_killed: mission_data.enemies_killed,
+            terminals_accessed: mission_data.terminals_accessed,
+            credits_earned: 0,
+            alert_level: mission_data.alert_level,
+        };
+        
+        next_state.set(GameState::PostMission);
+        info!("Mission failed - time expired!");
+    }
+}
+
 pub fn check_completion(
     mut next_state: ResMut<NextState<GameState>>,
     mission_data: Res<MissionData>,

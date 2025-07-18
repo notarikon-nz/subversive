@@ -330,12 +330,16 @@ pub fn post_mission_system(
     // Update global data with mission results
     if post_mission.success {
         global_data.credits += post_mission.credits_earned;
+        global_data.current_day += 1;
         
-        // Award experience to agents (10 base + 5 per enemy killed)
+        // Award experience and set recovery time based on mission difficulty
         let experience_gained = 10 + (post_mission.enemies_killed * 5);
+        let recovery_days = if post_mission.time_taken > 240.0 { 2 } else { 1 }; // Longer missions = more recovery
+        
         for (i, _agent) in agent_query.iter().enumerate() {
             if i < 3 {
                 global_data.agent_experience[i] += experience_gained;
+                global_data.agent_recovery[i] = global_data.current_day + recovery_days;
                 
                 // Check for level up
                 let current_level = global_data.agent_levels[i];
@@ -344,6 +348,12 @@ pub fn post_mission_system(
                     global_data.agent_levels[i] += 1;
                 }
             }
+        }
+    } else {
+        // Failed missions still advance time and require recovery
+        global_data.current_day += 1;
+        for i in 0..3 {
+            global_data.agent_recovery[i] = global_data.current_day + 3; // Longer recovery on failure
         }
     }
     
@@ -485,9 +495,9 @@ pub fn global_map_system(
         },
         GlobalMapUI,
     )).with_children(|parent| {
-        // Title
+        // Title and day counter
         parent.spawn(TextBundle::from_section(
-            "SUBVERSIVE - GLOBAL MAP",
+            format!("SUBVERSIVE - GLOBAL MAP\nDay {}", global_data.current_day),
             TextStyle {
                 font_size: 36.0,
                 color: Color::WHITE,
@@ -526,21 +536,31 @@ pub fn global_map_system(
         ));
         
         for i in 0..3 {
-            let level_color = match global_data.agent_levels[i] {
-                1 => Color::srgb(0.2, 0.8, 0.2),     // Green - Rookie
-                2 => Color::srgb(0.2, 0.2, 0.8),     // Blue - Veteran
-                3 => Color::srgb(0.8, 0.2, 0.8),     // Purple - Elite
-                _ => Color::srgb(0.8, 0.8, 0.2),     // Gold - Master
+            let level = global_data.agent_levels[i];
+            let is_recovering = global_data.agent_recovery[i] > global_data.current_day;
+            let recovery_days = if is_recovering { 
+                global_data.agent_recovery[i] - global_data.current_day 
+            } else { 0 };
+            
+            let level_color = if is_recovering {
+                Color::srgb(0.5, 0.5, 0.5) // Gray when recovering
+            } else {
+                match level {
+                    1 => Color::srgb(0.2, 0.8, 0.2),     // Green - Rookie
+                    2 => Color::srgb(0.2, 0.2, 0.8),     // Blue - Veteran
+                    3 => Color::srgb(0.8, 0.2, 0.8),     // Purple - Elite
+                    _ => Color::srgb(0.8, 0.8, 0.2),     // Gold - Master
+                }
+            };
+            
+            let status_text = if is_recovering {
+                format!("Agent {}: Level {} - RECOVERING ({} days)", i + 1, level, recovery_days)
+            } else {
+                format!("Agent {}: Level {} - READY", i + 1, level)
             };
             
             parent.spawn(TextBundle::from_section(
-                format!(
-                    "Agent {}: Level {} ({}/{})",
-                    i + 1,
-                    global_data.agent_levels[i],
-                    global_data.agent_experience[i],
-                    experience_for_level(global_data.agent_levels[i] + 1)
-                ),
+                status_text,
                 TextStyle {
                     font_size: 16.0,
                     color: level_color,
@@ -564,8 +584,15 @@ pub fn global_map_system(
         }
         
         // Controls
+        let any_agents_recovering = (0..3).any(|i| global_data.agent_recovery[i] > global_data.current_day);
+        let controls_text = if any_agents_recovering {
+            "\nUP/DOWN: Select Region\nW: Wait 1 Day\nENTER: Start Mission (Recovering agents won't deploy)\nESC: Quit"
+        } else {
+            "\nUP/DOWN: Select Region\nW: Wait 1 Day\nENTER: Start Mission\nESC: Quit"
+        };
+        
         parent.spawn(TextBundle::from_section(
-            "\nUP/DOWN: Select Region\nENTER: Start Mission\nESC: Quit",
+            controls_text,
             TextStyle {
                 font_size: 16.0,
                 color: Color::srgb(0.7, 0.7, 0.7),
@@ -587,10 +614,20 @@ pub fn global_map_system(
         }
     }
     
+    if input.just_pressed(KeyCode::KeyW) {
+        global_data.current_day += 1;
+        info!("Waited 1 day. Current day: {}", global_data.current_day);
+    }
+    
     if input.just_pressed(KeyCode::Enter) {
-        commands.insert_resource(ShouldRestart);
-        next_state.set(GameState::Mission);
-        info!("Starting mission in: {}", global_data.regions[global_data.selected_region].name);
+        let ready_agents = (0..3).filter(|&i| global_data.agent_recovery[i] <= global_data.current_day).count();
+        if ready_agents > 0 {
+            commands.insert_resource(ShouldRestart);
+            next_state.set(GameState::Mission);
+            info!("Starting mission with {} agents in: {}", ready_agents, global_data.regions[global_data.selected_region].name);
+        } else {
+            info!("No agents ready for deployment!");
+        }
     }
     
     if input.just_pressed(KeyCode::Escape) {

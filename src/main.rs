@@ -47,6 +47,7 @@ fn main() {
             ui::system,
             ui::inventory_system,
             ui::pause_system,
+            mission::timer_system,
             mission::check_completion,
             mission::restart_system,
         ).run_if(in_state(GameState::Mission)))
@@ -100,7 +101,7 @@ fn spawn_agents(commands: &mut Commands, count: usize, global_data: &GlobalData)
                 )),
                 ..default()
             },
-            Agent { experience:0, level:1 },
+            Agent {experience:0, level:1 },
             Health(100.0),
             MovementSpeed(150.0),
             Controllable,

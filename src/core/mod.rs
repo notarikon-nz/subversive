@@ -48,6 +48,7 @@ pub struct MissionData {
     pub total_objectives: u32,
     pub enemies_killed: u32,
     pub terminals_accessed: u32,
+    pub time_limit: f32,
 }
 
 impl Default for MissionData {
@@ -59,6 +60,7 @@ impl Default for MissionData {
             total_objectives: 1,
             enemies_killed: 0,
             terminals_accessed: 0,
+            time_limit: 300.0, // 5 minutes
         }
     }
 }
@@ -168,6 +170,8 @@ pub struct GlobalData {
     pub regions: Vec<Region>,
     pub agent_levels: [u8; 3],
     pub agent_experience: [u32; 3],
+    pub current_day: u32,
+    pub agent_recovery: [u32; 3],
 }
 
 impl Default for GlobalData {
@@ -182,6 +186,8 @@ impl Default for GlobalData {
             ],
             agent_levels: [1, 1, 1],
             agent_experience: [0, 0, 0],
+            current_day: 1,
+            agent_recovery: [0, 0, 0],
         }
     }
 }
