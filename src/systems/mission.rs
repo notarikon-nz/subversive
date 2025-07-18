@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use crate::core::*;
+use crate::systems::*;
 
 pub fn timer_system(
     mut mission_data: ResMut<MissionData>,
@@ -51,6 +52,7 @@ pub fn check_completion(
     }
 }
 
+/*
 pub fn restart_system(
     mut commands: Commands,
     restart_check: Option<Res<ShouldRestart>>,
@@ -79,6 +81,43 @@ pub fn restart_system(
     crate::spawn_enemy(&mut commands, &*global_data);
     crate::spawn_terminals(&mut commands);
 }
+*/
+
+pub fn restart_system(
+    mut commands: Commands,
+    restart_check: Option<Res<ShouldRestart>>,
+    entities: Query<Entity, (Without<Camera>, Without<Window>)>,
+    mut mission_data: ResMut<MissionData>,
+    mut game_mode: ResMut<GameMode>,
+    mut selection: ResMut<SelectionState>,
+    mut inventory_state: ResMut<InventoryState>,
+    global_data: Res<GlobalData>,
+) {
+    if restart_check.is_none() { return; }
+    
+    for entity in entities.iter() {
+        commands.entity(entity).despawn_recursive();
+    }
+    
+    *mission_data = MissionData::default();
+    *game_mode = GameMode::default();
+    *selection = SelectionState::default();
+    *inventory_state = InventoryState::default();
+    
+    commands.remove_resource::<ShouldRestart>();
+    
+    // Use scene system
+    let scene_name = match global_data.selected_region {
+        0 => "mission1",
+        1 => "mission2", 
+        2 => "mission3",
+        _ => "mission1",
+    };
+    
+    let scene = crate::systems::scenes::load_scene(scene_name);
+    crate::systems::scenes::spawn_from_scene(&mut commands, &scene, &*global_data);
+}
+
 
 pub fn post_mission_system(
     mut commands: Commands,

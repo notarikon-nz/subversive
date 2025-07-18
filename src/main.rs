@@ -87,6 +87,29 @@ fn setup(mut commands: Commands) {
         ..default()
     });
 
+    // Load scene instead of hardcoded spawning
+    let global_data = GlobalData::default();
+    let scene = systems::scenes::load_scene("mission1");
+    systems::scenes::spawn_from_scene(&mut commands, &scene, &global_data);
+}
+
+/*
+fn setup(mut commands: Commands) {
+    commands.spawn(Camera2dBundle::default());
+    
+    commands.spawn(InputManagerBundle::<PlayerAction> {
+        input_map: InputMap::default()
+            .insert(PlayerAction::Pause, KeyCode::Space)
+            .insert(PlayerAction::Select, MouseButton::Left)
+            .insert(PlayerAction::Move, MouseButton::Right)
+            .insert(PlayerAction::Neurovector, KeyCode::KeyN)
+            .insert(PlayerAction::Combat, KeyCode::KeyF)
+            .insert(PlayerAction::Interact, KeyCode::KeyE)
+            .insert(PlayerAction::Inventory, KeyCode::KeyI)
+            .build(),
+        ..default()
+    });
+
     // Spawn test scenario
     let global_data = load_game().unwrap_or_default();
     commands.insert_resource(global_data.clone());
@@ -95,7 +118,9 @@ fn setup(mut commands: Commands) {
     spawn_civilians(&mut commands, 5);
     spawn_enemy(&mut commands, &global_data);
     spawn_terminals(&mut commands);
+
 }
+
 
 fn spawn_agents(commands: &mut Commands, count: usize, global_data: &GlobalData) {
     for i in 0..count {
@@ -201,6 +226,7 @@ fn alert_color(alert_level: AlertLevel) -> Color {
         AlertLevel::Red => Color::srgb(1.0, 0.2, 0.2),        // Bright red
     }
 }
+*/
 
 fn spawn_terminals(commands: &mut Commands) {
     let terminals = [
