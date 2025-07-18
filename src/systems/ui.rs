@@ -64,11 +64,20 @@ pub struct PauseUI;
 pub fn pause_system(
     mut commands: Commands,
     game_mode: Res<GameMode>,
+    mut ui_state: ResMut<UIState>,
     pause_ui_query: Query<Entity, With<PauseUI>>,
 ) {
-    if game_mode.paused {
-        // Only create pause UI if it doesn't exist
-        if pause_ui_query.is_empty() {
+    let should_show = game_mode.paused;
+    
+    if ui_state.pause_open != should_show {
+        ui_state.pause_open = should_show;
+        
+        // Clear existing UI
+        for entity in pause_ui_query.iter() {
+            commands.entity(entity).despawn_recursive();
+        }
+        
+        if should_show {
             commands.spawn((
                 NodeBundle {
                     style: Style {
@@ -83,7 +92,7 @@ pub fn pause_system(
                     z_index: ZIndex::Global(100),
                     ..default()
                 },
-                PauseUI, // Marker component
+                PauseUI,
             )).with_children(|parent| {
                 parent.spawn(TextBundle::from_section(
                     "PAUSED\nPress SPACE to resume",
@@ -94,11 +103,6 @@ pub fn pause_system(
                     },
                 ));
             });
-        }
-    } else {
-        // Clear pause UI when not paused
-        for entity in pause_ui_query.iter() {
-            commands.entity(entity).despawn_recursive();
         }
     }
 }
@@ -487,17 +491,118 @@ pub fn post_mission_system(
 #[derive(Component)]
 pub struct PostMissionUI;
 
+pub fn fps_system(
+    mut commands: Commands,
+    ui_state: Res<UIState>,
+    fps_query: Query<Entity, With<FpsText>>,
+    mut fps_text_query: Query<&mut Text, With<FpsText>>,
+    time: Res<Time>,
+) {
+    // Handle FPS counter visibility
+    if ui_state.fps_visible && fps_query.is_empty() {
+        // Create FPS counter
+        info!("Creating FPS counter");
+        commands.spawn((
+            TextBundle::from_section(
+                "FPS: --",
+                TextStyle {
+                    font_size: 20.0,
+                    color: Color::srgb(0.0, 1.0, 0.0),
+                    ..default()
+                },
+            )
+            .with_style(Style {
+                position_type: PositionType::Absolute,
+                top: Val::Px(10.0),
+                left: Val::Px(10.0),
+                ..default()
+            }),
+            FpsText,
+        ));
+    } else if !ui_state.fps_visible && !fps_query.is_empty() {
+        // Remove FPS counter
+        info!("Removing FPS counter");
+        for entity in fps_query.iter() {
+            commands.entity(entity).despawn_recursive();
+        }
+    } else if ui_state.fps_visible && !fps_query.is_empty() {
+        // Update FPS counter
+        let fps = 1.0 / time.delta_seconds();
+        if let Ok(mut text) = fps_text_query.get_single_mut() {
+            text.sections[0].value = format!("FPS: {:.0}", fps);
+        }
+    }
+}
+
 pub fn global_map_system(
     mut commands: Commands,
     mut next_state: ResMut<NextState<GameState>>,
     mut global_data: ResMut<GlobalData>,
+    mut ui_state: ResMut<UIState>,
     input: Res<ButtonInput<KeyCode>>,
     ui_query: Query<Entity, With<GlobalMapUI>>,
 ) {
-    // Clear existing UI
-    for entity in ui_query.iter() {
-        commands.entity(entity).despawn_recursive();
+    // Handle input first
+    let mut needs_rebuild = false;
+    
+    if input.just_pressed(KeyCode::ArrowUp) {
+        if global_data.selected_region > 0 {
+            global_data.selected_region -= 1;
+            needs_rebuild = true;
+        }
     }
+    
+    if input.just_pressed(KeyCode::ArrowDown) {
+        if global_data.selected_region < global_data.regions.len() - 1 {
+            global_data.selected_region += 1;
+            needs_rebuild = true;
+        }
+    }
+    
+    if input.just_pressed(KeyCode::KeyW) {
+        global_data.current_day += 1;
+        
+        // Update all region alert levels for decay
+        let current_day = global_data.current_day;
+        for region in &mut global_data.regions {
+            region.update_alert(current_day);
+        }
+        
+        needs_rebuild = true;
+        info!("Waited 1 day. Current day: {}", current_day);
+    }
+    
+    if input.just_pressed(KeyCode::Enter) {
+        let ready_agents = (0..3).filter(|&i| global_data.agent_recovery[i] <= global_data.current_day).count();
+        if ready_agents > 0 {
+            commands.insert_resource(ShouldRestart);
+            next_state.set(GameState::Mission);
+            ui_state.global_map_open = false;
+            info!("Starting mission with {} agents in: {}", ready_agents, global_data.regions[global_data.selected_region].name);
+            return;
+        } else {
+            info!("No agents ready for deployment!");
+        }
+    }
+    
+    if input.just_pressed(KeyCode::Escape) {
+        std::process::exit(0);
+    }
+    
+    // Rebuild UI if needed
+    if !ui_state.global_map_open || needs_rebuild {
+        ui_state.global_map_open = true;
+        
+        // Clear existing UI
+        for entity in ui_query.iter() {
+            commands.entity(entity).despawn_recursive();
+        }
+        
+        create_global_map_ui(&mut commands, &global_data);
+    }
+}
+
+fn create_global_map_ui(commands: &mut Commands, global_data: &GlobalData) {
     
     // Create global map UI
     commands.spawn((
@@ -621,46 +726,6 @@ pub fn global_map_system(
             },
         ));
     });
-    
-    // Handle input
-    if input.just_pressed(KeyCode::ArrowUp) {
-        if global_data.selected_region > 0 {
-            global_data.selected_region -= 1;
-        }
-    }
-    
-    if input.just_pressed(KeyCode::ArrowDown) {
-        if global_data.selected_region < global_data.regions.len() - 1 {
-            global_data.selected_region += 1;
-        }
-    }
-    
-    if input.just_pressed(KeyCode::KeyW) {
-        global_data.current_day += 1;
-        
-        // Update all region alert levels for decay
-        let current_day = global_data.current_day;
-        for region in &mut global_data.regions {
-            region.update_alert(current_day);
-        }
-        
-        info!("Waited 1 day. Current day: {}", current_day);
-    }
-    
-    if input.just_pressed(KeyCode::Enter) {
-        let ready_agents = (0..3).filter(|&i| global_data.agent_recovery[i] <= global_data.current_day).count();
-        if ready_agents > 0 {
-            commands.insert_resource(ShouldRestart);
-            next_state.set(GameState::Mission);
-            info!("Starting mission with {} agents in: {}", ready_agents, global_data.regions[global_data.selected_region].name);
-        } else {
-            info!("No agents ready for deployment!");
-        }
-    }
-    
-    if input.just_pressed(KeyCode::Escape) {
-        std::process::exit(0);
-    }
 }
 
 fn draw_vision_cone(gizmos: &mut Gizmos, position: Vec2, vision: &Vision) {

@@ -6,20 +6,33 @@ pub fn handle_input(
     input: Query<&ActionState<PlayerAction>>,
     mut game_mode: ResMut<GameMode>,
     mut inventory_state: ResMut<InventoryState>,
+    mut ui_state: ResMut<UIState>,
     mut action_events: EventWriter<ActionEvent>,
     selection: Res<SelectionState>,
+    keyboard: Res<ButtonInput<KeyCode>>,
+    mouse: Res<ButtonInput<MouseButton>>,
     windows: Query<&Window>,
     cameras: Query<(&Camera, &GlobalTransform)>,
+    game_state: Res<State<GameState>>,
 ) {
-    let Ok(action_state) = input.get_single() else { return; };
+    // Toggle FPS counter with F3 key (works in all states)
+    if keyboard.just_pressed(KeyCode::F3) {
+        ui_state.fps_visible = !ui_state.fps_visible;
+        info!("FPS counter {}", if ui_state.fps_visible { "enabled" } else { "disabled" });
+    }
 
-    if action_state.just_pressed(&PlayerAction::Pause) {
+    // Only handle mission input during missions
+    if *game_state.get() != GameState::Mission {
+        return;
+    }
+
+    // Direct keyboard input for mission (bypass ActionState)
+    if keyboard.just_pressed(KeyCode::Space) {
         game_mode.paused = !game_mode.paused;
         info!("Game {}", if game_mode.paused { "paused" } else { "resumed" });
     }
 
-    // Handle inventory toggle
-    if action_state.just_pressed(&PlayerAction::Inventory) {
+    if keyboard.just_pressed(KeyCode::KeyI) {
         inventory_state.ui_open = !inventory_state.ui_open;
         if inventory_state.ui_open {
             inventory_state.selected_agent = selection.selected.first().copied();
@@ -27,9 +40,22 @@ pub fn handle_input(
         info!("Inventory {}", if inventory_state.ui_open { "opened" } else { "closed" });
     }
 
+    if keyboard.just_pressed(KeyCode::KeyN) {
+        if let Some(&agent) = selection.selected.first() {
+            toggle_neurovector_targeting(&mut game_mode, agent);
+        }
+    }
+
+    if keyboard.just_pressed(KeyCode::KeyF) {
+        if let Some(&agent) = selection.selected.first() {
+            toggle_combat_targeting(&mut game_mode, agent);
+        }
+    }
+
     if game_mode.paused { return; }
 
-    if action_state.just_pressed(&PlayerAction::Move) {
+    // Handle mouse movement
+    if mouse.just_pressed(MouseButton::Right) {
         if let Some(world_pos) = get_world_mouse_position(&windows, &cameras) {
             for &entity in &selection.selected {
                 action_events.send(ActionEvent {
@@ -37,18 +63,6 @@ pub fn handle_input(
                     action: Action::MoveTo(world_pos),
                 });
             }
-        }
-    }
-
-    if action_state.just_pressed(&PlayerAction::Neurovector) {
-        if let Some(&agent) = selection.selected.first() {
-            toggle_neurovector_targeting(&mut game_mode, agent);
-        }
-    }
-
-    if action_state.just_pressed(&PlayerAction::Combat) {
-        if let Some(&agent) = selection.selected.first() {
-            toggle_combat_targeting(&mut game_mode, agent);
         }
     }
 }

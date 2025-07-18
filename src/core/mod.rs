@@ -29,6 +29,18 @@ impl Default for GameMode {
     }
 }
 
+#[derive(Resource, Default)]
+pub struct UIState {
+    pub global_map_open: bool,
+    pub inventory_open: bool,
+    pub pause_open: bool,
+    pub post_mission_open: bool,
+    pub fps_visible: bool,
+}
+
+#[derive(Component)]
+pub struct FpsText;
+
 #[derive(Debug)]
 pub enum TargetingMode {
     Neurovector { agent: Entity },

@@ -4,16 +4,14 @@ use crate::core::*;
 
 pub fn system(
     mut commands: Commands,
-    input: Query<&ActionState<PlayerAction>>,
     mut selection: ResMut<SelectionState>,
     selectable_query: Query<(Entity, &Selectable, &Transform), With<Agent>>,
     selected_query: Query<Entity, With<Selected>>,
+    mouse: Res<ButtonInput<MouseButton>>,
     windows: Query<&Window>,
     cameras: Query<(&Camera, &GlobalTransform)>,
 ) {
-    let Ok(action_state) = input.get_single() else { return; };
-
-    if action_state.just_pressed(&PlayerAction::Select) {
+    if mouse.just_pressed(MouseButton::Left) {
         let Some(world_pos) = get_world_mouse_position(&windows, &cameras) else { return; };
 
         // Clear previous selection
