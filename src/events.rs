@@ -1,3 +1,5 @@
+#[allow(dead_code)]
+
 use bevy::prelude::*;
 use crate::components::*;
 
@@ -97,3 +99,27 @@ pub enum InteractionEventType {
     CancelInteraction,
     CompleteInteraction,
 }
+
+
+#[derive(Event)]
+pub struct CombatEvent {
+    pub attacker: Entity,
+    pub target: Entity,
+    pub damage: f32,
+    pub hit: bool,
+}
+
+#[derive(Event)]
+pub struct DeathEvent {
+    pub entity: Entity,
+    pub position: Vec2,
+    pub entity_type: DeathEntityType,
+}
+
+#[derive(Debug, Clone)]
+pub enum DeathEntityType {
+    Agent,
+    Civilian,
+    Enemy,
+}
+

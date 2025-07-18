@@ -18,6 +18,7 @@ A quick and dirty 2D top-down squad-based tactical stealth game built with Rust 
 | `Left Click` | Select agent |
 | `Right Click` | Move selected agents/controlled civilians |
 | `N` | Enter/Exit neurovector targeting mode |
+| `F` | Enter/Exit combat targeting mode |
 | `E` | Interact with nearby terminals |
 | `I` | Open/Close inventory for selected agent |
 | `Escape` | Cancel neurovector targeting, terminal interaction, or close inventory |
@@ -28,6 +29,7 @@ A quick and dirty 2D top-down squad-based tactical stealth game built with Rust 
 2. **Press N** to enter targeting mode - valid targets get yellow highlights
 3. **Click a civilian** within range to control them
 4. **Use right-click** to move both agents and controlled civilians together
+
 ### Equipment Management
 1. **Access terminals** to collect weapons, tools, cybernetics, and intel
 2. **Press 'I'** to open the inventory panel for your selected agent
@@ -128,3 +130,5 @@ The framework is designed for rapid iteration. Key extension points:
 sudo apt-get update
 sudo apt-get install build-essential pkg-config libasound2-dev libudev-dev libx11-dev libxi-dev libgl1-mesa-dev
 ```
+
+

@@ -1,3 +1,5 @@
+#[allow(dead_code)]
+
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 use std::collections::HashMap;
@@ -25,6 +27,25 @@ impl Default for Agent {
             equipment: vec![],
             recovery_time: None,
             experience: 0,
+        }
+    }
+}
+
+#[derive(Component)]
+pub struct Stealth {
+    pub visibility_level: f32, // 0.0 = invisible, 1.0 = fully visible
+    pub movement_noise: f32,   // How much noise when moving
+    pub is_detected: bool,     // Currently spotted by enemies
+    pub detection_grace_period: f32, // Time before full detection
+}
+
+impl Default for Stealth {
+    fn default() -> Self {
+        Self {
+            visibility_level: 0.3, // Agents start somewhat stealthy
+            movement_noise: 0.5,
+            is_detected: false,
+            detection_grace_period: 1.5, // 1.5 seconds to react
         }
     }
 }
@@ -168,6 +189,7 @@ pub enum TechSkill {
     Electronics,
     Cybernetics,
     VehicleOperation,
+    Hacking,
 }
 
 #[derive(Debug, Clone)]
@@ -353,3 +375,65 @@ pub enum InteractionReward {
     ObjectiveProgress, // Advances mission objectives
 }
 
+
+
+#[derive(Component)]
+pub struct Combat {
+    pub weapon_damage: f32,
+    pub attack_range: f32,
+    pub attack_cooldown: f32,
+    pub current_cooldown: f32,
+    pub accuracy: f32, // 0.0 to 1.0
+    pub is_attacking: bool,
+    pub target: Option<Entity>,
+}
+
+impl Default for Combat {
+    fn default() -> Self {
+        Self {
+            weapon_damage: 25.0,
+            attack_range: 150.0,
+            attack_cooldown: 1.5, // 1.5 seconds between attacks
+            current_cooldown: 0.0,
+            accuracy: 0.8, // 80% accuracy
+            is_attacking: false,
+            target: None,
+        }
+    }
+}
+
+#[derive(Component)]
+pub struct Health {
+    pub current: f32,
+    pub maximum: f32,
+    pub is_dead: bool,
+    pub damage_taken_this_frame: f32, // For visual feedback
+}
+
+impl Default for Health {
+    fn default() -> Self {
+        Self {
+            current: 100.0,
+            maximum: 100.0,
+            is_dead: false,
+            damage_taken_this_frame: 0.0,
+        }
+    }
+}
+
+#[derive(Component)]
+pub struct HealthBar {
+    pub offset: Vec2, // Offset above the entity
+    pub size: Vec2,
+    pub show_always: bool, // Show even at full health
+}
+
+impl Default for HealthBar {
+    fn default() -> Self {
+        Self {
+            offset: Vec2::new(0.0, 25.0),
+            size: Vec2::new(30.0, 4.0),
+            show_always: false,
+        }
+    }
+}

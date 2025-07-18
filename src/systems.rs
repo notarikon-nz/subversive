@@ -1,3 +1,5 @@
+#[allow(dead_code)]
+
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 use leafwing_input_manager::prelude::*;
@@ -29,6 +31,13 @@ const INVENTORY_PANEL_HEIGHT: f32 = 500.0;
 const INVENTORY_ITEM_HEIGHT: f32 = 30.0;
 const NOTIFICATION_DURATION: f32 = 3.0;
 
+// Combat constants
+const COMBAT_RANGE_INDICATOR_COLOR: Color = Color::srgb(0.8, 0.2, 0.2);
+const HEALTH_BAR_BACKGROUND: Color = Color::srgb(0.3, 0.3, 0.3);
+const HEALTH_BAR_FULL: Color = Color::srgb(0.2, 0.8, 0.2);
+const HEALTH_BAR_DAMAGED: Color = Color::srgb(0.8, 0.8, 0.2);
+const HEALTH_BAR_CRITICAL: Color = Color::srgb(0.8, 0.2, 0.2);
+
 // Component to mark neurovector commands for processing
 #[derive(Component)]
 pub struct NeurovectorCommand {
@@ -44,8 +53,11 @@ pub fn spawn_test_mission(
 ) {
     // Spawn 3 agents
     for i in 0..3 {
-        let agent_entity = commands.spawn((
-            SpriteBundle {
+        // limitation on the number of tuples commands.spawn can handle
+        // created empty Entity object instead, and inserted components
+        // May need to repeat with Civilian and Enemy Guard as well
+        let agent_entity = commands.spawn_empty()
+            .insert(SpriteBundle {
                 sprite: Sprite {
                     color: Color::srgb(0.2, 0.8, 0.2),
                     custom_size: Some(Vec2::new(20.0, 20.0)),
@@ -57,30 +69,54 @@ pub fn spawn_test_mission(
                     1.0,
                 )),
                 ..default()
-            },
-            Agent::default(),
-            Movement {
+            })
+            .insert(Agent::default())
+            .insert(Movement {
                 target_position: None,
                 path: vec![],
                 current_path_index: 0,
-            },
-            Selectable {
+            })
+            .insert(Selectable {
                 selected: false,
                 selection_radius: 15.0,
-            },
-            AgentVision {
+            })
+            .insert(AgentVision {
                 range: 150.0,
                 angle: PI / 3.0, // 60 degrees
                 direction: Vec2::new(1.0, 0.0),
                 can_see: vec![],
                 detection_buildup: 0.0,
-            },
-            NeurovectorCapability::default(),
-            RigidBody::Dynamic,
-            Collider::ball(10.0),
-            Velocity::default(),
-            Damping { linear_damping: 10.0, angular_damping: 10.0 },
-        )).id();
+            })
+            .insert(Stealth::default())
+            .insert(EquipmentInventory::default())
+            .insert(NeurovectorCapability::default())
+            .insert(Combat {
+                weapon_damage: 35.0,
+                attack_range: 120.0,
+                attack_cooldown: 1.2,
+                current_cooldown: 0.0,
+                accuracy: 0.9, // Enemies are more accurate
+                is_attacking: false,
+                target: None,
+            })
+            .insert(Health {
+                current: 150.0,
+                maximum: 150.0,
+                is_dead: false,
+                damage_taken_this_frame: 0.0,
+            })
+            .insert(HealthBar {
+                offset: Vec2::new(0.0, 30.0),
+                size: Vec2::new(35.0, 5.0),
+                show_always: true, // Always show enemy health
+            })
+            .insert(Collider::ball(10.0))
+            .insert(Velocity::default())
+            .insert(Damping { 
+                linear_damping: 10.0, 
+                angular_damping: 10.0 
+            })
+            .id();
         
         global_data.available_agents.push(agent_entity);
     }
@@ -114,6 +150,7 @@ pub fn spawn_test_mission(
                 path: vec![],
                 current_path_index: 0,
             },
+            Stealth::default(),
             Selectable {
                 selected: false,
                 selection_radius: 10.0,
@@ -189,8 +226,102 @@ pub fn spawn_test_mission(
         ..default()
     });
 
-    info!("Test mission spawned with 3 agents, 5 civilians, 1 enemy, and 1 objective");
+    // Spawn some interactive terminals
+    spawn_test_terminals(&mut commands);
+
+    info!("Test mission spawned with 3 agents, 5 civilians, 1 enemy, 1 objective, and terminals");
 }
+
+
+// Helper function to spawn test terminals
+fn spawn_test_terminals(commands: &mut Commands) {
+    // Critical terminal (red) - mission objective
+    commands.spawn((
+        SpriteBundle {
+            sprite: Sprite {
+                color: Color::srgb(0.9, 0.2, 0.2),
+                custom_size: Some(Vec2::new(25.0, 25.0)),
+                ..default()
+            },
+            transform: Transform::from_translation(Vec3::new(320.0, -50.0, 1.0)),
+            ..default()
+        },
+        InteractableTerminal {
+            terminal_type: TerminalType::ObjectiveTerminal,
+            priority_color: PriorityColor::Critical,
+            access_requirements: vec![],
+            loot_table: vec![InteractionReward::ObjectiveProgress],
+            interaction_range: 35.0,
+            access_time: 3.0,
+            ..default()
+        },
+        Selectable {
+            selected: false,
+            selection_radius: 15.0,
+        },
+    ));
+
+    // Secondary terminal (blue) - cybernetics
+    commands.spawn((
+        SpriteBundle {
+            sprite: Sprite {
+                color: Color::srgb(0.2, 0.5, 0.9),
+                custom_size: Some(Vec2::new(20.0, 20.0)),
+                ..default()
+            },
+            transform: Transform::from_translation(Vec3::new(150.0, -80.0, 1.0)),
+            ..default()
+        },
+        InteractableTerminal {
+            terminal_type: TerminalType::CyberneticNode,
+            priority_color: PriorityColor::Secondary,
+            access_requirements: vec![],
+            loot_table: vec![
+                InteractionReward::SkillMatrix(SkillType::Technical(TechSkill::Hacking)),
+                InteractionReward::Currency(200),
+            ],
+            interaction_range: 30.0,
+            access_time: 2.5,
+            ..default()
+        },
+        Selectable {
+            selected: false,
+            selection_radius: 12.0,
+        },
+    ));
+
+    // Optional terminal (green) - intel/lore
+    commands.spawn((
+        SpriteBundle {
+            sprite: Sprite {
+                color: Color::srgb(0.2, 0.8, 0.3),
+                custom_size: Some(Vec2::new(18.0, 18.0)),
+                ..default()
+            },
+            transform: Transform::from_translation(Vec3::new(50.0, 120.0, 1.0)),
+            ..default()
+        },
+        InteractableTerminal {
+            terminal_type: TerminalType::DataTerminal,
+            priority_color: PriorityColor::Optional,
+            access_requirements: vec![],
+            loot_table: vec![
+                InteractionReward::Intel("Corporate research logs indicate unusual neurovector activity in Sector 7.".to_string()),
+                InteractionReward::Currency(50),
+            ],
+            interaction_range: 25.0,
+            access_time: 1.5,
+            ..default()
+        },
+        Selectable {
+            selected: false,
+            selection_radius: 10.0,
+        },
+    ));
+
+    info!("Spawned 3 test terminals: Critical (red), Secondary (blue), Optional (green)");
+}
+
 
 // Pause system - core mechanic for tactical gameplay
 pub fn handle_pause_input(
@@ -1483,5 +1614,393 @@ pub fn equipment_notification_system(
         if inventory_state.recent_acquisitions.len() > 10 {
             inventory_state.recent_acquisitions.clear();
         }
+    }
+}
+
+/// ===[ COMBAT ]===
+// Combat targeting system - handles attack target selection
+pub fn combat_targeting_system(
+    mut commands: Commands,
+    input: Query<&ActionState<PlayerAction>>,
+    mut combat_targeting: ResMut<CombatTargeting>,
+    selection_state: Res<SelectionState>,
+    agent_query: Query<(Entity, &Transform, &Combat), With<Agent>>,
+    enemy_query: Query<(Entity, &Transform, &Health), (With<Enemy>, Without<Agent>)>,
+    keyboard: Res<ButtonInput<KeyCode>>,
+    windows: Query<&Window>,
+    cameras: Query<(&Camera, &GlobalTransform)>,
+) {
+    if let Ok(action_state) = input.get_single() {
+        // Toggle combat targeting mode with 'F' key (for Fire/Fight)
+        if keyboard.just_pressed(KeyCode::KeyF) {
+            if !combat_targeting.targeting_mode {
+                // Enter targeting mode if we have a selected agent
+                if let Some(&selected_agent) = selection_state.selected_agents.first() {
+                    if let Ok((_, _, combat)) = agent_query.get(selected_agent) {
+                        if combat.current_cooldown <= 0.0 {
+                            combat_targeting.targeting_mode = true;
+                            combat_targeting.active_agent = Some(selected_agent);
+                            info!("Combat targeting mode activated");
+                        } else {
+                            info!("Weapon on cooldown: {:.1}s remaining", combat.current_cooldown);
+                        }
+                    }
+                }
+            } else {
+                // Exit targeting mode
+                combat_targeting.targeting_mode = false;
+                combat_targeting.active_agent = None;
+                combat_targeting.valid_targets.clear();
+                info!("Combat targeting mode deactivated");
+            }
+        }
+
+        // Cancel targeting with escape
+        if keyboard.just_pressed(KeyCode::Escape) && combat_targeting.targeting_mode {
+            combat_targeting.targeting_mode = false;
+            combat_targeting.active_agent = None;
+            combat_targeting.valid_targets.clear();
+            info!("Combat targeting cancelled");
+        }
+
+        // Handle target selection when in targeting mode
+        if combat_targeting.targeting_mode {
+            if let Some(active_agent) = combat_targeting.active_agent {
+                if let Ok((_, agent_transform, combat)) = agent_query.get(active_agent) {
+                    // Update valid targets based on range
+                    combat_targeting.valid_targets.clear();
+                    
+                    for (enemy_entity, enemy_transform, enemy_health) in enemy_query.iter() {
+                        if enemy_health.is_dead {
+                            continue; // Skip dead enemies
+                        }
+                        
+                        let distance = agent_transform.translation.truncate()
+                            .distance(enemy_transform.translation.truncate());
+                        
+                        if distance <= combat.attack_range {
+                            combat_targeting.valid_targets.push(enemy_entity);
+                        }
+                    }
+
+                    // Handle target selection click
+                    if action_state.just_pressed(&PlayerAction::Select) {
+                        if let Some(mouse_pos) = get_world_mouse_position(&windows, &cameras) {
+                            // Find closest valid target to mouse
+                            let mut closest_target = None;
+                            let mut closest_distance = f32::INFINITY;
+                            
+                            for &target_entity in &combat_targeting.valid_targets {
+                                if let Ok((_, target_transform, _)) = enemy_query.get(target_entity) {
+                                    let distance = mouse_pos.distance(target_transform.translation.truncate());
+                                    if distance < 30.0 && distance < closest_distance {
+                                        closest_distance = distance;
+                                        closest_target = Some(target_entity);
+                                    }
+                                }
+                            }
+
+                            if let Some(target) = closest_target {
+                                // Execute attack command
+                                commands.spawn((
+                                    AttackCommand {
+                                        attacker: active_agent,
+                                        target,
+                                    },
+                                ));
+                                
+                                combat_targeting.targeting_mode = false;
+                                combat_targeting.active_agent = None;
+                                combat_targeting.valid_targets.clear();
+                                info!("Attack command issued");
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Component to mark attack commands for processing
+#[derive(Component)]
+pub struct AttackCommand {
+    pub attacker: Entity,
+    pub target: Entity,
+}
+
+// Combat system - processes attacks and damage
+pub fn combat_system(
+    mut commands: Commands,
+    attack_commands: Query<(Entity, &AttackCommand)>,
+    mut combat_query: Query<&mut Combat>,
+    mut health_query: Query<&mut Health>,
+    mut combat_events: EventWriter<CombatEvent>,
+    mut death_events: EventWriter<DeathEvent>,
+    mut alert_events: EventWriter<AlertEvent>,
+    agent_query: Query<&Transform, With<Agent>>,
+    enemy_query: Query<&Transform, (With<Enemy>, Without<Agent>)>,
+    civilian_query: Query<&Transform, (With<Civilian>, Without<Agent>, Without<Enemy>)>,
+    mission_data: Res<MissionData>,
+    time: Res<Time>,
+) {
+    if mission_data.time_scale == 0.0 {
+        return; // Don't process when paused
+    }
+
+    // Process attack commands
+    for (command_entity, command) in attack_commands.iter() {
+        if let Ok(mut attacker_combat) = combat_query.get_mut(command.attacker) {
+            if let Ok(mut target_health) = health_query.get_mut(command.target) {
+                if attacker_combat.current_cooldown <= 0.0 && !target_health.is_dead {
+                    // Calculate hit chance
+                    let hit = rand::random::<f32>() < attacker_combat.accuracy;
+                    
+                    if hit {
+                        // Apply damage
+                        target_health.current -= attacker_combat.weapon_damage;
+                        target_health.damage_taken_this_frame = attacker_combat.weapon_damage;
+                        
+                        if target_health.current <= 0.0 {
+                            target_health.current = 0.0;
+                            target_health.is_dead = true;
+                            
+                            // Get position for death event
+                            let position = if let Ok(transform) = enemy_query.get(command.target) {
+                                transform.translation.truncate()
+                            } else if let Ok(transform) = agent_query.get(command.target) {
+                                transform.translation.truncate()
+                            } else if let Ok(transform) = civilian_query.get(command.target) {
+                                transform.translation.truncate()
+                            } else {
+                                Vec2::ZERO
+                            };
+                            
+                            // Determine entity type
+                            let entity_type = if enemy_query.get(command.target).is_ok() {
+                                DeathEntityType::Enemy
+                            } else if agent_query.get(command.target).is_ok() {
+                                DeathEntityType::Agent
+                            } else {
+                                DeathEntityType::Civilian
+                            };
+                            
+                            death_events.send(DeathEvent {
+                                entity: command.target,
+                                position,
+                                entity_type,
+                            });
+                            
+                            info!("Entity died from combat damage");
+                        }
+                    }
+                    
+                    // Send combat event
+                    combat_events.send(CombatEvent {
+                        attacker: command.attacker,
+                        target: command.target,
+                        damage: if hit { attacker_combat.weapon_damage } else { 0.0 },
+                        hit,
+                    });
+                    
+                    // Set cooldown
+                    attacker_combat.current_cooldown = attacker_combat.attack_cooldown;
+                    
+                    // Combat raises alert level
+                    let position = if let Ok(transform) = agent_query.get(command.attacker) {
+                        transform.translation.truncate()
+                    } else {
+                        Vec2::ZERO
+                    };
+                    
+                    alert_events.send(AlertEvent {
+                        new_level: AlertLevel::Orange,
+                        source_position: position,
+                        reason: AlertReason::CombatNoise,
+                    });
+                    
+                    info!("Combat: {} vs {} - Hit: {}, Damage: {}", 
+                          command.attacker.index(), command.target.index(), hit, 
+                          if hit { attacker_combat.weapon_damage } else { 0.0 });
+                }
+            }
+        }
+        
+        // Remove the command entity
+        commands.entity(command_entity).despawn();
+    }
+
+    // Update combat cooldowns
+    for mut combat in combat_query.iter_mut() {
+        if combat.current_cooldown > 0.0 {
+            combat.current_cooldown -= time.delta_seconds();
+            if combat.current_cooldown <= 0.0 {
+                combat.current_cooldown = 0.0;
+            }
+        }
+    }
+    
+    // Reset damage taken visual feedback
+    for mut health in health_query.iter_mut() {
+        health.damage_taken_this_frame = 0.0;
+    }
+}
+
+// Combat visual system - shows targeting and health bars
+pub fn combat_visual_system(
+    mut gizmos: Gizmos,
+    combat_targeting: Res<CombatTargeting>,
+    agent_query: Query<(&Transform, &Combat), With<Agent>>,
+    enemy_query: Query<(Entity, &Transform, &Health, &HealthBar), With<Enemy>>,
+    agent_health_query: Query<(Entity, &Transform, &Health, &HealthBar), (With<Agent>, Without<Enemy>)>,
+    selection_state: Res<SelectionState>,
+) {
+    // Show combat range for selected agents
+    for &selected_agent in &selection_state.selected_agents {
+        if let Ok((agent_transform, combat)) = agent_query.get(selected_agent) {
+            let agent_pos = agent_transform.translation.truncate();
+            
+            // Draw attack range circle
+            let range_color = if combat.current_cooldown > 0.0 {
+                Color::srgba(0.8, 0.3, 0.3, 0.3) // Red when on cooldown
+            } else {
+                Color::srgba(0.8, 0.2, 0.2, 0.3) // Combat red when available
+            };
+            
+            gizmos.circle_2d(agent_pos, combat.attack_range, range_color);
+        }
+    }
+    
+    // Highlight valid targets when in targeting mode
+    if combat_targeting.targeting_mode {
+        for &target_entity in &combat_targeting.valid_targets {
+            if let Ok((_, target_transform, _, _)) = enemy_query.get(target_entity) {
+                let target_pos = target_transform.translation.truncate();
+                
+                // Draw targeting crosshairs
+                gizmos.circle_2d(target_pos, 25.0, COMBAT_RANGE_INDICATOR_COLOR);
+                gizmos.circle_2d(target_pos, 20.0, Color::srgb(1.0, 0.5, 0.5));
+                
+                // Draw crosshair lines
+                let crosshair_size = 15.0;
+                gizmos.line_2d(
+                    target_pos + Vec2::new(-crosshair_size, 0.0),
+                    target_pos + Vec2::new(crosshair_size, 0.0),
+                    COMBAT_RANGE_INDICATOR_COLOR,
+                );
+                gizmos.line_2d(
+                    target_pos + Vec2::new(0.0, -crosshair_size),
+                    target_pos + Vec2::new(0.0, crosshair_size),
+                    COMBAT_RANGE_INDICATOR_COLOR,
+                );
+            }
+        }
+    }
+    
+    // Draw health bars for enemies
+    for (entity, transform, health, health_bar) in enemy_query.iter() {
+        if health.is_dead {
+            continue;
+        }
+        
+        let show_bar = health_bar.show_always || health.current < health.maximum;
+        if show_bar {
+            draw_health_bar(&mut gizmos, transform, health, health_bar);
+        }
+    }
+    
+    // Draw health bars for agents (when damaged)
+    for (entity, transform, health, health_bar) in agent_health_query.iter() {
+        if health.is_dead {
+            continue;
+        }
+        
+        let show_bar = health_bar.show_always || health.current < health.maximum;
+        if show_bar {
+            draw_health_bar(&mut gizmos, transform, health, health_bar);
+        }
+    }
+}
+
+// Helper function to draw health bars
+fn draw_health_bar(
+    gizmos: &mut Gizmos,
+    transform: &Transform,
+    health: &Health,
+    health_bar: &HealthBar,
+) {
+    let position = transform.translation.truncate() + health_bar.offset;
+    let health_percentage = health.current / health.maximum;
+    
+    // Background
+    gizmos.rect_2d(
+        position,
+        0.0,
+        health_bar.size,
+        HEALTH_BAR_BACKGROUND,
+    );
+    
+    // Health fill
+    let health_color = if health_percentage > 0.6 {
+        HEALTH_BAR_FULL
+    } else if health_percentage > 0.3 {
+        HEALTH_BAR_DAMAGED
+    } else {
+        HEALTH_BAR_CRITICAL
+    };
+    
+    let fill_width = health_bar.size.x * health_percentage;
+    gizmos.rect_2d(
+        position - Vec2::new((health_bar.size.x - fill_width) / 2.0, 0.0),
+        0.0,
+        Vec2::new(fill_width, health_bar.size.y),
+        health_color,
+    );
+    
+    // Damage flash effect
+    if health.damage_taken_this_frame > 0.0 {
+        gizmos.circle_2d(
+            transform.translation.truncate(),
+            35.0,
+            Color::srgba(1.0, 0.0, 0.0, 0.3),
+        );
+    }
+}
+
+// Death handling system
+pub fn death_system(
+    mut commands: Commands,
+    mut death_events: EventReader<DeathEvent>,
+    mut mission_events: EventWriter<MissionEvent>,
+    agent_query: Query<&Agent>,
+    enemy_query: Query<&Enemy>,
+) {
+    for death_event in death_events.read() {
+        match death_event.entity_type {
+            DeathEntityType::Agent => {
+                info!("Agent died at {:?}", death_event.position);
+                
+                // Check if all agents are dead (mission failure condition)
+                let living_agents = agent_query.iter()
+                    .filter(|agent| agent.health > 0.0)
+                    .count();
+                
+                if living_agents == 0 {
+                    mission_events.send(MissionEvent {
+                        event_type: MissionEventType::AllAgentsDead,
+                    });
+                }
+            }
+            DeathEntityType::Enemy => {
+                info!("Enemy eliminated at {:?}", death_event.position);
+                // Could award points or reduce alert level
+            }
+            DeathEntityType::Civilian => {
+                info!("Civilian died at {:?}", death_event.position);
+                // Could raise alert level or affect mission score
+            }
+        }
+        
+        // Add death visual effect here (particle system, etc.)
     }
 }

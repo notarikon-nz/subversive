@@ -35,6 +35,7 @@ fn main() {
         .init_resource::<NeurovectorTargeting>()
         .init_resource::<InteractionState>()
         .init_resource::<InventoryState>()
+        .init_resource::<CombatTargeting>()
         .add_event::<AgentActionEvent>()
         .add_event::<MissionEvent>()
         .add_event::<AlertEvent>()
@@ -42,9 +43,11 @@ fn main() {
         .add_event::<InteractionEvent>()
         .add_event::<InteractionCompleteEvent>()
         .add_event::<DetectionEvent>()
+        .add_event::<CombatEvent>()
+        .add_event::<DeathEvent>()
         .add_systems(Startup, (
             setup_camera,
-            // setup_input,  // Temporarily disabled
+            setup_input,  // Temporarily disabled
             spawn_test_mission,
         ))
         .add_systems(Update, (

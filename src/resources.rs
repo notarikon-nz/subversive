@@ -1,3 +1,5 @@
+#[allow(dead_code)]
+
 use bevy::prelude::*;
 use leafwing_input_manager::prelude::*;
 use crate::components::*;
@@ -167,6 +169,25 @@ impl Default for InventoryState {
             selected_agent: None,
             pending_rewards: vec![],
             recent_acquisitions: vec![],
+        }
+    }
+}
+
+#[derive(Resource)]
+pub struct CombatTargeting {
+    pub targeting_mode: bool,
+    pub active_agent: Option<Entity>,
+    pub valid_targets: Vec<Entity>,
+    pub target_preview: Option<Entity>,
+}
+
+impl Default for CombatTargeting {
+    fn default() -> Self {
+        Self {
+            targeting_mode: false,
+            active_agent: None,
+            valid_targets: vec![],
+            target_preview: None,
         }
     }
 }
