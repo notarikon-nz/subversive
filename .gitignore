@@ -1,2 +1,5 @@
 /target
 /removed
+quicksave.json
+subversive_save.json
+.gitignore

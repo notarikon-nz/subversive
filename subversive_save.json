@@ -1,6 +1,6 @@
 {
   "credits": 3100,
-  "current_day": 4,
+  "current_day": 5,
   "agent_levels": [
     1,
     1,
@@ -12,16 +12,16 @@
     20
   ],
   "agent_recovery": [
-    4,
-    4,
-    4
+    8,
+    8,
+    8
   ],
   "regions": [
     {
       "name": "Neo-Tokyo Central",
       "threat_level": 1,
-      "alert_level": 0,
-      "alert_decay_timer": 0
+      "alert_level": 2,
+      "alert_decay_timer": 12
     },
     {
       "name": "Corporate District",
@@ -48,33 +48,9 @@
             "Stock"
           ],
           "attachments": {
-            "Barrel": null,
-            "Magazine": null,
-            "Stock": null,
-            "Sight": null
-          }
-        }
-      ],
-      "equipped_weapon_idx": 0,
-      "tools": [
-        "Scanner"
-      ],
-      "cybernetics": []
-    },
-    {
-      "weapon_configs": [
-        {
-          "base_weapon": "Rifle",
-          "supported_slots": [
-            "Sight",
-            "Barrel",
-            "Magazine",
-            "Stock"
-          ],
-          "attachments": {
-            "Magazine": null,
-            "Stock": null,
             "Sight": null,
+            "Stock": null,
+            "Magazine": null,
             "Barrel": null
           }
         }
@@ -96,8 +72,32 @@
             "Stock"
           ],
           "attachments": {
-            "Magazine": null,
             "Sight": null,
+            "Magazine": null,
+            "Stock": null,
+            "Barrel": null
+          }
+        }
+      ],
+      "equipped_weapon_idx": 0,
+      "tools": [
+        "Scanner"
+      ],
+      "cybernetics": []
+    },
+    {
+      "weapon_configs": [
+        {
+          "base_weapon": "Rifle",
+          "supported_slots": [
+            "Sight",
+            "Barrel",
+            "Magazine",
+            "Stock"
+          ],
+          "attachments": {
+            "Sight": null,
+            "Magazine": null,
             "Barrel": null,
             "Stock": null
           }
