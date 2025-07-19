@@ -1,4 +1,4 @@
-// src/systems/ui/hub.rs - New unified hub screen replacing global map
+// src/systems/ui/hub.rs - Fixed input handling
 use bevy::prelude::*;
 use crate::core::*;
 
@@ -22,16 +22,26 @@ pub enum HubTab {
 }
 
 impl HubTab {
-    pub fn from_keycode(key: KeyCode) -> Option<Self> {
-        match key {
-            KeyCode::Digit1 => Some(Self::GlobalMap),
-            KeyCode::Digit2 => Some(Self::Research),
-            KeyCode::Digit3 => Some(Self::Agents),
-            KeyCode::Digit4 => Some(Self::Manufacture),
-            KeyCode::Digit5 => Some(Self::Missions),
-            _ => None,
+    pub fn next(self) -> Self {
+        match self {
+            Self::GlobalMap => Self::Research,
+            Self::Research => Self::Agents,
+            Self::Agents => Self::Manufacture,
+            Self::Manufacture => Self::Missions,
+            Self::Missions => Self::GlobalMap,
         }
     }
+    
+    pub fn previous(self) -> Self {
+        match self {
+            Self::GlobalMap => Self::Missions,
+            Self::Research => Self::GlobalMap,
+            Self::Agents => Self::Research,
+            Self::Manufacture => Self::Agents,
+            Self::Missions => Self::Manufacture,
+        }
+    }
+    
 }
 
 pub fn reset_hub_to_global_map(mut hub_state: ResMut<HubState>) {
@@ -50,9 +60,20 @@ pub fn hub_system(
     unlocked: Res<UnlockedAttachments>,
     agent_query: Query<&mut Inventory, With<Agent>>,
 ) {
-    // Tab switching with number keys (1-5 now)
-    if let Some(tab) = input.get_just_pressed().find_map(|&key| HubTab::from_keycode(key)) {
-        hub_state.active_tab = tab;
+    // Global tab switching with Q/E (left/right)
+    let mut tab_changed = false;
+    
+    if input.just_pressed(KeyCode::KeyQ) {
+        hub_state.active_tab = hub_state.active_tab.previous();
+        tab_changed = true;
+    }
+    
+    if input.just_pressed(KeyCode::KeyE) {
+        hub_state.active_tab = hub_state.active_tab.next();
+        tab_changed = true;
+    }
+    
+    if tab_changed {
         rebuild_hub(&mut commands, &screen_query, &global_data, &hub_state, &manufacture_state, &attachment_db, &unlocked);
     }
 
@@ -61,10 +82,8 @@ pub fn hub_system(
         HubTab::GlobalMap => handle_global_map_input(&mut global_data, &mut hub_state, &input, &mut commands, &screen_query, &manufacture_state, &attachment_db, &unlocked),
         HubTab::Research => handle_research_input(&input),
         HubTab::Agents => handle_agents_input(&input, &mut hub_state, &mut commands, &screen_query, &global_data, &manufacture_state, &attachment_db, &unlocked),
-        HubTab::Manufacture => handle_manufacture_input(
-            &input, &mut hub_state, &mut manufacture_state, &mut commands, &screen_query, 
-            &mut global_data, &agent_query, &attachment_db, &unlocked
-        ),
+        HubTab::Manufacture => handle_manufacture_input(&input, &mut hub_state, &mut manufacture_state, &mut commands, &screen_query, 
+            &mut global_data, agent_query, &attachment_db, &unlocked),
         HubTab::Missions => handle_missions_input(&input, &mut commands, &mut next_state, &global_data),
     }
 
@@ -79,14 +98,12 @@ pub fn hub_system(
     }
 }
 
-
 fn handle_global_map_input(
     global_data: &mut GlobalData,
     hub_state: &mut HubState,
     input: &ButtonInput<KeyCode>,
     commands: &mut Commands,
     screen_query: &Query<Entity, With<HubScreen>>,
-
     manufacture_state: &ManufactureState,
     attachment_db: &AttachmentDatabase,
     unlocked: &UnlockedAttachments,    
@@ -139,10 +156,8 @@ fn handle_agents_input(
     input: &ButtonInput<KeyCode>, 
     hub_state: &mut HubState, 
     commands: &mut Commands, 
-    screen_query: &Query<Entity, 
-    With<HubScreen>>, 
+    screen_query: &Query<Entity, With<HubScreen>>, 
     global_data: &GlobalData,
-
     manufacture_state: &ManufactureState,
     attachment_db: &AttachmentDatabase,
     unlocked: &UnlockedAttachments,
@@ -168,53 +183,69 @@ fn handle_manufacture_input(
     commands: &mut Commands,
     screen_query: &Query<Entity, With<HubScreen>>,
     global_data: &mut GlobalData,
-    agent_query: &Query<&mut Inventory, With<Agent>>,
-
+    mut agent_query: Query<&mut Inventory, With<Agent>>, // Make mutable
     attachment_db: &AttachmentDatabase,
     unlocked: &UnlockedAttachments,    
 ) {
     let mut needs_rebuild = false;
+    let mut input_consumed = false;
     
     // Navigate agents with 1-3 keys
     if input.just_pressed(KeyCode::Digit1) {
         manufacture_state.selected_agent_idx = 0;
         manufacture_state.selected_weapon_idx = 0;
         manufacture_state.selected_slot = None;
+        manufacture_state.selected_attachments.clear(); // Clear all selections when switching agents
         needs_rebuild = true;
+        input_consumed = true;
+        info!("Selected Agent 1");
     }
     if input.just_pressed(KeyCode::Digit2) {
         manufacture_state.selected_agent_idx = 1;
         manufacture_state.selected_weapon_idx = 0;
         manufacture_state.selected_slot = None;
+        manufacture_state.selected_attachments.clear(); // Clear all selections when switching agents
         needs_rebuild = true;
+        input_consumed = true;
+        info!("Selected Agent 2");
     }
     if input.just_pressed(KeyCode::Digit3) {
         manufacture_state.selected_agent_idx = 2;
         manufacture_state.selected_weapon_idx = 0;
         manufacture_state.selected_slot = None;
+        manufacture_state.selected_attachments.clear(); // Clear all selections when switching agents
         needs_rebuild = true;
+        input_consumed = true;
+        info!("Selected Agent 3");
     }
     
-    // Navigate weapon slots with Arrow keys
+    // Navigate weapon slots with UP/DOWN
+    if input.just_pressed(KeyCode::ArrowUp) || input.just_pressed(KeyCode::ArrowDown) {
+        cycle_selection(manufacture_state, input.just_pressed(KeyCode::ArrowDown));
+        needs_rebuild = true;
+        input_consumed = true;
+    }
+    
+    // Navigate attachments within slot with LEFT/RIGHT
     if input.just_pressed(KeyCode::ArrowLeft) || input.just_pressed(KeyCode::ArrowRight) {
-        // Get current agent's weapons to cycle through
-        if let Some(agent_count) = agent_query.iter().enumerate().nth(manufacture_state.selected_agent_idx) {
-            // Cycle through weapon slots or available attachments
-            cycle_selection(manufacture_state, input.just_pressed(KeyCode::ArrowRight));
-            needs_rebuild = true;
-        }
+        cycle_attachment_selection(manufacture_state, input.just_pressed(KeyCode::ArrowRight), attachment_db, unlocked);
+        needs_rebuild = true;
+        input_consumed = true;
     }
     
-    // Attach/Detach with Enter
+    // Attach/Detach with Enter - HIGHEST PRIORITY for manufacture tab
     if input.just_pressed(KeyCode::Enter) {
-        execute_attachment_action(manufacture_state, global_data, attachment_db, unlocked);
+        execute_attachment_action(manufacture_state, global_data, &mut agent_query, attachment_db);
         needs_rebuild = true;
+        input_consumed = true;
+        info!("Processing attachment action");
     }
     
     // Back to agents with Backspace
     if input.just_pressed(KeyCode::Backspace) {
         hub_state.active_tab = HubTab::Agents;
         needs_rebuild = true;
+        input_consumed = true;
     }
     
     if needs_rebuild {
@@ -245,18 +276,94 @@ fn cycle_selection(manufacture_state: &mut ManufactureState, forward: bool) {
     };
     
     manufacture_state.selected_slot = Some(slots[new_idx].clone());
+    info!("Selected slot: {:?}", slots[new_idx]);
+}
+
+
+
+fn cycle_attachment_selection(
+    manufacture_state: &mut ManufactureState,
+    forward: bool,
+    attachment_db: &AttachmentDatabase,
+    unlocked: &UnlockedAttachments,
+) {
+    let Some(selected_slot) = &manufacture_state.selected_slot else { return; };
+    
+    // Get available attachments for this slot
+    let available: Vec<String> = attachment_db.get_by_slot(selected_slot)
+        .iter()
+        .filter(|att| unlocked.attachments.contains(&att.id))
+        .map(|att| att.id.clone())
+        .collect();
+    
+    if available.is_empty() { return; }
+    
+    // Get current selection for THIS specific slot
+    let current_idx = if let Some(att_id) = manufacture_state.selected_attachments.get(selected_slot) {
+        available.iter().position(|id| id == att_id).unwrap_or(0)
+    } else {
+        0
+    };
+    
+    let new_idx = if forward {
+        (current_idx + 1) % available.len()
+    } else {
+        if current_idx == 0 { available.len() - 1 } else { current_idx - 1 }
+    };
+    
+    // Store selection for THIS specific slot
+    manufacture_state.selected_attachments.insert(selected_slot.clone(), available[new_idx].clone());
+    info!("Selected {} for {:?} slot", available[new_idx], selected_slot);
 }
 
 fn execute_attachment_action(
     manufacture_state: &mut ManufactureState,
     global_data: &mut GlobalData,
+    agent_query: &mut Query<&mut Inventory, With<Agent>>,
     attachment_db: &AttachmentDatabase,
-    unlocked: &UnlockedAttachments,
 ) {
-    // TODO: Get agent inventory and modify weapon configuration
-    // For now, just log the action
-    if let Some(slot) = &manufacture_state.selected_slot {
-        info!("Attachment action on slot {:?} for agent {}", slot, manufacture_state.selected_agent_idx + 1);
+    let Some(selected_slot) = &manufacture_state.selected_slot else { return; };
+    
+    // Get the selected agent's inventory
+    let mut inventories: Vec<_> = agent_query.iter_mut().collect();
+    let Some(inventory) = inventories.get_mut(manufacture_state.selected_agent_idx) else { return; };
+    
+    // Get the weapon config (assume first weapon for now)
+    let Some(weapon_config) = inventory.weapons.get_mut(0) else { return; };
+    
+    // Check if slot currently has an attachment
+    let current_attachment_name = weapon_config.attachments.get(selected_slot)
+        .and_then(|opt| opt.as_ref())
+        .map(|att| att.name.clone());
+    
+    if let Some(current_name) = current_attachment_name {
+        // DETACH: Remove current attachment and refund credits
+        weapon_config.detach(selected_slot);
+        
+        // TODO: Calculate refund amount when costs are implemented
+        let refund = 0; // Placeholder - will be attachment cost when implemented
+        global_data.credits += refund;
+        
+        info!("Detached {} from {:?} slot", current_name, selected_slot);
+        
+        // Clear selection since we detached
+        manufacture_state.selected_attachments.remove(selected_slot);
+        
+    } else if let Some(attachment_id) = manufacture_state.selected_attachments.get(selected_slot) {
+        // ATTACH: Add selected attachment
+        if let Some(attachment) = attachment_db.get(attachment_id) {
+            // TODO: Check cost when implemented
+            let cost = 0; // Placeholder - will be attachment cost
+            
+            if global_data.credits >= cost {
+                weapon_config.attach(attachment.clone());
+                global_data.credits -= cost;
+                
+                info!("Attached {} to {:?} slot", attachment.name, selected_slot);
+            } else {
+                info!("Insufficient credits to attach {}", attachment.name);
+            }
+        }
     }
 }
 
@@ -380,11 +487,11 @@ fn create_tab_bar(parent: &mut ChildBuilder, active_tab: HubTab) {
         ..default()
     }).with_children(|tabs| {
         let tab_configs = [
-            (HubTab::GlobalMap, "1. GLOBAL MAP", "World overview"),
-            (HubTab::Research, "2. RESEARCH", "Tech development"),
-            (HubTab::Agents, "3. AGENTS", "Squad management"),
-            (HubTab::Manufacture, "4. MANUFACTURE", "Weapon modification"),
-            (HubTab::Missions, "5. MISSIONS", "Mission briefing"),
+            (HubTab::GlobalMap, "GLOBAL MAP", "World overview"),
+            (HubTab::Research, "RESEARCH", "Tech development"),
+            (HubTab::Agents, "AGENTS", "Squad management"),
+            (HubTab::Manufacture, "MANUFACTURE", "Weapon modification"),
+            (HubTab::Missions, "MISSIONS", "Mission briefing"),
         ];
         
         for (tab, title, _description) in tab_configs {
@@ -503,16 +610,6 @@ fn create_research_content(parent: &mut ChildBuilder, global_data: &GlobalData) 
         TextStyle { font_size: 16.0, color: Color::srgb(0.6, 0.6, 0.6), ..default() }
     ));
     
-    // TODO: Research tree implementation
-    // - Visual tech tree with branching paths
-    // - Weapon research: Pistol → Rifle → Minigun → Flamethrower
-    // - Cybernetics research: Basic → Advanced → Experimental
-    // - Tool research: Hacker → Scanner → Advanced tools
-    // - Dependencies clearly shown with lines/arrows
-    // - Progress indicators: "Next unlock in X missions"
-    // - Cost in credits, research points, or mission requirements
-    // - Unlocked items automatically available in Agent tab
-    
     parent.spawn(TextBundle::from_section(
         format!("Available Credits: {}", global_data.credits),
         TextStyle { font_size: 16.0, color: Color::WHITE, ..default() }
@@ -529,19 +626,6 @@ fn create_agents_content(parent: &mut ChildBuilder, global_data: &GlobalData) {
         "TODO: Implement squad management",
         TextStyle { font_size: 16.0, color: Color::srgb(0.6, 0.6, 0.6), ..default() }
     ));
-    
-    // TODO: Agent management implementation
-    // - 3-agent squad display with individual stats
-    // - Equipment assignment per agent (weapons, tools, cybernetics)
-    // - Visual equipment slots with drag-drop or selection
-    // - Agent progression: Level, Experience, Specializations
-    // - Recovery timers and injury status
-    // - Squad preset system: Save/Load configurations
-    //   * "Stealth Squad" - silenced weapons, scanners, stealth mods
-    //   * "Assault Team" - heavy weapons, armor, combat mods
-    //   * "Tech Specialists" - hacking tools, advanced cybernetics
-    // - Equipment availability based on research unlocks
-    // - Agent customization: Names, appearance (if desired)
     
     for i in 0..3 {
         let level = global_data.agent_levels[i];
@@ -563,7 +647,6 @@ fn create_missions_content(parent: &mut ChildBuilder, global_data: &GlobalData, 
         TextStyle { font_size: 24.0, color: Color::srgb(0.8, 0.2, 0.2), ..default() }
     ));
     
-    // Mission intel
     parent.spawn(TextBundle::from_section(
         format!("Threat Level: {} | Alert Status: {:?}", region.threat_level, region.alert_level),
         TextStyle { font_size: 18.0, color: Color::WHITE, ..default() }
@@ -573,30 +656,6 @@ fn create_missions_content(parent: &mut ChildBuilder, global_data: &GlobalData, 
         "TODO: Implement detailed mission briefing",
         TextStyle { font_size: 16.0, color: Color::srgb(0.6, 0.6, 0.6), ..default() }
     ));
-    
-    // TODO: Mission briefing implementation
-    // - Threat intelligence based on region and alert level
-    //   * "Expected enemies: 2-4 Corporate Guards"
-    //   * "Equipment spotted: Pistols, Light Armor"
-    //   * "Patrol patterns: Regular, 2-minute intervals"
-    //   * "Civilian density: High (avoid casualties)"
-    // - Mission objectives with difficulty ratings
-    //   * Primary: Access Corporate Terminal (Required)
-    //   * Secondary: Extract research data (Bonus credits)
-    //   * Optional: No civilian casualties (Bonus XP)
-    // - Environmental hazards/advantages
-    //   * "Security cameras in main lobby"
-    //   * "Back entrance available"
-    //   * "Power grid vulnerable to EMP"
-    // - Squad readiness assessment
-    //   * Agent status (ready/recovering)
-    //   * Equipment check (missing critical items?)
-    //   * Recommended squad composition for mission type
-    // - Risk/Reward breakdown
-    //   * Base credits: 500-800
-    //   * Stealth bonus: +200
-    //   * Speed bonus: +100
-    //   * Risk factors: Alert level penalties
     
     // Squad readiness check
     let ready_agents = (0..3).filter(|&i| global_data.agent_recovery[i] <= global_data.current_day).count();
@@ -614,13 +673,6 @@ fn create_missions_content(parent: &mut ChildBuilder, global_data: &GlobalData, 
     }
 }
 
-    // TODO: Weapon modification UI implementation
-    // - Left panel: Agent weapon selection
-    // - Center: Weapon with attachment slots visualization  
-    // - Right panel: Available attachments (filtered by unlocked)
-    // - Bottom: Stat comparison (current vs modified)
-    // - Click to attach/detach system
-
 fn create_manufacture_content(
     parent: &mut ChildBuilder, 
     global_data: &GlobalData,
@@ -633,7 +685,7 @@ fn create_manufacture_content(
         TextStyle { font_size: 24.0, color: Color::srgb(0.8, 0.6, 0.2), ..default() }
     ));
     
-    // Agent selection
+    // Agent selection display
     parent.spawn(NodeBundle {
         style: Style {
             flex_direction: FlexDirection::Row,
@@ -655,7 +707,7 @@ fn create_manufacture_content(
         }
     });
     
-    // Weapon configuration display
+    // Weapon slots display
     parent.spawn(NodeBundle {
         style: Style {
             flex_direction: FlexDirection::Column,
@@ -672,7 +724,6 @@ fn create_manufacture_content(
             TextStyle { font_size: 18.0, color: Color::WHITE, ..default() }
         ));
         
-        // Attachment slots
         let slots = vec![
             ("Sight", AttachmentSlot::Sight),
             ("Barrel", AttachmentSlot::Barrel),
@@ -686,8 +737,9 @@ fn create_manufacture_content(
             let color = if is_selected { Color::srgb(0.8, 0.8, 0.2) } else { Color::WHITE };
             let prefix = if is_selected { "> " } else { "  " };
             
+            // TODO: Show actual equipped attachment from agent inventory
             weapon_panel.spawn(TextBundle::from_section(
-                format!("{}{}: None equipped", prefix, slot_name), // TODO: Show actual attachment
+                format!("{}{}: None equipped", prefix, slot_name),
                 TextStyle { font_size: 14.0, color, ..default() }
             ));
         }
@@ -717,19 +769,29 @@ fn create_manufacture_content(
             for attachment in available_attachments {
                 if unlocked.attachments.contains(&attachment.id) {
                     found_any = true;
-                    let rarity_color = match attachment.rarity {
+                    
+                    // Highlight selected attachment for THIS slot
+                    let is_selected = manufacture_state.selected_attachments.get(selected_slot) == Some(&attachment.id);
+                    let base_color = match attachment.rarity {
                         AttachmentRarity::Common => Color::srgb(0.8, 0.8, 0.8),
                         AttachmentRarity::Rare => Color::srgb(0.6, 0.6, 1.0),
                         AttachmentRarity::Epic => Color::srgb(1.0, 0.6, 1.0),
                     };
+                    let color = if is_selected { 
+                        Color::srgb(1.0, 1.0, 0.2) // Bright yellow when selected
+                    } else { 
+                        base_color 
+                    };
+                    let prefix = if is_selected { "> " } else { "  " };
                     
                     attachments_panel.spawn(TextBundle::from_section(
-                        format!("• {} (Acc{:+} Rng{:+} Noise{:+})", 
+                        format!("{}• {} (Acc{:+} Rng{:+} Noise{:+})", 
+                                prefix,
                                 attachment.name,
                                 attachment.stats.accuracy,
                                 attachment.stats.range,
                                 attachment.stats.noise),
-                        TextStyle { font_size: 12.0, color: rarity_color, ..default() }
+                        TextStyle { font_size: 12.0, color, ..default() }
                     ));
                 }
             }
@@ -745,7 +807,7 @@ fn create_manufacture_content(
     
     // Controls help
     parent.spawn(TextBundle::from_section(
-        "\n1-3: Select Agent | ←→: Navigate Slots | ENTER: Attach/Detach | BACKSPACE: Back",
+        "\n1-3: Select Agent | ↑↓: Navigate Slots | ←→: Select Attachment | ENTER: Attach/Detach",
         TextStyle { font_size: 12.0, color: Color::srgb(0.7, 0.7, 0.7), ..default() }
     ));
     
@@ -754,7 +816,6 @@ fn create_manufacture_content(
         TextStyle { font_size: 14.0, color: Color::srgb(0.8, 0.8, 0.2), ..default() }
     ));
 }
-
 
 fn create_footer(parent: &mut ChildBuilder, active_tab: HubTab) {
     parent.spawn(NodeBundle {
@@ -770,11 +831,11 @@ fn create_footer(parent: &mut ChildBuilder, active_tab: HubTab) {
         ..default()
     }).with_children(|footer| {
         let controls = match active_tab {
-            HubTab::GlobalMap => "UP/DOWN: Select Region | W: Wait Day | ENTER: View Mission | F5: Save | ESC: Quit",
-            HubTab::Research => "Navigation: Arrow Keys | Purchase: ENTER | 1-4: Switch Tabs | ESC: Quit",
-            HubTab::Agents => "Select Agent: Arrow Keys | Modify: ENTER | Save/Load Preset: S/L | 1-4: Switch Tabs",
-            HubTab::Manufacture => "Navigate: Arrow Keys | Attach/Detach: ENTER | Back: BACKSPACE | 1-5: Switch Tabs",
-            HubTab::Missions => "Launch Mission: ENTER | 1-4: Switch Tabs | ESC: Quit",
+            HubTab::GlobalMap => "UP/DOWN: Select Region | W: Wait Day | ENTER: View Mission | F5: Save | Q/E: Switch Tabs | ESC: Quit",
+            HubTab::Research => "Navigation: Arrow Keys | Purchase: ENTER | Q/E: Switch Tabs | ESC: Quit",
+            HubTab::Agents => "Select Agent: Arrow Keys | Modify: ENTER | Save/Load Preset: S/L | Q/E: Switch Tabs",
+            HubTab::Manufacture => "1-3: Select Agent | ↑↓: Navigate Slots | ENTER: Attach/Detach | Q/E: Switch Tabs",
+            HubTab::Missions => "Launch Mission: ENTER | Q/E: Switch Tabs | ESC: Quit",
         };
         
         footer.spawn(TextBundle::from_section(

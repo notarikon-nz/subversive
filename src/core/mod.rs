@@ -519,5 +519,5 @@ pub struct ManufactureState {
     pub selected_agent_idx: usize,
     pub selected_weapon_idx: usize,
     pub selected_slot: Option<AttachmentSlot>,
-    pub selected_attachment: Option<String>,
+    pub selected_attachments: std::collections::HashMap<AttachmentSlot, String>, // NEW: Per-slot selection
 }
