@@ -10,6 +10,17 @@ use systems::*;
 use systems::ai::*;
 use pool::*;
 
+fn load_global_data_or_default() -> GlobalData {
+    if let Some(loaded_data) = crate::systems::save::load_game() {
+        info!("Save file loaded successfully! Day {}, Credits: {}", 
+              loaded_data.current_day, loaded_data.credits);
+        loaded_data
+    } else {
+        info!("No save file found, starting new game");
+        GlobalData::default()
+    }
+}
+
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins.set(WindowPlugin {
@@ -29,7 +40,7 @@ fn main() {
         .init_resource::<MissionData>()
         .init_resource::<InventoryState>()
         .init_resource::<PostMissionResults>()
-        .init_resource::<GlobalData>()
+        .insert_resource(load_global_data_or_default()) // .init_resource::<GlobalData>()
         .init_resource::<UIState>()
         .init_resource::<PostMissionProcessed>()
         .init_resource::<EntityPool>()
@@ -47,7 +58,7 @@ fn main() {
         .add_systems(Update, (
             sprites::spawn_initial_scene.run_if(resource_exists::<GameSprites>).run_if(run_once()),
             input::handle_input,
-            ui::fps_system,
+            ui::screens::fps_system,
             pool::cleanup_inactive_entities,
             save::auto_save_system,
             save::save_input_system,
@@ -64,7 +75,7 @@ fn main() {
             ui::cleanup_global_map_ui,  // Clean up when starting mission too
         ))        
         .add_systems(Update, (
-            ui::global_map_system,
+            ui::screens::global_map_system,
         ).run_if(in_state(GameState::GlobalMap)))
 
         .add_systems(Update, (
@@ -84,9 +95,10 @@ fn main() {
             combat::death_system,
         ).run_if(in_state(GameState::Mission)))
         .add_systems(Update, (            
-            ui::system,              // gizmos/world-space UI
-            ui::inventory_system,    
-            ui::pause_system,        // bevy_ui
+            ui::world::system,           // gizmos/world-space UI  
+            ui::screens::inventory_system,
+            ui::screens::pause_system,
+
             mission::timer_system,
             mission::check_completion,
             mission::restart_system,
@@ -99,7 +111,7 @@ fn main() {
 
         .add_systems(Update, (
             mission::process_mission_results,  // Separated from UI
-            ui::post_mission_ui_system,        // New clean UI system
+            ui::screens::post_mission_ui_system,
         ).run_if(in_state(GameState::PostMission)))
         .run();
 }
@@ -125,54 +137,3 @@ fn setup_camera_and_input(mut commands: Commands) {
         ..default()
     });
 }
-
-/*
-fn setup(mut commands: Commands, sprites: Res<GameSprites>) {
-    commands.spawn(Camera2dBundle::default());
-    
-    commands.spawn(InputManagerBundle::<PlayerAction> {
-        input_map: InputMap::default()
-            .insert(PlayerAction::Pause, KeyCode::Space)
-            .insert(PlayerAction::Select, MouseButton::Left)
-            .insert(PlayerAction::Move, MouseButton::Right)
-            .insert(PlayerAction::Neurovector, KeyCode::KeyN)
-            .insert(PlayerAction::Combat, KeyCode::KeyF)
-            .insert(PlayerAction::Interact, KeyCode::KeyE)
-            .insert(PlayerAction::Inventory, KeyCode::KeyI)
-            .build(),
-        ..default()
-    });
-
-    // Load scene instead of hardcoded spawning
-    let global_data = GlobalData::default();
-    let scene = systems::scenes::load_scene("mission1");
-    systems::scenes::spawn_from_scene(&mut commands, &scene, &global_data, &sprites);
-}
-*/
-
-
-/*
-fn spawn_terminals(commands: &mut Commands) {
-    let terminals = [
-        (Vec3::new(320.0, -50.0, 1.0), Color::srgb(0.9, 0.2, 0.2), TerminalType::Objective),
-        (Vec3::new(150.0, -80.0, 1.0), Color::srgb(0.2, 0.5, 0.9), TerminalType::Equipment),
-        (Vec3::new(50.0, 120.0, 1.0), Color::srgb(0.2, 0.8, 0.3), TerminalType::Intel),
-    ];
-
-    for (pos, color, terminal_type) in terminals {
-        commands.spawn((
-            SpriteBundle {
-                sprite: Sprite {
-                    color,
-                    custom_size: Some(Vec2::new(20.0, 20.0)),
-                    ..default()
-                },
-                transform: Transform::from_translation(pos),
-                ..default()
-            },
-            Terminal { terminal_type, range: 30.0, accessed: false },
-            Selectable { radius: 15.0 },
-        ));
-    }
-}
-    */
