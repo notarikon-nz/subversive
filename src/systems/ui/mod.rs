@@ -8,9 +8,11 @@ use crate::core::{PostMissionProcessed, PostMissionResults, GlobalData, UIState,
 
 pub mod world;      // Gizmos and world-space UI (selection, vision cones)
 pub mod screens;    // All fullscreen UIs (inventory, global map, post-mission, pause)
+pub mod hub;
 
 pub use world::*;
 pub use screens::*;
+pub use hub::*;
 
 // Add this system to handle state transitions
 pub fn cleanup_mission_ui(

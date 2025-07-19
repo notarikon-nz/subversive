@@ -46,6 +46,7 @@ fn main() {
         .init_resource::<EntityPool>()
         .init_resource::<SelectionDrag>()
         .init_resource::<GoapConfig>()
+        .init_resource::<HubState>()    // UI HUB UPGRADE
         .add_event::<ActionEvent>()
         .add_event::<CombatEvent>()
         .add_event::<AudioEvent>()
@@ -75,7 +76,8 @@ fn main() {
             ui::cleanup_global_map_ui,  // Clean up when starting mission too
         ))        
         .add_systems(Update, (
-            ui::screens::global_map_system,
+            // ui::screens::global_map_system,
+            ui::hub_system,    // UI HUB UPGRADE
         ).run_if(in_state(GameState::GlobalMap)))
 
         .add_systems(Update, (

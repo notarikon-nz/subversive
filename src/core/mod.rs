@@ -14,12 +14,8 @@ pub use sprites::*;
 pub mod goap; // Add this line
 pub use goap::*;
 
-// Also include the config if you want it as a separate module
-// pub mod goap_config;
-// pub use goap_config::*;
-
-// Rest of your existing code remains the same...
-// (I'll just show the key parts that might need updating)
+// Re-export hub types for convenience
+pub use crate::systems::ui::hub::{HubState, HubTab};
 
 // === STATES ===
 #[derive(States, Debug, Clone, PartialEq, Eq, Hash)]
