@@ -1,6 +1,7 @@
 // src/core/goap.rs
 use bevy::prelude::*;
 use std::collections::{HashMap, VecDeque};
+use crate::systems::*;
 
 // Macro for easier HashMap creation
 macro_rules! hashmap {
@@ -38,6 +39,10 @@ pub enum WorldKey {
     InCover,
     CoverAvailable,
     UnderFire,
+
+    // Communication states
+    BackupCalled,
+    NearbyAlliesAvailable,    
 }
 
 pub type WorldState = HashMap<WorldKey, bool>;
@@ -209,7 +214,22 @@ impl GoapAgent {
                 ],
                 action_type: ActionType::MoveTo { target: Vec2::ZERO },
             },
-            
+
+            // Call for help action
+            GoapAction {
+                name: "call_for_help",
+                cost: 1.5,
+                preconditions: hashmap![
+                    WorldKey::HasTarget => true,
+                    WorldKey::BackupCalled => false,
+                    WorldKey::NearbyAlliesAvailable => true
+                ],
+                effects: hashmap![
+                    WorldKey::BackupCalled => true
+                ],
+                action_type: ActionType::CallForHelp,
+            },
+
             // Reload weapon
             GoapAction {
                 name: "reload",
@@ -265,6 +285,11 @@ impl GoapAgent {
         self.world_state.insert(WorldKey::AtLastKnownPosition, false);
         self.world_state.insert(WorldKey::AtTarget, false);
         self.world_state.insert(WorldKey::IsInvestigating, false);
+        self.world_state.insert(WorldKey::InCover, false);
+        self.world_state.insert(WorldKey::CoverAvailable, false);
+        self.world_state.insert(WorldKey::UnderFire, false);
+        self.world_state.insert(WorldKey::BackupCalled, false);
+        self.world_state.insert(WorldKey::NearbyAlliesAvailable, false);
     }
     
     pub fn update_world_state(&mut self, key: WorldKey, value: bool) {
@@ -283,31 +308,30 @@ impl GoapAgent {
             
             // Debug output when goal changes
             if old_goal != Some(goal.name) {
-                info!("GOAP: New goal selected: {} (priority: {})", goal.name, goal.priority);
-                info!("GOAP: Goal desired state: {:?}", goal.desired_state);
+                // info!("GOAP: New goal selected: {} (priority: {})", goal.name, goal.priority);
+                // info!("GOAP: Goal desired state: {:?}", goal.desired_state);
             }
             
             self.current_plan = self.find_plan(&goal.desired_state);
             let success = !self.current_plan.is_empty();
             
             if success {
-                info!("GOAP: Plan found with {} actions", self.current_plan.len());
+                //  info!("GOAP: Plan found with {} actions", self.current_plan.len());
                 for (i, action) in self.current_plan.iter().enumerate() {
-                    info!("  {}: {} (cost: {})", i, action.name, action.cost);
+                    //  info!("  {}: {} (cost: {})", i, action.name, action.cost);
                 }
             } else {
-                info!("GOAP: No plan found for goal: {}", goal.name);
-                info!("GOAP: Current world state: {:?}", self.world_state);
-                info!("GOAP: Available actions:");
+                // info!("GOAP: No plan found for goal: {}", goal.name);
+                // info!("GOAP: Current world state: {:?}", self.world_state);
+                // info!("GOAP: Available actions:");
                 for action in &self.available_actions {
-                    info!("  - {} (cost: {}, preconditions: {:?}, effects: {:?})", 
-                          action.name, action.cost, action.preconditions, action.effects);
+                    // info!("  - {} (cost: {}, preconditions: {:?}, effects: {:?})", action.name, action.cost, action.preconditions, action.effects);
                 }
             }
             
             success
         } else {
-            info!("GOAP: All goals satisfied");
+            // info!("GOAP: All goals satisfied");
             false
         }
     }
@@ -419,8 +443,10 @@ pub fn goap_ai_system(
     ), (With<Enemy>, Without<Dead>)>,
     agent_query: Query<(Entity, &Transform), With<Agent>>,
     cover_query: Query<(Entity, &Transform, &CoverPoint), Without<Enemy>>,  // Add cover query
+    all_enemy_query: Query<(Entity, &Transform), (With<Enemy>, Without<Dead>)>,  // For counting allies
     mut action_events: EventWriter<ActionEvent>,
     mut audio_events: EventWriter<AudioEvent>,
+    mut alert_events: EventWriter<AlertEvent>,  // Add alert events
     time: Res<Time>,
     game_mode: Res<GameMode>,
 ) {
@@ -438,7 +464,9 @@ pub fn goap_ai_system(
             &agent_query,
             &mut ai_state,
             patrol,
-            &cover_query  // Pass cover query
+            &cover_query,
+            &all_enemy_query,  // Pass for ally counting
+            enemy_entity       // Pass current enemy ID
         );
         
         // Check if current plan is still valid or if we need to replan
@@ -465,6 +493,7 @@ pub fn goap_ai_system(
                 &mut ai_state,
                 &mut action_events,
                 &mut audio_events,
+                &mut alert_events,  // Pass alert events
                 patrol,
                 &agent_query,
                 &vision,
@@ -482,7 +511,9 @@ fn update_world_state_from_perception(
     agent_query: &Query<(Entity, &Transform), With<Agent>>,
     ai_state: &mut AIState,
     patrol: &Patrol,
-    cover_query: &Query<(Entity, &Transform, &CoverPoint), Without<Enemy>>,  // Add cover query
+    cover_query: &Query<(Entity, &Transform, &CoverPoint), Without<Enemy>>,
+    all_enemy_query: &Query<(Entity, &Transform), (With<Enemy>, Without<Dead>)>,  // For ally counting
+    current_enemy: Entity,  // Current enemy ID to exclude from ally count
 ) {
     let enemy_pos = enemy_transform.translation.truncate();
     
@@ -510,11 +541,20 @@ fn update_world_state_from_perception(
     // Check if cover is available
     let cover_available = find_nearest_cover(enemy_pos, cover_query).is_some();
     
+    // Check if nearby allies are available (within 200 units)
+    let nearby_allies = all_enemy_query.iter()
+        .filter(|(entity, transform)| {
+            *entity != current_enemy && // Exclude self
+            enemy_pos.distance(transform.translation.truncate()) <= 200.0
+        })
+        .count() > 0;
+    
     // Update world state
     goap_agent.update_world_state(WorldKey::TargetVisible, target_visible);
     goap_agent.update_world_state(WorldKey::HasTarget, has_target);
     goap_agent.update_world_state(WorldKey::AtPatrolPoint, at_patrol_point);
     goap_agent.update_world_state(WorldKey::CoverAvailable, cover_available);
+    goap_agent.update_world_state(WorldKey::NearbyAlliesAvailable, nearby_allies);
     
     // Debug output when target status changes
     let old_has_target = goap_agent.world_state.get(&WorldKey::HasTarget).copied().unwrap_or(false);
@@ -569,11 +609,12 @@ fn execute_goap_action(
     ai_state: &mut AIState,
     action_events: &mut EventWriter<ActionEvent>,
     audio_events: &mut EventWriter<AudioEvent>,
+    alert_events: &mut EventWriter<AlertEvent>,  // Add alert events
     patrol: &Patrol,
     agent_query: &Query<(Entity, &Transform), With<Agent>>,
     vision: &Vision,
-    cover_query: &Query<(Entity, &Transform, &CoverPoint), Without<Enemy>>,  // Add cover query
-    commands: &mut Commands,  // Add commands
+    cover_query: &Query<(Entity, &Transform, &CoverPoint), Without<Enemy>>,
+    commands: &mut Commands,
 ) {
     match &action.action_type {
         ActionType::Patrol => {
@@ -699,13 +740,22 @@ fn execute_goap_action(
                 info!("GOAP: No cover available!");
             }
         },
-        
         ActionType::CallForHelp => {
+            info!("GOAP: Enemy {} calling for help!", enemy_entity.index());
+            
+            // Play alert sound
             audio_events.send(AudioEvent {
                 sound: AudioType::Alert,
                 volume: 1.0,
             });
-        },
+            
+            // Send alert event to notify nearby enemies
+            alert_events.send(AlertEvent {
+                alerter: enemy_entity,
+                position: enemy_transform.translation.truncate(),
+                alert_type: AlertType::CallForHelp,
+            });
+        },        
     }
 }
 

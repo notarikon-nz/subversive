@@ -32,6 +32,53 @@ impl Default for AIState {
     }
 }
 
+// Alert coordination system for CallForHelp
+pub fn alert_system(
+    mut alert_events: EventReader<AlertEvent>,
+    mut enemy_query: Query<(Entity, &Transform, &mut AIState, &mut GoapAgent), (With<Enemy>, Without<Dead>)>,
+) {
+    for alert_event in alert_events.read() {
+        for (enemy_entity, enemy_transform, mut ai_state, mut goap_agent) in enemy_query.iter_mut() {
+            // Skip the alerter itself
+            if enemy_entity == alert_event.alerter {
+                continue;
+            }
+            
+            let distance = enemy_transform.translation.truncate().distance(alert_event.position);
+            
+            // Alert enemies within 200 units for CallForHelp
+            let alert_range = match alert_event.alert_type {
+                AlertType::CallForHelp => 200.0,
+                AlertType::GunshotHeard => 150.0,
+                AlertType::EnemySpotted => 250.0,
+            };
+            
+            if distance <= alert_range {
+                match alert_event.alert_type {
+                    AlertType::CallForHelp => {
+                        // Set last known target to the alert position
+                        ai_state.last_known_target = Some(alert_event.position);
+                        ai_state.mode = crate::systems::ai::AIMode::Investigate { 
+                            location: alert_event.position 
+                        };
+                        
+                        // Update GOAP world state
+                        goap_agent.update_world_state(WorldKey::HeardSound, true);
+                        goap_agent.update_world_state(WorldKey::IsAlert, true);
+                        goap_agent.abort_plan(); // Force immediate replanning
+                        
+                        info!("Enemy {} responding to call for help from {} (distance: {:.1})", 
+                              enemy_entity.index(), alert_event.alerter.index(), distance);
+                    },
+                    _ => {
+                        // Handle other alert types in future expansions
+                    }
+                }
+            }
+        }
+    }
+}
+
 // Keep the legacy AI system for backward compatibility
 pub fn legacy_enemy_ai_system(
     mut enemy_query: Query<(Entity, &Transform, &mut AIState, &mut Vision, &mut Patrol), (With<Enemy>, Without<Dead>, Without<GoapAgent>)>,

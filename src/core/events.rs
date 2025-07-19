@@ -22,3 +22,18 @@ pub struct CombatEvent {
     pub damage: f32,
     pub hit: bool,
 }
+
+#[derive(Event)]
+pub struct AlertEvent {
+    pub position: Vec2,
+    pub alert_level: u8,
+    pub source: AlertSource,
+}
+
+#[derive(Debug, Clone)]
+pub enum AlertSource {
+    Gunshot,
+    SpottedAgent,
+    MissingPatrol,
+    Alarm,
+}

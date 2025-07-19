@@ -488,3 +488,18 @@ pub fn get_world_mouse_position(
     window.cursor_position()
         .and_then(|cursor| camera.viewport_to_world_2d(camera_transform, cursor))
 }
+
+// === GOAP FEATURES ===
+#[derive(Event)]
+pub struct AlertEvent {
+    pub alerter: Entity,
+    pub position: Vec2,
+    pub alert_type: AlertType,
+}
+
+#[derive(Debug, Clone)]
+pub enum AlertType {
+    CallForHelp,
+    GunshotHeard,
+    EnemySpotted,
+}

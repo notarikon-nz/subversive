@@ -7,6 +7,7 @@ mod systems;
 
 use core::*;
 use systems::*;
+use systems::ai::*;
 use pool::*;
 
 fn main() {
@@ -37,6 +38,7 @@ fn main() {
         .add_event::<ActionEvent>()
         .add_event::<CombatEvent>()
         .add_event::<AudioEvent>()
+        .add_event::<AlertEvent>()
         .add_systems(Startup, (
             setup_camera_and_input,
             setup_physics, 
@@ -72,6 +74,7 @@ fn main() {
             // GOAP AI Systems (primary)
             goap::goap_ai_system,        // Main GOAP AI
             ai::goap_sound_detection_system, // GOAP sound detection
+            ai::alert_system,            // Alert coordination system            
             // Legacy AI Systems (fallback for non-GOAP enemies)
             ai::legacy_enemy_ai_system,   // Renamed old enemy_ai_system
             ai::sound_detection_system,   // Legacy sound detection
