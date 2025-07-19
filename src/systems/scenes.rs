@@ -84,7 +84,7 @@ pub fn load_scene(name: &str) -> SceneData {
 pub fn spawn_from_scene(commands: &mut Commands, scene: &SceneData, global_data: &GlobalData, sprites: &GameSprites) {
     for (i, agent_data) in scene.agents.iter().enumerate() {
         let level = if i < 3 { global_data.agent_levels[i] } else { agent_data.level };
-        spawn_agent(commands, Vec2::from(agent_data.position), level, sprites);
+        spawn_agent(commands, Vec2::from(agent_data.position), level, i, global_data, sprites);
     }
     
     for civilian_data in &scene.civilians {
@@ -106,13 +106,44 @@ pub fn spawn_from_scene(commands: &mut Commands, scene: &SceneData, global_data:
         spawn_terminal(commands, Vec2::from(terminal_data.position), terminal_type, sprites);
     }
 
-    // Add cover points to every scene
     spawn_cover_points(commands);    
 }
 
-fn spawn_agent(commands: &mut Commands, position: Vec2, level: u8, sprites: &GameSprites) {
+fn spawn_agent(commands: &mut Commands, position: Vec2, level: u8, agent_idx: usize, global_data: &GlobalData, sprites: &GameSprites) {
     let mut sprite_bundle = crate::core::sprites::create_agent_sprite(sprites);
     sprite_bundle.transform = Transform::from_translation(position.extend(1.0));
+    
+    // Load agent's saved configuration
+    let loadout = global_data.get_agent_loadout(agent_idx);
+    
+    let mut inventory = Inventory::default();
+    
+    // Apply saved weapon configurations
+    for weapon_config in &loadout.weapon_configs {
+        inventory.add_weapon_config(weapon_config.clone());
+    }
+    
+    // Set equipped weapon
+    if let Some(weapon_config) = loadout.weapon_configs.get(loadout.equipped_weapon_idx) {
+        inventory.equipped_weapon = Some(weapon_config.clone());
+    }
+    
+    // Apply saved tools and cybernetics
+    for tool in &loadout.tools {
+        inventory.add_tool(tool.clone());
+    }
+    
+    for cybernetic in &loadout.cybernetics {
+        inventory.add_cybernetic(cybernetic.clone());
+    }
+    
+    // Starting credits based on level
+    inventory.add_currency(100 * level as u32);
+    
+    info!("Spawned Agent {} with {} weapons, {} tools", 
+          agent_idx + 1, 
+          inventory.weapons.len(), 
+          inventory.tools.len());
     
     commands.spawn((
         sprite_bundle,
@@ -123,13 +154,14 @@ fn spawn_agent(commands: &mut Commands, position: Vec2, level: u8, sprites: &Gam
         Selectable { radius: 15.0 },
         Vision::new(150.0, 60.0),
         NeurovectorCapability::default(),
-        Inventory::default(),
+        inventory,
         RigidBody::Dynamic,
         Collider::ball(10.0),
         Velocity::default(),
         Damping { linear_damping: 10.0, angular_damping: 10.0 },
     ));
 }
+
 
 fn spawn_civilian(commands: &mut Commands, position: Vec2, sprites: &GameSprites) {
     let mut sprite_bundle = crate::core::sprites::create_civilian_sprite(sprites);

@@ -331,38 +331,54 @@ fn execute_attachment_action(
     // Get the weapon config (assume first weapon for now)
     let Some(weapon_config) = inventory.weapons.get_mut(0) else { return; };
     
-    // Check if slot currently has an attachment
     let current_attachment_name = weapon_config.attachments.get(selected_slot)
         .and_then(|opt| opt.as_ref())
         .map(|att| att.name.clone());
     
+    let mut config_changed = false;
+    
     if let Some(current_name) = current_attachment_name {
-        // DETACH: Remove current attachment and refund credits
+        // DETACH
         weapon_config.detach(selected_slot);
         
-        // TODO: Calculate refund amount when costs are implemented
-        let refund = 0; // Placeholder - will be attachment cost when implemented
+        let refund = 0; // TODO: Calculate actual refund
         global_data.credits += refund;
         
         info!("Detached {} from {:?} slot", current_name, selected_slot);
-        
-        // Clear selection since we detached
         manufacture_state.selected_attachments.remove(selected_slot);
+        config_changed = true;
         
     } else if let Some(attachment_id) = manufacture_state.selected_attachments.get(selected_slot) {
-        // ATTACH: Add selected attachment
+        // ATTACH
         if let Some(attachment) = attachment_db.get(attachment_id) {
-            // TODO: Check cost when implemented
-            let cost = 0; // Placeholder - will be attachment cost
+            let cost = 0; // TODO: Calculate actual cost
             
             if global_data.credits >= cost {
                 weapon_config.attach(attachment.clone());
                 global_data.credits -= cost;
                 
                 info!("Attached {} to {:?} slot", attachment.name, selected_slot);
+                config_changed = true;
             } else {
                 info!("Insufficient credits to attach {}", attachment.name);
             }
+        }
+    }
+    
+    // Save configuration to GlobalData if changed
+    if config_changed {
+        let loadout = AgentLoadout {
+            weapon_configs: inventory.weapons.clone(),
+            equipped_weapon_idx: 0, // TODO: Support multiple weapons
+            tools: inventory.tools.clone(),
+            cybernetics: inventory.cybernetics.clone(),
+        };
+        
+        global_data.save_agent_loadout(manufacture_state.selected_agent_idx, loadout);
+        
+        // Update equipped weapon in current inventory
+        if let Some(weapon_config) = inventory.weapons.get(0) {
+            inventory.equipped_weapon = Some(weapon_config.clone());
         }
     }
 }

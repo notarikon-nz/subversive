@@ -210,15 +210,31 @@ impl Default for PostMissionResults {
     }
 }
 
+const MAX_SQUAD_SIZE: usize = 3;
+
 #[derive(Resource, Clone)]
 pub struct GlobalData {
     pub credits: u32,
     pub selected_region: usize,
     pub regions: Vec<Region>,
-    pub agent_levels: [u8; 3],
-    pub agent_experience: [u32; 3],
+    pub agent_levels: [u8; MAX_SQUAD_SIZE],
+    pub agent_experience: [u32; MAX_SQUAD_SIZE],
     pub current_day: u32,
-    pub agent_recovery: [u32; 3],
+    pub agent_recovery: [u32; MAX_SQUAD_SIZE],
+    pub agent_loadouts: [AgentLoadout; MAX_SQUAD_SIZE],
+}
+
+impl GlobalData {
+    pub fn get_agent_loadout(&self, agent_idx: usize) -> &AgentLoadout {
+        &self.agent_loadouts[agent_idx.min(2)]
+    }
+    
+    pub fn save_agent_loadout(&mut self, agent_idx: usize, loadout: AgentLoadout) {
+        if agent_idx < 3 {
+            self.agent_loadouts[agent_idx] = loadout;
+            info!("Saved loadout for Agent {}", agent_idx + 1);
+        }
+    }
 }
 
 impl Default for GlobalData {
@@ -250,6 +266,11 @@ impl Default for GlobalData {
             agent_experience: [0, 0, 0],
             current_day: 1,
             agent_recovery: [0, 0, 0],
+            agent_loadouts: [
+                AgentLoadout::default(),
+                AgentLoadout::default(), 
+                AgentLoadout::default()
+            ],
         }
     }
 }
@@ -463,7 +484,7 @@ impl Inventory {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum CyberneticType {
     Neurovector,
     CombatEnhancer,
@@ -479,7 +500,7 @@ pub enum WeaponType {
     Flamethrower,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ToolType {
     Hacker,
     Scanner,
@@ -520,4 +541,23 @@ pub struct ManufactureState {
     pub selected_weapon_idx: usize,
     pub selected_slot: Option<AttachmentSlot>,
     pub selected_attachments: std::collections::HashMap<AttachmentSlot, String>, // NEW: Per-slot selection
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct AgentLoadout {
+    pub weapon_configs: Vec<WeaponConfig>,
+    pub equipped_weapon_idx: usize,
+    pub tools: Vec<ToolType>,
+    pub cybernetics: Vec<CyberneticType>,
+}
+
+impl Default for AgentLoadout {
+    fn default() -> Self {
+        Self {
+            weapon_configs: vec![WeaponConfig::new(WeaponType::Rifle)],
+            equipped_weapon_idx: 0,
+            tools: vec![ToolType::Scanner],
+            cybernetics: vec![],
+        }
+    }
 }

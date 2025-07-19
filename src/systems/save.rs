@@ -13,6 +13,7 @@ pub struct SaveData {
     pub agent_experience: [u32; 3],
     pub agent_recovery: [u32; 3],
     pub regions: Vec<SaveRegion>,
+    pub agent_loadouts: [AgentLoadout; 3], // NEW: Save agent configurations
 }
 
 #[derive(Serialize, Deserialize)]
@@ -31,6 +32,7 @@ impl From<&GlobalData> for SaveData {
             agent_levels: data.agent_levels,
             agent_experience: data.agent_experience,
             agent_recovery: data.agent_recovery,
+            agent_loadouts: data.agent_loadouts.clone(), // Include loadouts
             regions: data.regions.iter().map(|r| SaveRegion {
                 name: r.name.clone(),
                 threat_level: r.threat_level,
@@ -55,6 +57,7 @@ impl From<SaveData> for GlobalData {
             agent_levels: save.agent_levels,
             agent_experience: save.agent_experience,
             agent_recovery: save.agent_recovery,
+            agent_loadouts: save.agent_loadouts, // Restore loadouts
             regions: save.regions.into_iter().map(|r| Region {
                 name: r.name,
                 threat_level: r.threat_level,

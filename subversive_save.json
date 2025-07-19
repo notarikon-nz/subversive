@@ -1,27 +1,27 @@
 {
-  "credits": 8000,
-  "current_day": 28,
+  "credits": 3100,
+  "current_day": 4,
   "agent_levels": [
     1,
     1,
     1
   ],
   "agent_experience": [
-    100,
-    100,
-    100
+    20,
+    20,
+    20
   ],
   "agent_recovery": [
-    28,
-    28,
-    28
+    4,
+    4,
+    4
   ],
   "regions": [
     {
       "name": "Neo-Tokyo Central",
       "threat_level": 1,
-      "alert_level": 3,
-      "alert_decay_timer": 30
+      "alert_level": 0,
+      "alert_decay_timer": 0
     },
     {
       "name": "Corporate District",
@@ -34,6 +34,80 @@
       "threat_level": 3,
       "alert_level": 0,
       "alert_decay_timer": 0
+    }
+  ],
+  "agent_loadouts": [
+    {
+      "weapon_configs": [
+        {
+          "base_weapon": "Rifle",
+          "supported_slots": [
+            "Sight",
+            "Barrel",
+            "Magazine",
+            "Stock"
+          ],
+          "attachments": {
+            "Barrel": null,
+            "Magazine": null,
+            "Stock": null,
+            "Sight": null
+          }
+        }
+      ],
+      "equipped_weapon_idx": 0,
+      "tools": [
+        "Scanner"
+      ],
+      "cybernetics": []
+    },
+    {
+      "weapon_configs": [
+        {
+          "base_weapon": "Rifle",
+          "supported_slots": [
+            "Sight",
+            "Barrel",
+            "Magazine",
+            "Stock"
+          ],
+          "attachments": {
+            "Magazine": null,
+            "Stock": null,
+            "Sight": null,
+            "Barrel": null
+          }
+        }
+      ],
+      "equipped_weapon_idx": 0,
+      "tools": [
+        "Scanner"
+      ],
+      "cybernetics": []
+    },
+    {
+      "weapon_configs": [
+        {
+          "base_weapon": "Rifle",
+          "supported_slots": [
+            "Sight",
+            "Barrel",
+            "Magazine",
+            "Stock"
+          ],
+          "attachments": {
+            "Magazine": null,
+            "Sight": null,
+            "Barrel": null,
+            "Stock": null
+          }
+        }
+      ],
+      "equipped_weapon_idx": 0,
+      "tools": [
+        "Scanner"
+      ],
+      "cybernetics": []
     }
   ]
 }
