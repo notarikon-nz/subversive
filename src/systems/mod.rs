@@ -19,3 +19,6 @@ pub mod ai;
 pub use ai::*;
 
 pub mod cover;
+
+pub mod quicksave;
+pub use quicksave::*;

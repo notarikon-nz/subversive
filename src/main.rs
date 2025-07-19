@@ -71,6 +71,7 @@ fn main() {
         ))
         .add_systems(OnEnter(GameState::GlobalMap), (
             ui::cleanup_global_map_ui,
+            ui::reset_hub_to_global_map,
         ))
         .add_systems(OnEnter(GameState::Mission), (
             ui::cleanup_global_map_ui,  // Clean up when starting mission too
@@ -108,7 +109,8 @@ fn main() {
             goap::goap_debug_system,     // GOAP debug visualization
             goap::apply_goap_config_system, // Apply config changes 
             cover::cover_management_system,
-            cover::cover_exit_system,                       
+            cover::cover_exit_system,
+            quicksave::quicksave_system,
         ).run_if(in_state(GameState::Mission)))
 
         .add_systems(Update, (

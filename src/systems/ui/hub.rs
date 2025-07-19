@@ -32,6 +32,10 @@ impl HubTab {
     }
 }
 
+pub fn reset_hub_to_global_map(mut hub_state: ResMut<HubState>) {
+    hub_state.active_tab = HubTab::GlobalMap;
+}
+
 pub fn hub_system(
     mut commands: Commands,
     mut next_state: ResMut<NextState<GameState>>,
