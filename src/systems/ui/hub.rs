@@ -17,6 +17,7 @@ pub enum HubTab {
     GlobalMap,
     Research,
     Agents,
+    Manufacture,
     Missions,
 }
 
@@ -26,7 +27,8 @@ impl HubTab {
             KeyCode::Digit1 => Some(Self::GlobalMap),
             KeyCode::Digit2 => Some(Self::Research),
             KeyCode::Digit3 => Some(Self::Agents),
-            KeyCode::Digit4 => Some(Self::Missions),
+            KeyCode::Digit4 => Some(Self::Manufacture),
+            KeyCode::Digit5 => Some(Self::Missions),
             _ => None,
         }
     }
@@ -54,7 +56,8 @@ pub fn hub_system(
     match hub_state.active_tab {
         HubTab::GlobalMap => handle_global_map_input(&mut global_data, &mut hub_state, &input, &mut commands, &screen_query),
         HubTab::Research => handle_research_input(&input),
-        HubTab::Agents => handle_agents_input(&input),
+        HubTab::Agents => handle_agents_input(&input, &mut hub_state, &mut commands, &screen_query, &global_data),
+        HubTab::Manufacture => handle_manufacture_input(&input, &mut hub_state, &mut commands, &screen_query, &global_data),
         HubTab::Missions => handle_missions_input(&input, &mut commands, &mut next_state, &global_data),
     }
 
@@ -121,12 +124,38 @@ fn handle_research_input(_input: &ButtonInput<KeyCode>) {
     // - Research dependencies and progress tracking
 }
 
-fn handle_agents_input(_input: &ButtonInput<KeyCode>) {
+fn handle_agents_input(input: &ButtonInput<KeyCode>, hub_state: &mut HubState, commands: &mut Commands, screen_query: &Query<Entity, With<HubScreen>>, global_data: &GlobalData) {
+    // Enter key to go to Manufacture tab
+    if input.just_pressed(KeyCode::KeyM) {
+        hub_state.active_tab = HubTab::Manufacture;
+        rebuild_hub(commands, screen_query, global_data, hub_state);
+        info!("Switching to Manufacture tab");
+    }
     // TODO: Implement agent management
     // - Arrow keys to select agents
     // - Enter to modify equipment
     // - Save/Load squad presets
     // - Agent recovery status display
+}
+
+// Add new manufacture input handler:
+fn handle_manufacture_input(
+    input: &ButtonInput<KeyCode>,
+    hub_state: &mut HubState,
+    commands: &mut Commands,
+    screen_query: &Query<Entity, With<HubScreen>>,
+    global_data: &GlobalData,
+) {
+    // TODO: Implement manufacture UI interactions
+    // - Arrow keys to navigate weapons/attachments
+    // - Enter to attach/detach
+    // - Tab to switch between weapon slots
+    
+    // Back to agents with Backspace
+    if input.just_pressed(KeyCode::Backspace) {
+        hub_state.active_tab = HubTab::Agents;
+        rebuild_hub(commands, screen_query, global_data, hub_state);
+    }
 }
 
 fn handle_missions_input(
@@ -242,7 +271,8 @@ fn create_tab_bar(parent: &mut ChildBuilder, active_tab: HubTab) {
             (HubTab::GlobalMap, "1. GLOBAL MAP", "World overview"),
             (HubTab::Research, "2. RESEARCH", "Tech development"),
             (HubTab::Agents, "3. AGENTS", "Squad management"),
-            (HubTab::Missions, "4. MISSIONS", "Mission briefing"),
+            (HubTab::Manufacture, "4. MANUFACTURE", "Weapon modification"),
+            (HubTab::Missions, "5. MISSIONS", "Mission briefing"),
         ];
         
         for (tab, title, _description) in tab_configs {
@@ -256,7 +286,7 @@ fn create_tab_bar(parent: &mut ChildBuilder, active_tab: HubTab) {
             
             tabs.spawn(NodeBundle {
                 style: Style {
-                    width: Val::Percent(25.0),
+                    width: Val::Percent(20.0),  // Changed from 25% to 20% for 5 tabs
                     height: Val::Percent(100.0),
                     justify_content: JustifyContent::Center,
                     align_items: AlignItems::Center,
@@ -267,7 +297,7 @@ fn create_tab_bar(parent: &mut ChildBuilder, active_tab: HubTab) {
             }).with_children(|tab_button| {
                 tab_button.spawn(TextBundle::from_section(
                     title,
-                    TextStyle { font_size: 16.0, color: text_color, ..default() }
+                    TextStyle { font_size: 14.0, color: text_color, ..default() }  // Smaller font for 5 tabs
                 ));
             });
         }
@@ -295,6 +325,7 @@ fn create_tab_content(
             HubTab::GlobalMap => create_global_map_content(content, global_data, hub_state),
             HubTab::Research => create_research_content(content, global_data),
             HubTab::Agents => create_agents_content(content, global_data),
+            HubTab::Manufacture => create_manufacture_content(content, global_data),
             HubTab::Missions => create_missions_content(content, global_data, hub_state),
         }
     });
@@ -468,6 +499,32 @@ fn create_missions_content(parent: &mut ChildBuilder, global_data: &GlobalData, 
     }
 }
 
+// Add manufacture content creation:
+fn create_manufacture_content(parent: &mut ChildBuilder, global_data: &GlobalData) {
+    parent.spawn(TextBundle::from_section(
+        "WEAPON MANUFACTURE",
+        TextStyle { font_size: 24.0, color: Color::srgb(0.8, 0.6, 0.2), ..default() }
+    ));
+    
+    parent.spawn(TextBundle::from_section(
+        "TODO: Implement weapon modification interface",
+        TextStyle { font_size: 16.0, color: Color::srgb(0.6, 0.6, 0.6), ..default() }
+    ));
+    
+    // TODO: Weapon modification UI implementation
+    // - Left panel: Agent weapon selection
+    // - Center: Weapon with attachment slots visualization  
+    // - Right panel: Available attachments (filtered by unlocked)
+    // - Bottom: Stat comparison (current vs modified)
+    // - Click to attach/detach system
+    
+    parent.spawn(TextBundle::from_section(
+        format!("Available Credits: {}", global_data.credits),
+        TextStyle { font_size: 16.0, color: Color::WHITE, ..default() }
+    ));
+}
+
+
 fn create_footer(parent: &mut ChildBuilder, active_tab: HubTab) {
     parent.spawn(NodeBundle {
         style: Style {
@@ -485,6 +542,7 @@ fn create_footer(parent: &mut ChildBuilder, active_tab: HubTab) {
             HubTab::GlobalMap => "UP/DOWN: Select Region | W: Wait Day | ENTER: View Mission | F5: Save | ESC: Quit",
             HubTab::Research => "Navigation: Arrow Keys | Purchase: ENTER | 1-4: Switch Tabs | ESC: Quit",
             HubTab::Agents => "Select Agent: Arrow Keys | Modify: ENTER | Save/Load Preset: S/L | 1-4: Switch Tabs",
+            HubTab::Manufacture => "Navigate: Arrow Keys | Attach/Detach: ENTER | Back: BACKSPACE | 1-5: Switch Tabs",
             HubTab::Missions => "Launch Mission: ENTER | 1-4: Switch Tabs | ESC: Quit",
         };
         

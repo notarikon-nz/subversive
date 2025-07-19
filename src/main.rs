@@ -77,7 +77,6 @@ fn main() {
             ui::cleanup_global_map_ui,  // Clean up when starting mission too
         ))        
         .add_systems(Update, (
-            // ui::screens::global_map_system,
             ui::hub_system,    // UI HUB UPGRADE
         ).run_if(in_state(GameState::GlobalMap)))
 
@@ -101,7 +100,6 @@ fn main() {
             ui::world::system,           // gizmos/world-space UI  
             ui::screens::inventory_system,
             ui::screens::pause_system,
-
             mission::timer_system,
             mission::check_completion,
             mission::restart_system,

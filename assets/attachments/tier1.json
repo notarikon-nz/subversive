@@ -1,0 +1,132 @@
+{
+  "red_dot": {
+    "id": "red_dot",
+    "name": "Red Dot Sight",
+    "slot": "Sight",
+    "rarity": "Common",
+    "stats": {
+      "accuracy": 2,
+      "range": 0,
+      "noise": 0,
+      "reload_speed": 0,
+      "ammo_capacity": 0
+    }
+  },
+  "iron_sights": {
+    "id": "iron_sights", 
+    "name": "Iron Sights",
+    "slot": "Sight",
+    "rarity": "Common",
+    "stats": {
+      "accuracy": 1,
+      "range": 0,
+      "noise": 0,
+      "reload_speed": 0,
+      "ammo_capacity": 0
+    }
+  },
+  "suppressor": {
+    "id": "suppressor",
+    "name": "Sound Suppressor", 
+    "slot": "Barrel",
+    "rarity": "Common",
+    "stats": {
+      "accuracy": 0,
+      "range": -2,
+      "noise": -5,
+      "reload_speed": 0,
+      "ammo_capacity": 0
+    }
+  },
+  "flash_hider": {
+    "id": "flash_hider",
+    "name": "Flash Hider",
+    "slot": "Barrel", 
+    "rarity": "Common",
+    "stats": {
+      "accuracy": 1,
+      "range": 0,
+      "noise": -2,
+      "reload_speed": 0,
+      "ammo_capacity": 0
+    }
+  },
+  "extended_mag": {
+    "id": "extended_mag",
+    "name": "Extended Magazine",
+    "slot": "Magazine",
+    "rarity": "Rare", 
+    "stats": {
+      "accuracy": 0,
+      "range": 0,
+      "noise": 0,
+      "reload_speed": -2,
+      "ammo_capacity": 3
+    }
+  },
+  "fast_mag": {
+    "id": "fast_mag",
+    "name": "Fast Reload Magazine",
+    "slot": "Magazine",
+    "rarity": "Rare",
+    "stats": {
+      "accuracy": 0,
+      "range": 0,
+      "noise": 0,
+      "reload_speed": 3,
+      "ammo_capacity": -1
+    }
+  },
+  "bipod": {
+    "id": "bipod",
+    "name": "Bipod",
+    "slot": "Grip",
+    "rarity": "Rare",
+    "stats": {
+      "accuracy": 3,
+      "range": 1,
+      "noise": 0,
+      "reload_speed": -1,
+      "ammo_capacity": 0
+    }
+  },
+  "tactical_grip": {
+    "id": "tactical_grip", 
+    "name": "Tactical Grip",
+    "slot": "Grip",
+    "rarity": "Common",
+    "stats": {
+      "accuracy": 1,
+      "range": 0,
+      "noise": 0,
+      "reload_speed": 1,
+      "ammo_capacity": 0
+    }
+  },
+  "heavy_stock": {
+    "id": "heavy_stock",
+    "name": "Heavy Stock",
+    "slot": "Stock", 
+    "rarity": "Rare",
+    "stats": {
+      "accuracy": 2,
+      "range": 1,
+      "noise": 0,
+      "reload_speed": -2,
+      "ammo_capacity": 0
+    }
+  },
+  "lightweight_stock": {
+    "id": "lightweight_stock",
+    "name": "Lightweight Stock",
+    "slot": "Stock",
+    "rarity": "Common", 
+    "stats": {
+      "accuracy": -1,
+      "range": 0,
+      "noise": 0,
+      "reload_speed": 2,
+      "ammo_capacity": 0
+    }
+  }
+}

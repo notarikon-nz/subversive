@@ -1,6 +1,7 @@
 // src/core/mod.rs - Add GOAP module
 use bevy::prelude::*;
 use leafwing_input_manager::prelude::*;
+use serde::{Deserialize, Serialize};
 
 pub mod events;
 pub use events::*;
@@ -13,6 +14,10 @@ pub use sprites::*;
 
 pub mod goap; // Add this line
 pub use goap::*;
+
+// Weapon Attachment System
+pub mod attachments;
+pub use attachments::*;
 
 // Re-export hub types for convenience
 pub use crate::systems::ui::hub::{HubState, HubTab};
@@ -406,12 +411,13 @@ impl Default for InventoryState {
     }
 }
 
+// Updated the Inventory struct to support weapon configs:
 #[derive(Component, Default)]
 pub struct Inventory {
-    pub weapons: Vec<WeaponType>,
+    pub weapons: Vec<WeaponConfig>,  // Changed from WeaponType to WeaponConfig
     pub tools: Vec<ToolType>,
     pub currency: u32,
-    pub equipped_weapon: Option<WeaponType>,
+    pub equipped_weapon: Option<WeaponConfig>,  // Changed from WeaponType
     pub equipped_tools: Vec<ToolType>,
     pub cybernetics: Vec<CyberneticType>,
     pub intel_documents: Vec<String>,
@@ -422,13 +428,21 @@ pub struct InventoryVersion(pub u32);
 
 impl Inventory {
     pub fn add_weapon(&mut self, weapon: WeaponType) {
+        let config = WeaponConfig::new(weapon);
         if self.equipped_weapon.is_none() {
-            self.equipped_weapon = Some(weapon.clone());
+            self.equipped_weapon = Some(config.clone());
         }
-        self.weapons.push(weapon);
-        // No version bump needed - Bevy's change detection handles it
+        self.weapons.push(config);
     }
     
+    pub fn add_weapon_config(&mut self, config: WeaponConfig) {
+        if self.equipped_weapon.is_none() {
+            self.equipped_weapon = Some(config.clone());
+        }
+        self.weapons.push(config);
+    }
+    
+    // Keep existing methods unchanged
     pub fn add_currency(&mut self, amount: u32) {
         self.currency += amount;
     }
@@ -457,7 +471,7 @@ pub enum CyberneticType {
     TechInterface,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum WeaponType {
     Pistol,
     Rifle,
