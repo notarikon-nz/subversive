@@ -1,3 +1,5 @@
+// Update src/systems/combat.rs to use attachment stats
+
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 use leafwing_input_manager::prelude::*;
@@ -10,7 +12,7 @@ pub fn system(
     mut combat_events: EventWriter<CombatEvent>,
     mut audio_events: EventWriter<AudioEvent>,
     selection: Res<SelectionState>,
-    agent_query: Query<&Transform, With<Agent>>,
+    agent_query: Query<(&Transform, &Inventory), With<Agent>>,
     mut enemy_query: Query<(Entity, &Transform, &mut Health), (With<Enemy>, Without<Dead>)>,
     game_mode: Res<GameMode>,
     windows: Query<&Window>,
@@ -22,20 +24,23 @@ pub fn system(
     if let Some(TargetingMode::Combat { agent }) = &game_mode.targeting {
         let Ok(action_state) = input.get_single() else { return; };
         
-        if let Ok(agent_transform) = agent_query.get(*agent) {
+        if let Ok((agent_transform, inventory)) = agent_query.get(*agent) {
             let agent_pos = agent_transform.translation.truncate();
             
-            // Draw combat range
-            gizmos.circle_2d(agent_pos, 150.0, Color::srgba(0.8, 0.2, 0.2, 0.3));
+            // Calculate weapon stats with attachments
+            let (range, _accuracy_bonus) = calculate_weapon_stats(inventory);
             
-            // Highlight valid targets (only living enemies)
+            // Draw combat range with attachment modifiers
+            gizmos.circle_2d(agent_pos, range, Color::srgba(0.8, 0.2, 0.2, 0.3));
+            
+            // Highlight valid targets
             for (enemy_entity, enemy_transform, enemy_health) in enemy_query.iter() {
                 if enemy_health.0 <= 0.0 { continue; }
                 
                 let enemy_pos = enemy_transform.translation.truncate();
                 let distance = agent_pos.distance(enemy_pos);
                 
-                if distance <= 150.0 {
+                if distance <= range {
                     gizmos.circle_2d(enemy_pos, 25.0, Color::srgb(1.0, 0.5, 0.5));
                     
                     // Draw crosshairs
@@ -55,9 +60,8 @@ pub fn system(
             
             // Handle target selection
             if action_state.just_pressed(&PlayerAction::Select) {
-                if let Some(target) = find_combat_target(*agent, &agent_query, &enemy_query, &windows, &cameras) {
-                    // Directly execute attack instead of sending event
-                    execute_attack(*agent, target, &mut enemy_query, &mut combat_events, &mut audio_events);
+                if let Some(target) = find_combat_target(*agent, &agent_query, &enemy_query, &windows, &cameras, range) {
+                    execute_attack(*agent, target, &agent_query, &mut enemy_query, &mut combat_events, &mut audio_events);
                 }
             }
         }
@@ -66,11 +70,11 @@ pub fn system(
     // Process attack actions from events
     for event in action_events.read() {
         if let Action::Attack(target) = event.action {
-            execute_attack(event.entity, target, &mut enemy_query, &mut combat_events, &mut audio_events);
+            execute_attack(event.entity, target, &agent_query, &mut enemy_query, &mut combat_events, &mut audio_events);
         }
     }
 
-    // Draw health bars for damaged enemies (only living ones)
+    // Draw health bars for damaged enemies
     for (_, transform, health) in enemy_query.iter() {
         if health.0 < 100.0 && health.0 > 0.0 {
             draw_health_bar(&mut gizmos, transform.translation.truncate(), health.0, 100.0);
@@ -95,14 +99,35 @@ pub fn death_system(
     }
 }
 
+fn calculate_weapon_stats(inventory: &Inventory) -> (f32, f32) {
+    let base_range = 150.0;
+    let base_accuracy = 0.8;
+    
+    if let Some(weapon_config) = &inventory.equipped_weapon {
+        let stats = weapon_config.calculate_total_stats();
+        
+        // Apply attachment modifiers
+        let range_modifier = 1.0 + (stats.range as f32 * 0.1); // Each point = 10% range change
+        let accuracy_modifier = stats.accuracy as f32 * 0.05; // Each point = 5% accuracy change
+        
+        let final_range = (base_range * range_modifier).max(50.0); // Minimum 50 range
+        let final_accuracy = (base_accuracy + accuracy_modifier).clamp(0.1, 1.0); // 10% to 100% accuracy
+        
+        (final_range, final_accuracy)
+    } else {
+        (base_range, base_accuracy)
+    }
+}
+
 fn find_combat_target(
     agent: Entity,
-    agent_query: &Query<&Transform, With<Agent>>,
+    agent_query: &Query<(&Transform, &Inventory), With<Agent>>,
     enemy_query: &Query<(Entity, &Transform, &mut Health), (With<Enemy>, Without<Dead>)>,
     windows: &Query<&Window>,
     cameras: &Query<(&Camera, &GlobalTransform)>,
+    weapon_range: f32,
 ) -> Option<Entity> {
-    let agent_transform = agent_query.get(agent).ok()?;
+    let (agent_transform, _) = agent_query.get(agent).ok()?;
     let mouse_pos = get_world_mouse_position(windows, cameras)?;
     
     let mut closest_target = None;
@@ -115,7 +140,7 @@ fn find_combat_target(
         let agent_distance = agent_transform.translation.truncate().distance(enemy_pos);
         let mouse_distance = mouse_pos.distance(enemy_pos);
 
-        if agent_distance <= 150.0 && mouse_distance < 30.0 && mouse_distance < closest_distance {
+        if agent_distance <= weapon_range && mouse_distance < 30.0 && mouse_distance < closest_distance {
             closest_distance = mouse_distance;
             closest_target = Some(entity);
         }
@@ -127,20 +152,31 @@ fn find_combat_target(
 fn execute_attack(
     attacker: Entity,
     target: Entity,
+    agent_query: &Query<(&Transform, &Inventory), With<Agent>>,
     enemy_query: &mut Query<(Entity, &Transform, &mut Health), (With<Enemy>, Without<Dead>)>,
     combat_events: &mut EventWriter<CombatEvent>,
     audio_events: &mut EventWriter<AudioEvent>,
 ) {
     if let Ok((_, _, mut health)) = enemy_query.get_mut(target) {
-        let damage = 35.0;
-        let hit = rand::random::<f32>() < 0.8; // 80% hit chance
+        // Calculate damage and accuracy with attachments
+        let (damage, hit_chance, noise_level) = if let Ok((_, inventory)) = agent_query.get(attacker) {
+            calculate_attack_stats(inventory)
+        } else {
+            (35.0, 0.8, 1.0) // Default stats
+        };
+        
+        let hit = rand::random::<f32>() < hit_chance;
         
         if hit {
             health.0 -= damage;
+            
+            // Play gunshot with noise modifier
+            let volume = (0.7 * noise_level).clamp(0.1, 1.0);
             audio_events.send(AudioEvent {
                 sound: AudioType::Gunshot,
-                volume: 0.7,
-            });            
+                volume,
+            });
+            
             if health.0 <= 0.0 {
                 health.0 = 0.0;
                 info!("Enemy defeated!");
@@ -156,12 +192,32 @@ fn execute_attack(
         
         if hit {
             info!("Attack hit for {} damage. Enemy health: {}", damage, health.0);
-            if health.0 <= 0.0 {
-                info!("Enemy defeated!");
-            }
         } else {
             info!("Attack missed!");
         }
+    }
+}
+
+fn calculate_attack_stats(inventory: &Inventory) -> (f32, f32, f32) {
+    let base_damage = 35.0;
+    let base_accuracy = 0.8;
+    let base_noise = 1.0;
+    
+    if let Some(weapon_config) = &inventory.equipped_weapon {
+        let stats = weapon_config.calculate_total_stats();
+        
+        // Apply attachment modifiers
+        let damage_modifier = 1.0 + (stats.accuracy as f32 * 0.02); // Accuracy slightly increases damage
+        let accuracy_modifier = stats.accuracy as f32 * 0.05; // Each point = 5% accuracy
+        let noise_modifier = 1.0 + (stats.noise as f32 * 0.1); // Each point = 10% noise change
+        
+        let final_damage = base_damage * damage_modifier;
+        let final_accuracy = (base_accuracy + accuracy_modifier).clamp(0.1, 0.95);
+        let final_noise = (base_noise * noise_modifier).max(0.1); // Minimum 10% noise
+        
+        (final_damage, final_accuracy, final_noise)
+    } else {
+        (base_damage, base_accuracy, base_noise)
     }
 }
 

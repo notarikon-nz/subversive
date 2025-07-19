@@ -170,8 +170,8 @@ fn create_inventory_ui(commands: &mut Commands, inventory: Option<&Inventory>) {
     commands.spawn((
         NodeBundle {
             style: Style {
-                width: Val::Px(400.0),
-                height: Val::Px(500.0),
+                width: Val::Px(450.0),  // Slightly wider for attachment info
+                height: Val::Px(550.0),
                 position_type: PositionType::Absolute,
                 left: Val::Px(50.0),
                 top: Val::Px(50.0),
@@ -199,16 +199,58 @@ fn create_inventory_ui(commands: &mut Commands, inventory: Option<&Inventory>) {
                 TextStyle { font_size: 18.0, color: Color::srgb(0.8, 0.8, 0.2), ..default() }
             ));
             
-            // Equipped weapon
-            let weapon_text = if let Some(weapon) = &inv.equipped_weapon {
-                format!("EQUIPPED WEAPON: {:?}", weapon)
+            // Equipped weapon with attachment stats
+            if let Some(weapon_config) = &inv.equipped_weapon {
+                let stats = weapon_config.calculate_total_stats();
+                
+                parent.spawn(TextBundle::from_section(
+                    format!("EQUIPPED: {:?}", weapon_config.base_weapon),
+                    TextStyle { font_size: 16.0, color: Color::srgb(0.9, 0.5, 0.2), ..default() }
+                ));
+                
+                // Show attachment stats if any are non-zero
+                if stats.accuracy != 0 || stats.range != 0 || stats.noise != 0 || 
+                   stats.reload_speed != 0 || stats.ammo_capacity != 0 {
+                    parent.spawn(TextBundle::from_section(
+                        format!("Stats: Acc{:+} Rng{:+} Noise{:+} Reload{:+} Ammo{:+}", 
+                                stats.accuracy, stats.range, stats.noise, stats.reload_speed, stats.ammo_capacity),
+                        TextStyle { font_size: 14.0, color: Color::srgb(0.6, 0.8, 0.6), ..default() }
+                    ));
+                }
+                
+                // Show attached components
+                let attached_count = weapon_config.attachments.values()
+                    .filter(|att| att.is_some())
+                    .count();
+                
+                if attached_count > 0 {
+                    parent.spawn(TextBundle::from_section(
+                        format!("Attachments: {}/{}", attached_count, weapon_config.supported_slots.len()),
+                        TextStyle { font_size: 14.0, color: Color::srgb(0.7, 0.7, 0.9), ..default() }
+                    ));
+                    
+                    // List attached items
+                    for (slot, attachment_opt) in &weapon_config.attachments {
+                        if let Some(attachment) = attachment_opt {
+                            parent.spawn(TextBundle::from_section(
+                                format!("  {:?}: {}", slot, attachment.name),
+                                TextStyle { font_size: 12.0, color: Color::srgb(0.8, 0.8, 0.8), ..default() }
+                            ));
+                        }
+                    }
+                } else {
+                    parent.spawn(TextBundle::from_section(
+                        "No attachments equipped",
+                        TextStyle { font_size: 14.0, color: Color::srgb(0.5, 0.5, 0.5), ..default() }
+                    ));
+                }
+                
             } else {
-                "EQUIPPED WEAPON: None".to_string()
-            };
-            parent.spawn(TextBundle::from_section(
-                weapon_text,
-                TextStyle { font_size: 16.0, color: Color::srgb(0.9, 0.5, 0.2), ..default() }
-            ));
+                parent.spawn(TextBundle::from_section(
+                    "EQUIPPED WEAPON: None",
+                    TextStyle { font_size: 16.0, color: Color::srgb(0.8, 0.3, 0.3), ..default() }
+                ));
+            }
             
             // Equipped tools
             if !inv.equipped_tools.is_empty() {
@@ -218,7 +260,7 @@ fn create_inventory_ui(commands: &mut Commands, inventory: Option<&Inventory>) {
                 ));
             }
             
-            // Weapons section
+            // Weapons section - show as configs now
             if !inv.weapons.is_empty() {
                 parent.spawn(NodeBundle {
                     style: Style {
@@ -232,16 +274,19 @@ fn create_inventory_ui(commands: &mut Commands, inventory: Option<&Inventory>) {
                         "WEAPONS:",
                         TextStyle { font_size: 16.0, color: Color::srgb(0.8, 0.3, 0.3), ..default() }
                     ));
-                    for weapon in &inv.weapons {
+                    for weapon_config in &inv.weapons {
+                        let attached_count = weapon_config.attachments.values()
+                            .filter(|att| att.is_some())
+                            .count();
                         weapons.spawn(TextBundle::from_section(
-                            format!("• {:?}", weapon),
+                            format!("• {:?} ({}/{})", weapon_config.base_weapon, attached_count, weapon_config.supported_slots.len()),
                             TextStyle { font_size: 14.0, color: Color::WHITE, ..default() }
                         ));
                     }
                 });
             }
             
-            // Tools section
+            // Tools section (unchanged)
             if !inv.tools.is_empty() {
                 parent.spawn(NodeBundle {
                     style: Style {
@@ -264,7 +309,7 @@ fn create_inventory_ui(commands: &mut Commands, inventory: Option<&Inventory>) {
                 });
             }
             
-            // Cybernetics section
+            // Cybernetics section (unchanged)
             if !inv.cybernetics.is_empty() {
                 parent.spawn(NodeBundle {
                     style: Style {
@@ -287,7 +332,7 @@ fn create_inventory_ui(commands: &mut Commands, inventory: Option<&Inventory>) {
                 });
             }
             
-            // Intel section
+            // Intel section (unchanged)
             if !inv.intel_documents.is_empty() {
                 parent.spawn(NodeBundle {
                     style: Style {
@@ -302,14 +347,14 @@ fn create_inventory_ui(commands: &mut Commands, inventory: Option<&Inventory>) {
                         TextStyle { font_size: 16.0, color: Color::srgb(0.8, 0.8, 0.3), ..default() }
                     ));
                     for (i, document) in inv.intel_documents.iter().enumerate() {
-                        let preview = if document.len() > 50 {
-                            format!("{}...", &document[..47])
+                        let preview = if document.len() > 40 {
+                            format!("{}...", &document[..37])
                         } else {
                             document.clone()
                         };
                         intel.spawn(TextBundle::from_section(
                             format!("• Doc {}: {}", i + 1, preview),
-                            TextStyle { font_size: 12.0, color: Color::WHITE, ..default() }
+                            TextStyle { font_size: 11.0, color: Color::WHITE, ..default() }
                         ));
                     }
                 });
@@ -323,7 +368,7 @@ fn create_inventory_ui(commands: &mut Commands, inventory: Option<&Inventory>) {
         
         // Instructions
         parent.spawn(TextBundle::from_section(
-            "Press 'I' to close inventory",
+            "Press 'I' to close inventory\nGo to Manufacture tab to modify weapons",
             TextStyle { font_size: 12.0, color: Color::srgb(0.7, 0.7, 0.7), ..default() }
         ));
     });

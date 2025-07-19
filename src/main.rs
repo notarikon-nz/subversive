@@ -40,13 +40,15 @@ fn main() {
         .init_resource::<MissionData>()
         .init_resource::<InventoryState>()
         .init_resource::<PostMissionResults>()
-        .insert_resource(load_global_data_or_default()) // .init_resource::<GlobalData>()
+        .insert_resource(load_global_data_or_default())
         .init_resource::<UIState>()
         .init_resource::<PostMissionProcessed>()
         .init_resource::<EntityPool>()
         .init_resource::<SelectionDrag>()
         .init_resource::<GoapConfig>()
-        .init_resource::<HubState>()    // UI HUB UPGRADE
+        .init_resource::<HubState>()
+        .init_resource::<UnlockedAttachments>()
+        .init_resource::<ManufactureState>()  // Add manufacture state        
         .add_event::<ActionEvent>()
         .add_event::<CombatEvent>()
         .add_event::<AudioEvent>()
@@ -55,7 +57,9 @@ fn main() {
             setup_camera_and_input,
             setup_physics, 
             audio::setup_audio,
-            sprites::load_sprites))
+            sprites::load_sprites,
+            setup_attachments,
+        ))
         .add_systems(Update, (
             sprites::spawn_initial_scene.run_if(resource_exists::<GameSprites>).run_if(run_once()),
             input::handle_input,
@@ -74,45 +78,42 @@ fn main() {
             ui::reset_hub_to_global_map,
         ))
         .add_systems(OnEnter(GameState::Mission), (
-            ui::cleanup_global_map_ui,  // Clean up when starting mission too
+            ui::cleanup_global_map_ui,
         ))        
         .add_systems(Update, (
-            ui::hub_system,    // UI HUB UPGRADE
+            ui::hub_system,
         ).run_if(in_state(GameState::GlobalMap)))
 
         .add_systems(Update, (
             camera::movement,
             selection::system,
             movement::system,
-            // GOAP AI Systems (primary)
-            goap::goap_ai_system,        // Main GOAP AI
-            ai::goap_sound_detection_system, // GOAP sound detection
-            ai::alert_system,            // Alert coordination system            
-            // Legacy AI Systems (fallback for non-GOAP enemies)
-            ai::legacy_enemy_ai_system,   // Renamed old enemy_ai_system
-            ai::sound_detection_system,   // Legacy sound detection
+            goap::goap_ai_system,
+            ai::goap_sound_detection_system,
+            ai::alert_system,
+            ai::legacy_enemy_ai_system,
+            ai::sound_detection_system,
             neurovector::system,
             interaction::system,
             combat::system,
             combat::death_system,
         ).run_if(in_state(GameState::Mission)))
         .add_systems(Update, (            
-            ui::world::system,           // gizmos/world-space UI  
+            ui::world::system,
             ui::screens::inventory_system,
             ui::screens::pause_system,
             mission::timer_system,
             mission::check_completion,
             mission::restart_system,
-            // GOAP Debug and Config systems
-            goap::goap_debug_system,     // GOAP debug visualization
-            goap::apply_goap_config_system, // Apply config changes 
+            goap::goap_debug_system,     
+            goap::apply_goap_config_system, 
             cover::cover_management_system,
             cover::cover_exit_system,
             quicksave::quicksave_system,
         ).run_if(in_state(GameState::Mission)))
 
         .add_systems(Update, (
-            mission::process_mission_results,  // Separated from UI
+            mission::process_mission_results,  
             ui::screens::post_mission_ui_system,
         ).run_if(in_state(GameState::PostMission)))
         .run();
@@ -138,4 +139,20 @@ fn setup_camera_and_input(mut commands: Commands) {
             .build(),
         ..default()
     });
+}
+
+fn setup_attachments(mut commands: Commands) {
+    let attachment_db = AttachmentDatabase::load();
+    
+    // Start with basic attachments unlocked
+    let mut unlocked = UnlockedAttachments::default();
+    unlocked.attachments.insert("red_dot".to_string());
+    unlocked.attachments.insert("iron_sights".to_string());
+    unlocked.attachments.insert("tactical_grip".to_string());
+    
+    let attachment_count = attachment_db.attachments.len();
+    commands.insert_resource(attachment_db);
+    commands.insert_resource(unlocked);
+    
+    info!("Attachment system initialized with {} attachments", attachment_count);
 }

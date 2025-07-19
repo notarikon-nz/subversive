@@ -199,27 +199,44 @@ pub fn legacy_enemy_ai_system(
     }
 }
 
+// Update legacy sound detection system
 pub fn sound_detection_system(
     mut enemy_query: Query<(Entity, &Transform, &mut AIState), (With<Enemy>, Without<Dead>)>,
     mut combat_events: EventReader<CombatEvent>,
-    combat_transforms: Query<&Transform, With<Agent>>,
+    combat_transforms: Query<(&Transform, &Inventory), With<Agent>>,
 ) {
-    // React to gunshots
+    // React to gunshots with attachment-modified detection range
     for combat_event in combat_events.read() {
-        if let Ok(shooter_transform) = combat_transforms.get(combat_event.attacker) {
+        if let Ok((shooter_transform, inventory)) = combat_transforms.get(combat_event.attacker) {
             let gunshot_pos = shooter_transform.translation.truncate();
+            
+            // Calculate noise level from attachments
+            let noise_modifier = if let Some(weapon_config) = &inventory.equipped_weapon {
+                let stats = weapon_config.calculate_total_stats();
+                1.0 + (stats.noise as f32 * 0.1) // Each noise point = 10% modifier
+            } else {
+                1.0
+            };
+            
+            // Base detection range modified by noise
+            let base_range = 200.0;
+            let detection_range = (base_range * noise_modifier).max(50.0); // Minimum 50 units
             
             for (_, enemy_transform, mut ai_state) in enemy_query.iter_mut() {
                 let distance = enemy_transform.translation.truncate().distance(gunshot_pos);
                 
-                // Hear gunshots within 200 units
-                if distance <= 200.0 && ai_state.alert_cooldown <= 0.0 {
+                if distance <= detection_range && ai_state.alert_cooldown <= 0.0 {
                     match ai_state.mode {
                         AIMode::Patrol => {
                             ai_state.mode = AIMode::Investigate { location: gunshot_pos };
                             ai_state.investigation_timer = 8.0;
                             ai_state.alert_cooldown = 3.0;
-                            info!("Enemy heard gunshot, investigating");
+                            
+                            if noise_modifier < 0.5 {
+                                info!("Enemy heard suppressed gunshot (range: {:.0})", detection_range);
+                            } else {
+                                info!("Enemy heard gunshot (range: {:.0})", detection_range);
+                            }
                         },
                         _ => {
                             // Already in alert state
@@ -280,26 +297,41 @@ fn check_line_of_sight(
     None
 }
 
-// GOAP Sound Detection System - updates GOAP world state
+// Update GOAP sound detection system
 pub fn goap_sound_detection_system(
     mut enemy_query: Query<(Entity, &Transform, &mut GoapAgent), (With<Enemy>, Without<Dead>)>,
     mut combat_events: EventReader<CombatEvent>,
-    combat_transforms: Query<&Transform, With<Agent>>,
+    combat_transforms: Query<(&Transform, &Inventory), With<Agent>>,
 ) {
-    // React to gunshots by updating GOAP world state
+    // React to gunshots by updating GOAP world state with attachment consideration
     for combat_event in combat_events.read() {
-        if let Ok(shooter_transform) = combat_transforms.get(combat_event.attacker) {
+        if let Ok((shooter_transform, inventory)) = combat_transforms.get(combat_event.attacker) {
             let gunshot_pos = shooter_transform.translation.truncate();
+            
+            // Calculate noise level from attachments
+            let noise_modifier = if let Some(weapon_config) = &inventory.equipped_weapon {
+                let stats = weapon_config.calculate_total_stats();
+                1.0 + (stats.noise as f32 * 0.1)
+            } else {
+                1.0
+            };
+            
+            // Base detection range modified by noise
+            let base_range = 200.0;
+            let detection_range = (base_range * noise_modifier).max(50.0);
             
             for (_, enemy_transform, mut goap_agent) in enemy_query.iter_mut() {
                 let distance = enemy_transform.translation.truncate().distance(gunshot_pos);
                 
-                // Hear gunshots within 200 units
-                if distance <= 200.0 {
+                if distance <= detection_range {
                     goap_agent.update_world_state(WorldKey::HeardSound, true);
-                    // Force replanning
-                    goap_agent.abort_plan();
-                    info!("GOAP Enemy heard gunshot");
+                    goap_agent.abort_plan(); // Force replanning
+                    
+                    if noise_modifier < 0.5 {
+                        info!("GOAP Enemy heard suppressed gunshot (range: {:.0})", detection_range);
+                    } else {
+                        info!("GOAP Enemy heard gunshot (range: {:.0})", detection_range);
+                    }
                 }
             }
         }
