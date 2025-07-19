@@ -22,6 +22,7 @@ pub struct HubScreen;
 pub struct HubState {
     pub active_tab: HubTab,
     pub selected_region: usize,
+    pub selected_research_project: usize,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
@@ -67,10 +68,12 @@ pub fn hub_system(
     mut global_data: ResMut<GlobalData>,
     mut hub_state: ResMut<HubState>,
     mut manufacture_state: ResMut<ManufactureState>,
+    mut research_progress: ResMut<ResearchProgress>,  // ADD
+    research_db: Res<ResearchDatabase>,               // ADD
+    mut unlocked: ResMut<UnlockedAttachments>, // ADD
     input: Res<ButtonInput<KeyCode>>,
     screen_query: Query<Entity, With<HubScreen>>,
     attachment_db: Res<AttachmentDatabase>,
-    unlocked: Res<UnlockedAttachments>,
     agent_query: Query<&mut Inventory, With<Agent>>,
 ) {
     // Global tab switching with Q/E
@@ -87,7 +90,7 @@ pub fn hub_system(
     }
     
     if tab_changed {
-        rebuild_hub(&mut commands, &screen_query, &global_data, &hub_state, &manufacture_state, &attachment_db, &unlocked);
+        rebuild_hub(&mut commands, &screen_query, &global_data, &hub_state, &manufacture_state, &research_progress, &research_db, &attachment_db, &unlocked);
     }
 
     // Delegate input handling to appropriate tab
@@ -95,7 +98,14 @@ pub fn hub_system(
         HubTab::GlobalMap => global_map::handle_input(
             &input, &mut global_data, &mut hub_state
         ),
-        HubTab::Research => research::handle_input(&input),
+        HubTab::Research => research::handle_input(
+            &input, 
+            &mut global_data, 
+            &mut research_progress, 
+            &research_db, 
+            &mut unlocked,
+            &mut hub_state.selected_research_project
+        ),
         HubTab::Agents => agents::handle_input(&input, &mut hub_state),
         HubTab::Manufacture => manufacture::handle_input(
             &input, &mut hub_state, &mut manufacture_state, &mut global_data, agent_query, &attachment_db
@@ -110,7 +120,7 @@ pub fn hub_system(
 
     // Create/rebuild UI if needed
     if screen_query.is_empty() || needs_rebuild {
-        rebuild_hub(&mut commands, &screen_query, &global_data, &hub_state, &manufacture_state, &attachment_db, &unlocked);
+        rebuild_hub(&mut commands, &screen_query, &global_data, &hub_state, &manufacture_state, &research_progress, &research_db, &attachment_db, &unlocked);
     }
 }
 
@@ -120,13 +130,18 @@ fn rebuild_hub(
     global_data: &GlobalData,
     hub_state: &HubState,
     manufacture_state: &ManufactureState,
+    research_progress: &ResearchProgress,  // ADD
+    research_db: &ResearchDatabase,        // ADD    
     attachment_db: &AttachmentDatabase,
     unlocked: &UnlockedAttachments,
 ) {
     for entity in screen_query.iter() {
         commands.entity(entity).despawn_recursive();
     }
-    create_hub_ui(commands, global_data, hub_state, manufacture_state, attachment_db, unlocked);
+    create_hub_ui(commands, global_data, hub_state, manufacture_state, 
+        research_progress,
+        research_db,
+        attachment_db, unlocked);
 }
 
 fn create_hub_ui(
@@ -134,6 +149,8 @@ fn create_hub_ui(
     global_data: &GlobalData, 
     hub_state: &HubState,
     manufacture_state: &ManufactureState,
+    research_progress: &ResearchProgress,  // ADD
+    research_db: &ResearchDatabase,        // ADD
     attachment_db: &AttachmentDatabase,
     unlocked: &UnlockedAttachments,
 ) {
@@ -156,7 +173,13 @@ fn create_hub_ui(
         // Delegate content creation to appropriate tab
         match hub_state.active_tab {
             HubTab::GlobalMap => global_map::create_content(parent, global_data, hub_state),
-            HubTab::Research => research::create_content(parent, global_data),
+            HubTab::Research => research::create_content(
+                parent, 
+                global_data, 
+                &research_progress, 
+                &research_db,
+                hub_state.selected_research_project
+            ),
             HubTab::Agents => agents::create_content(parent, global_data),
             HubTab::Manufacture => manufacture::create_content(parent, global_data, manufacture_state, attachment_db, unlocked),
             HubTab::Missions => missions::create_content(parent, global_data, hub_state),

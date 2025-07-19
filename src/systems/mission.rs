@@ -143,6 +143,7 @@ pub fn post_mission_system(
     agent_query: Query<&Agent>,
     input: Res<ButtonInput<KeyCode>>,
     ui_query: Query<Entity, With<PostMissionUI>>,
+    research_db: Res<ResearchDatabase>,
 ) {
     // Handle input first
     if input.just_pressed(KeyCode::KeyR) {
@@ -166,7 +167,7 @@ pub fn post_mission_system(
     
     // Process mission results only once
     if !processed.0 {
-        update_mission_results(&mut global_data, &post_mission, &agent_query);
+        update_mission_results(&mut global_data, &post_mission, &agent_query, research_db);
         processed.0 = true;
     }
     
@@ -180,18 +181,23 @@ fn update_mission_results(
     global_data: &mut GlobalData,
     post_mission: &PostMissionResults,
     agent_query: &Query<&Agent>,
+    research_db: Res<ResearchDatabase>,               // ADD
 ) {
     let region_idx = global_data.selected_region;
     global_data.current_day += 1;
     
     if post_mission.success {
-        global_data.credits += post_mission.credits_earned;
-        
+        let base_exp = 10 + (post_mission.enemies_killed * 5);
+        let research_exp = calculate_research_xp_bonus(&global_data.research_progress, &research_db, base_exp);
+        let credit_bonus = calculate_research_credit_bonus(&global_data.research_progress, &research_db);
+
+        global_data.credits += post_mission.credits_earned + credit_bonus;
+       
         let exp_gained = 10 + (post_mission.enemies_killed * 5);
         let recovery_days = if post_mission.time_taken > 240.0 { 2 } else { 1 };
         
         for (i, _) in agent_query.iter().enumerate().take(3) {
-            global_data.agent_experience[i] += exp_gained;
+            global_data.agent_experience[i] += research_exp;
             global_data.agent_recovery[i] = global_data.current_day + recovery_days;
             
             let required_exp = experience_for_level(global_data.agent_levels[i] + 1);
@@ -203,6 +209,7 @@ fn update_mission_results(
         if post_mission.enemies_killed > 0 || post_mission.time_taken >= 180.0 {
             global_data.regions[region_idx].raise_alert(global_data.current_day);
         }
+
     } else {
         global_data.regions[region_idx].raise_alert(global_data.current_day);
         global_data.regions[region_idx].raise_alert(global_data.current_day);
@@ -210,7 +217,7 @@ fn update_mission_results(
             global_data.agent_recovery[i] = global_data.current_day + 3;
         }
     }
-    
+
     for region in &mut global_data.regions {
         region.update_alert(global_data.current_day);
     }

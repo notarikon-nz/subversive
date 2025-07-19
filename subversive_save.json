@@ -1,27 +1,27 @@
 {
-  "credits": 3100,
-  "current_day": 5,
+  "credits": 8000,
+  "current_day": 1,
   "agent_levels": [
     1,
     1,
     1
   ],
   "agent_experience": [
-    20,
-    20,
-    20
+    0,
+    0,
+    0
   ],
   "agent_recovery": [
-    8,
-    8,
-    8
+    0,
+    0,
+    0
   ],
   "regions": [
     {
       "name": "Neo-Tokyo Central",
       "threat_level": 1,
-      "alert_level": 2,
-      "alert_decay_timer": 12
+      "alert_level": 0,
+      "alert_decay_timer": 0
     },
     {
       "name": "Corporate District",
@@ -48,9 +48,9 @@
             "Stock"
           ],
           "attachments": {
-            "Sight": null,
-            "Stock": null,
             "Magazine": null,
+            "Stock": null,
+            "Sight": null,
             "Barrel": null
           }
         }
@@ -72,33 +72,9 @@
             "Stock"
           ],
           "attachments": {
-            "Sight": null,
-            "Magazine": null,
-            "Stock": null,
-            "Barrel": null
-          }
-        }
-      ],
-      "equipped_weapon_idx": 0,
-      "tools": [
-        "Scanner"
-      ],
-      "cybernetics": []
-    },
-    {
-      "weapon_configs": [
-        {
-          "base_weapon": "Rifle",
-          "supported_slots": [
-            "Sight",
-            "Barrel",
-            "Magazine",
-            "Stock"
-          ],
-          "attachments": {
-            "Sight": null,
-            "Magazine": null,
             "Barrel": null,
+            "Sight": null,
+            "Magazine": null,
             "Stock": null
           }
         }
@@ -108,6 +84,36 @@
         "Scanner"
       ],
       "cybernetics": []
+    },
+    {
+      "weapon_configs": [
+        {
+          "base_weapon": "Rifle",
+          "supported_slots": [
+            "Sight",
+            "Barrel",
+            "Magazine",
+            "Stock"
+          ],
+          "attachments": {
+            "Sight": null,
+            "Barrel": null,
+            "Stock": null,
+            "Magazine": null
+          }
+        }
+      ],
+      "equipped_weapon_idx": 0,
+      "tools": [
+        "Scanner"
+      ],
+      "cybernetics": []
     }
-  ]
+  ],
+  "research_progress": {
+    "completed": [
+      "basic_optics"
+    ],
+    "credits_invested": 1000
+  }
 }

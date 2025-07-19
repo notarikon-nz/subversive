@@ -4,22 +4,19 @@ use leafwing_input_manager::prelude::*;
 use serde::{Deserialize, Serialize};
 
 pub mod events;
-pub use events::*;
-
 pub mod audio;
-pub use audio::*;
-
 pub mod sprites;
-pub use sprites::*;
-
-pub mod goap; // Add this line
-pub use goap::*;
-
-// Weapon Attachment System
+pub mod goap; 
+pub mod research;
 pub mod attachments;
+
+pub use events::*;
+pub use audio::*;
+pub use sprites::*;
+pub use goap::*;
+pub use research::*;
 pub use attachments::*;
 
-// Re-export hub types for convenience
 pub use crate::systems::ui::hub::{HubState, HubTab};
 
 // === STATES ===
@@ -222,6 +219,7 @@ pub struct GlobalData {
     pub current_day: u32,
     pub agent_recovery: [u32; MAX_SQUAD_SIZE],
     pub agent_loadouts: [AgentLoadout; MAX_SQUAD_SIZE],
+    pub research_progress: ResearchProgress,
 }
 
 impl GlobalData {
@@ -271,6 +269,7 @@ impl Default for GlobalData {
                 AgentLoadout::default(), 
                 AgentLoadout::default()
             ],
+            research_progress: ResearchProgress::default(),
         }
     }
 }

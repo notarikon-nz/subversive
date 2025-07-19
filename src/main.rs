@@ -10,18 +10,9 @@ use systems::*;
 use systems::ai::*;
 use pool::*;
 
-fn load_global_data_or_default() -> GlobalData {
-    if let Some(loaded_data) = crate::systems::save::load_game() {
-        info!("Save file loaded successfully! Day {}, Credits: {}", 
-              loaded_data.current_day, loaded_data.credits);
-        loaded_data
-    } else {
-        info!("No save file found, starting new game");
-        GlobalData::default()
-    }
-}
-
 fn main() {
+    let (global_data, research_progress) = load_global_data_or_default();
+
     App::new()
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
@@ -40,7 +31,10 @@ fn main() {
         .init_resource::<MissionData>()
         .init_resource::<InventoryState>()
         .init_resource::<PostMissionResults>()
-        .insert_resource(load_global_data_or_default())
+        .insert_resource(global_data)                    // Insert loaded global data
+        .insert_resource(research_progress)              // Insert loaded research progress
+        .insert_resource(ResearchDatabase::load())
+        .init_resource::<ResearchProgress>()        
         .init_resource::<UIState>()
         .init_resource::<PostMissionProcessed>()
         .init_resource::<EntityPool>()
@@ -48,7 +42,8 @@ fn main() {
         .init_resource::<GoapConfig>()
         .init_resource::<HubState>()
         .init_resource::<UnlockedAttachments>()
-        .init_resource::<ManufactureState>()  // Add manufacture state        
+        .init_resource::<ManufactureState>()
+        .init_resource::<ResearchProgress>()
         .add_event::<ActionEvent>()
         .add_event::<CombatEvent>()
         .add_event::<AudioEvent>()
@@ -59,6 +54,7 @@ fn main() {
             audio::setup_audio,
             sprites::load_sprites,
             setup_attachments,
+            apply_loaded_research_benefits,
         ))
         .add_systems(Update, (
             sprites::spawn_initial_scene.run_if(resource_exists::<GameSprites>).run_if(run_once()),
@@ -69,6 +65,7 @@ fn main() {
             save::save_input_system,
             audio::audio_system,
             goap::goap_config_system,
+            debug_research_system,
         ))
         .add_systems(OnEnter(GameState::PostMission), (
             ui::cleanup_mission_ui,
@@ -155,4 +152,59 @@ fn setup_attachments(mut commands: Commands) {
     commands.insert_resource(unlocked);
     
     info!("Attachment system initialized with {} attachments", attachment_count);
+}
+
+
+fn load_global_data_or_default() -> (GlobalData, ResearchProgress) {
+    if let Some(loaded_data) = crate::systems::save::load_game() {
+        let research_progress = loaded_data.research_progress.clone();
+        info!("Save file loaded successfully! Day {}, Credits: {}, Research: {} projects", 
+              loaded_data.current_day, 
+              loaded_data.credits,
+              research_progress.completed.len());
+        (loaded_data, research_progress)
+    } else {
+        info!("No save file found, starting new game");
+        (GlobalData::default(), ResearchProgress::default())
+    }
+}
+
+fn apply_loaded_research_benefits(
+    global_data: Res<GlobalData>,
+    research_db: Res<ResearchDatabase>,
+    mut unlocked_attachments: ResMut<UnlockedAttachments>,
+) {
+    // Apply all research benefits from loaded save data
+    apply_research_unlocks(
+        &global_data.research_progress,
+        &research_db,
+        &mut unlocked_attachments,
+        // Note: We can't mutate global_data here since it's Res, not ResMut
+        // But weapon/tool unlocks don't need to modify GlobalData
+    );
+    
+    info!("Applied research benefits for {} completed projects", 
+          global_data.research_progress.completed.len());
+}
+
+// TEMPORARY to debug research state
+pub fn debug_research_system(
+    input: Res<ButtonInput<KeyCode>>,
+    global_data: Res<GlobalData>,
+    research_db: Res<ResearchDatabase>,
+) {
+    if input.just_pressed(KeyCode::F9) {
+        info!("=== RESEARCH DEBUG ===");
+        info!("Completed projects: {:?}", global_data.research_progress.completed);
+        info!("Credits invested: {}", global_data.research_progress.credits_invested);
+        
+        let available = research_db.get_available_projects(&global_data.research_progress);
+        info!("Available projects: {}", available.len());
+        
+        let completed = research_db.get_completed_projects(&global_data.research_progress);
+        info!("Completed projects: {}", completed.len());
+        for project in completed {
+            info!("  - {}", project.name);
+        }
+    }
 }

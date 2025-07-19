@@ -13,7 +13,8 @@ pub struct SaveData {
     pub agent_experience: [u32; 3],
     pub agent_recovery: [u32; 3],
     pub regions: Vec<SaveRegion>,
-    pub agent_loadouts: [AgentLoadout; 3], // NEW: Save agent configurations
+    pub agent_loadouts: [AgentLoadout; 3],
+    pub research_progress: ResearchProgress,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -32,7 +33,8 @@ impl From<&GlobalData> for SaveData {
             agent_levels: data.agent_levels,
             agent_experience: data.agent_experience,
             agent_recovery: data.agent_recovery,
-            agent_loadouts: data.agent_loadouts.clone(), // Include loadouts
+            agent_loadouts: data.agent_loadouts.clone(),
+            research_progress: data.research_progress.clone(), // ADD THIS
             regions: data.regions.iter().map(|r| SaveRegion {
                 name: r.name.clone(),
                 threat_level: r.threat_level,
@@ -57,7 +59,8 @@ impl From<SaveData> for GlobalData {
             agent_levels: save.agent_levels,
             agent_experience: save.agent_experience,
             agent_recovery: save.agent_recovery,
-            agent_loadouts: save.agent_loadouts, // Restore loadouts
+            agent_loadouts: save.agent_loadouts,
+            research_progress: save.research_progress, // ADD THIS
             regions: save.regions.into_iter().map(|r| Region {
                 name: r.name,
                 threat_level: r.threat_level,
@@ -77,7 +80,8 @@ pub fn save_game(global_data: &GlobalData) {
     let save_data = SaveData::from(global_data);
     if let Ok(json) = serde_json::to_string_pretty(&save_data) {
         if fs::write(SAVE_FILE, json).is_ok() {
-            info!("Game saved successfully");
+            info!("Game saved successfully - {} research projects completed", 
+                  global_data.research_progress.completed.len());
         } else {
             warn!("Failed to save game");
         }
@@ -91,22 +95,45 @@ pub fn load_game() -> Option<GlobalData> {
         .map(GlobalData::from)
 }
 
-pub fn auto_save_system(
-    global_data: Res<GlobalData>,
-    mut last_day: Local<u32>,
+pub fn save_game_with_research_sync(
+    global_data: &GlobalData,
+    research_progress: &ResearchProgress,  // Get current research state
 ) {
-    if global_data.current_day != *last_day && global_data.current_day > 1 {
-        save_game(&global_data);
-        *last_day = global_data.current_day;
+    // Create a mutable copy of global data with current research
+    let mut updated_global_data = global_data.clone();
+    updated_global_data.research_progress = research_progress.clone();
+    
+    let save_data = SaveData::from(&updated_global_data);
+    if let Ok(json) = serde_json::to_string_pretty(&save_data) {
+        if fs::write(SAVE_FILE, json).is_ok() {
+            info!("Game saved successfully - {} research projects completed", 
+                  research_progress.completed.len());
+        } else {
+            warn!("Failed to save game");
+        }
     }
 }
 
+// Update the save input system to use the sync version
 pub fn save_input_system(
     input: Res<ButtonInput<KeyCode>>,
     global_data: Res<GlobalData>,
+    research_progress: Res<ResearchProgress>,  // Add this parameter
     game_state: Res<State<GameState>>,
 ) {
     if input.just_pressed(KeyCode::F5) && *game_state.get() == GameState::GlobalMap {
-        save_game(&global_data);
+        save_game_with_research_sync(&global_data, &research_progress);  // Use sync version
+    }
+}
+
+// Also update auto_save_system
+pub fn auto_save_system(
+    global_data: Res<GlobalData>,
+    research_progress: Res<ResearchProgress>,  // Add this parameter
+    mut last_day: Local<u32>,
+) {
+    if global_data.current_day != *last_day && global_data.current_day > 1 {
+        save_game_with_research_sync(&global_data, &research_progress);  // Use sync version
+        *last_day = global_data.current_day;
     }
 }
