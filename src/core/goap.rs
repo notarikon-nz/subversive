@@ -13,6 +13,12 @@ macro_rules! hashmap {
     };
 }
 
+    macro_rules! init_world_state {
+        ($self:ident, $($key:expr => $value:expr),+) => {
+            $( $self.world_state.insert($key, $value); )+
+        };
+    }
+
 // === WORLD STATE ===
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum WorldKey {
@@ -27,6 +33,8 @@ pub enum WorldKey {
     // Equipment states
     HasWeapon,
     WeaponLoaded,
+    HasMedKit,
+    HasGrenade,
     // Alert states
     IsAlert,
     IsInvestigating,
@@ -46,7 +54,13 @@ pub enum WorldKey {
     IsRetreating,
     AtSafeDistance,
     Outnumbered,
-    IsInjured,    
+    IsInjured,
+    // NEW: Advanced tactical states
+    TargetGrouped,
+    SafeThrowDistance,
+    NearAlarmPanel,
+    FacilityAlert,
+    AllEnemiesAlerted,  
 }
 
 pub type WorldState = HashMap<WorldKey, bool>;
@@ -73,7 +87,10 @@ pub enum ActionType {
     TakeCover,
     FlankTarget { target_pos: Vec2, flank_pos: Vec2 },
     SearchArea { center: Vec2, radius: f32 },
-    Retreat { retreat_point: Vec2 },    
+    Retreat { retreat_point: Vec2 },
+    UseMedKit,
+    ThrowGrenade { target_pos: Vec2 },
+    ActivateAlarm { panel_pos: Vec2 },    
 }
 
 // === GOALS ===
@@ -310,6 +327,52 @@ impl GoapAgent {
                 action_type: ActionType::Reload,
             },
 
+            // === NEW: ADVANCED TACTICAL ACTIONS ===
+            GoapAction {
+                name: "use_medkit",
+                cost: 2.5,
+                preconditions: hashmap![
+                    WorldKey::IsInjured => true,
+                    WorldKey::HasMedKit => true,
+                    WorldKey::InCover => true // Safe to heal
+                ],
+                effects: hashmap![
+                    WorldKey::IsInjured => false,
+                    WorldKey::HasMedKit => false
+                ],
+                action_type: ActionType::UseMedKit,
+            },
+            
+            GoapAction {
+                name: "throw_grenade",
+                cost: 3.0,
+                preconditions: hashmap![
+                    WorldKey::HasGrenade => true,
+                    WorldKey::TargetGrouped => true,
+                    WorldKey::SafeThrowDistance => true
+                ],
+                effects: hashmap![
+                    WorldKey::HasGrenade => false,
+                    WorldKey::TargetGrouped => false // Disrupts enemy formation
+                ],
+                action_type: ActionType::ThrowGrenade { target_pos: Vec2::ZERO },
+            },
+            
+            GoapAction {
+                name: "activate_alarm",
+                cost: 2.0,
+                preconditions: hashmap![
+                    WorldKey::HasTarget => true,
+                    WorldKey::NearAlarmPanel => true,
+                    WorldKey::FacilityAlert => false
+                ],
+                effects: hashmap![
+                    WorldKey::FacilityAlert => true,
+                    WorldKey::AllEnemiesAlerted => true,
+                    WorldKey::BackupCalled => true // Implicit backup call
+                ],
+                action_type: ActionType::ActivateAlarm { panel_pos: Vec2::ZERO },
+            },
         ];
     }
 
@@ -329,6 +392,15 @@ impl GoapAgent {
                 priority: 10.0, // High - combat effectiveness
                 desired_state: hashmap![
                     WorldKey::HasTarget => false
+                ],
+            },
+            
+            Goal {
+                name: "coordinate_defense",
+                priority: 9.0, // High - team tactics
+                desired_state: hashmap![
+                    WorldKey::FacilityAlert => true,
+                    WorldKey::AllEnemiesAlerted => true
                 ],
             },
             
@@ -384,14 +456,22 @@ impl GoapAgent {
         self.world_state.insert(WorldKey::UnderFire, false);
         self.world_state.insert(WorldKey::BackupCalled, false);
         self.world_state.insert(WorldKey::NearbyAlliesAvailable, false);
-        // New tactical states
+        // Tactical states
         self.world_state.insert(WorldKey::FlankingPosition, false);
         self.world_state.insert(WorldKey::TacticalAdvantage, false);
         self.world_state.insert(WorldKey::AreaSearched, false);
         self.world_state.insert(WorldKey::IsRetreating, false);
         self.world_state.insert(WorldKey::AtSafeDistance, false);
         self.world_state.insert(WorldKey::Outnumbered, false);
-        self.world_state.insert(WorldKey::IsInjured, false);        
+        self.world_state.insert(WorldKey::IsInjured, false);
+        // NEW: Advanced tactical states
+        self.world_state.insert(WorldKey::HasMedKit, false); // Will be set based on inventory
+        self.world_state.insert(WorldKey::HasGrenade, false); // Will be set based on inventory
+        self.world_state.insert(WorldKey::TargetGrouped, false);
+        self.world_state.insert(WorldKey::SafeThrowDistance, false);
+        self.world_state.insert(WorldKey::NearAlarmPanel, false);
+        self.world_state.insert(WorldKey::FacilityAlert, false);
+        self.world_state.insert(WorldKey::AllEnemiesAlerted, false);
     }
     
     pub fn update_world_state(&mut self, key: WorldKey, value: bool) {
@@ -505,6 +585,7 @@ impl GoapAgent {
         self.current_goal = None;
     }
 }
+
 
 
 
@@ -691,6 +772,42 @@ fn update_world_state_from_perception(
             enemy_pos.distance(transform.translation.truncate()) <= 150.0
         });
     
+    // === NEW: ADVANCED TACTICAL PERCEPTION ===
+    // Check if multiple agents are grouped together (grenade opportunity)
+    let agents_in_area: Vec<_> = agent_query.iter()
+        .filter(|(_, transform)| {
+            enemy_pos.distance(transform.translation.truncate()) <= 300.0
+        })
+        .collect();
+    
+    let target_grouped = if agents_in_area.len() >= 2 {
+        // Check if agents are close to each other
+        let positions: Vec<Vec2> = agents_in_area.iter()
+            .map(|(_, t)| t.translation.truncate())
+            .collect();
+        
+        positions.iter().any(|&pos1| {
+            positions.iter().filter(|&&pos2| pos1.distance(pos2) <= 80.0).count() >= 2
+        })
+    } else {
+        false
+    };
+    
+    // Safe throw distance - not too close, not too far
+    let safe_throw_distance = if let Some((_, agent_transform)) = agents_in_area.first() {
+        let distance = enemy_pos.distance(agent_transform.translation.truncate());
+        distance >= 100.0 && distance <= 250.0
+    } else {
+        false
+    };
+    
+    // Simple alarm panel detection (would be improved with actual panel entities)
+    let near_alarm_panel = false; // TODO: Implement actual alarm panel detection
+    
+    // Equipment states (simplified - would check actual inventory)
+    let has_medkit = is_injured && rand::random::<f32>() < 0.3; // 30% chance to have medkit when injured
+    let has_grenade = target_grouped && rand::random::<f32>() < 0.2; // 20% chance to have grenade when opportunity exists
+    
     // === WEAPON/AMMO STATE ===
     if let Some(weapon_state) = weapon_state {
         let weapon_loaded = weapon_state.current_ammo > 0;
@@ -713,6 +830,13 @@ fn update_world_state_from_perception(
     goap_agent.update_world_state(WorldKey::IsInjured, is_injured);
     goap_agent.update_world_state(WorldKey::Outnumbered, outnumbered);
     goap_agent.update_world_state(WorldKey::AtSafeDistance, at_safe_distance);
+    
+    // NEW: Advanced tactical states
+    goap_agent.update_world_state(WorldKey::TargetGrouped, target_grouped);
+    goap_agent.update_world_state(WorldKey::SafeThrowDistance, safe_throw_distance);
+    goap_agent.update_world_state(WorldKey::NearAlarmPanel, near_alarm_panel);
+    goap_agent.update_world_state(WorldKey::HasMedKit, has_medkit);
+    goap_agent.update_world_state(WorldKey::HasGrenade, has_grenade);
     
     if !has_target {
         goap_agent.update_world_state(WorldKey::FlankingPosition, false);
@@ -746,7 +870,6 @@ fn update_world_state_from_perception(
         },
     }
 }
-
 
 fn plan_invalidated(goap_agent: &GoapAgent, ai_state: &AIState, health: &Health) -> bool {
     // Invalidate if health drops critically and not planning survival
@@ -976,7 +1099,58 @@ fn execute_goap_action(
                 action: Action::Reload,
             });
         },
-         
+        
+        // === NEW: ADVANCED ACTION EXECUTION ===
+        ActionType::UseMedKit => {
+            // Self-heal when safe
+            audio_events.write(AudioEvent {
+                sound: AudioType::Alert, // Reuse existing sound
+                volume: 0.3,
+            });
+            
+            // Add healing to event system later, for now just log
+            info!("Enemy {} using medkit to heal", enemy_entity.index());
+        },
+        
+        ActionType::ThrowGrenade { target_pos: _ } => {
+            // Calculate grenade throw position
+            let throw_target = if let Some(agent_entity) = find_closest_agent(enemy_transform, agent_query) {
+                if let Ok((_, agent_transform)) = agent_query.get(agent_entity) {
+                    // Predict agent movement slightly
+                    agent_transform.translation.truncate() + Vec2::new(20.0, 0.0)
+                } else {
+                    enemy_transform.translation.truncate() + Vec2::new(50.0, 0.0)
+                }
+            } else {
+                enemy_transform.translation.truncate() + Vec2::new(50.0, 0.0)
+            };
+            
+            // Trigger explosion effect and damage
+            audio_events.write(AudioEvent {
+                sound: AudioType::Alert, // Loud explosion sound
+                volume: 1.0,
+            });
+            
+            // Add grenade explosion to event system later
+            info!("Enemy {} throwing grenade at {:?}", enemy_entity.index(), throw_target);
+        },
+        
+        ActionType::ActivateAlarm { panel_pos: _ } => {
+            // Trigger facility-wide alert
+            audio_events.write(AudioEvent {
+                sound: AudioType::Alert,
+                volume: 1.0,
+            });
+            
+            // Send alert to all enemies
+            alert_events.write(AlertEvent {
+                alerter: enemy_entity,
+                position: enemy_transform.translation.truncate(),
+                alert_type: AlertType::EnemySpotted, // Reuse existing type
+            });
+            
+            info!("Enemy {} activated facility alarm!", enemy_entity.index());
+        },
     }
 }
 
@@ -998,11 +1172,9 @@ pub fn goap_patrol_advancement_system(
             if distance < 15.0 && !has_move_target {
                 patrol.advance();
                 
-                
                 // Set move target to next patrol point
                 if let Some(next_target) = patrol.current_target() {
                     commands.entity(entity).insert(MoveTarget { position: next_target });
-                    
                 }
             }
         }
@@ -1034,6 +1206,7 @@ fn check_line_of_sight_goap(
     
     None
 }
+
 
 // === DEBUG AND CONFIGURATION SYSTEMS ===
 
@@ -1074,6 +1247,8 @@ pub fn goap_debug_system(
                 "eliminate_threat" => Color::srgb(1.0, 0.2, 0.2),
                 "investigate_disturbance" => Color::srgb(1.0, 0.8, 0.2),
                 "patrol_area" => Color::srgb(0.2, 1.0, 0.2),
+                "coordinate_defense" => Color::srgb(0.8, 0.2, 0.8),
+                "survival" => Color::srgb(1.0, 0.4, 0.0),
                 _ => Color::WHITE,
             };
             
@@ -1123,6 +1298,37 @@ pub fn goap_debug_system(
                 Color::srgb(0.0, 1.0, 1.0)
             );
         }
+        
+        // NEW: Advanced state indicators (second row)
+        y_offset = -55.0;
+        if *goap_agent.world_state.get(&WorldKey::IsInjured).unwrap_or(&false) {
+            gizmos.rect_2d(
+                pos + Vec2::new(-20.0, y_offset), 
+                Vec2::splat(indicator_size), 
+                Color::srgb(0.8, 0.2, 0.8) // Purple for injured
+            );
+        }
+        if *goap_agent.world_state.get(&WorldKey::HasMedKit).unwrap_or(&false) {
+            gizmos.rect_2d(
+                pos + Vec2::new(-15.0, y_offset), 
+                Vec2::splat(indicator_size), 
+                Color::srgb(0.2, 0.8, 0.2) // Green for medkit
+            );
+        }
+        if *goap_agent.world_state.get(&WorldKey::HasGrenade).unwrap_or(&false) {
+            gizmos.rect_2d(
+                pos + Vec2::new(-10.0, y_offset), 
+                Vec2::splat(indicator_size), 
+                Color::srgb(0.8, 0.8, 0.0) // Yellow for grenade
+            );
+        }
+        if *goap_agent.world_state.get(&WorldKey::TargetGrouped).unwrap_or(&false) {
+            gizmos.rect_2d(
+                pos + Vec2::new(-5.0, y_offset), 
+                Vec2::splat(indicator_size), 
+                Color::srgb(1.0, 0.4, 0.0) // Orange for grouped targets
+            );
+        }
     }
 }
 
@@ -1142,8 +1348,11 @@ pub fn goap_config_system(
             info!("  Red = eliminate_threat goal");
             info!("  Yellow = investigate_disturbance goal"); 
             info!("  Green = patrol_area goal");
+            info!("  Purple = coordinate_defense goal");
+            info!("  Orange = survival goal");
             info!("  Cyan line = current plan length");
-            info!("  Small squares = world state (Red=HasTarget, Orange=TargetVisible, Yellow=IsAlert, Cyan=HeardSound)");
+            info!("  Row 1: Red=HasTarget, Orange=TargetVisible, Yellow=IsAlert, Cyan=HeardSound");
+            info!("  Row 2: Purple=IsInjured, Green=HasMedKit, Yellow=HasGrenade, Orange=TargetGrouped");
         }
     }
     
@@ -1186,6 +1395,29 @@ pub struct InCover {
     pub cover_entity: Entity, // Which cover point we're using
 }
 
+#[derive(Component)]
+pub struct AlarmPanel {
+    pub activated: bool,
+    pub range: f32,
+}
+
+#[derive(Component)]
+pub struct Equipment {
+    pub medkits: u8,
+    pub grenades: u8,
+    pub tools: Vec<String>,
+}
+
+impl Default for Equipment {
+    fn default() -> Self {
+        Self {
+            medkits: 1,
+            grenades: 0, // Start without grenades
+            tools: Vec::new(),
+        }
+    }
+}
+
 // Cover utility function
 fn find_nearest_cover(
     enemy_pos: Vec2, 
@@ -1211,6 +1443,7 @@ fn find_nearest_cover(
     
     nearest_cover
 }
+
 
 // Helper function to find closest agent
 fn find_closest_agent(

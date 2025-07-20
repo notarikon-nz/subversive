@@ -48,9 +48,9 @@
             "Stock"
           ],
           "attachments": {
+            "Stock": null,
             "Barrel": null,
             "Magazine": null,
-            "Stock": null,
             "Sight": null
           }
         }
@@ -96,10 +96,10 @@
             "Stock"
           ],
           "attachments": {
-            "Barrel": null,
             "Magazine": null,
-            "Stock": null,
-            "Sight": null
+            "Barrel": null,
+            "Sight": null,
+            "Stock": null
           }
         }
       ],

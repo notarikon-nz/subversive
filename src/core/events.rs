@@ -14,6 +14,10 @@ pub enum Action {
     NeurovectorControl { target: Entity },
     InteractWith(Entity),
     Reload,
+    // NEW: Advanced actions
+    UseMedKit,
+    ThrowGrenade { target_pos: Vec2 },
+    ActivateAlarm { panel_pos: Vec2 },
 }
 
 #[derive(Event)]
@@ -37,4 +41,26 @@ pub enum AlertSource {
     SpottedAgent,
     MissingPatrol,
     Alarm,
+    Grenade, // NEW
+}
+
+// NEW: Specific events for advanced actions
+#[derive(Event)]
+pub struct HealEvent {
+    pub entity: Entity,
+    pub amount: f32,
+}
+
+#[derive(Event)]
+pub struct GrenadeEvent {
+    pub thrower: Entity,
+    pub target_pos: Vec2,
+    pub explosion_radius: f32,
+    pub damage: f32,
+}
+
+#[derive(Event)]
+pub struct AlarmActivatedEvent {
+    pub activator: Entity,
+    pub panel_pos: Vec2,
 }
