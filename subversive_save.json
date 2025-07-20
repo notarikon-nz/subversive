@@ -50,8 +50,8 @@
           "attachments": {
             "Barrel": null,
             "Sight": null,
-            "Magazine": null,
-            "Stock": null
+            "Stock": null,
+            "Magazine": null
           },
           "behavior": {
             "preferred_range": 150.0,
@@ -79,41 +79,41 @@
             "Stock"
           ],
           "attachments": {
-            "Barrel": null,
-            "Magazine": null,
-            "Sight": null,
-            "Stock": null
-          },
-          "behavior": {
-            "preferred_range": 150.0,
-            "burst_fire": true,
-            "requires_cover": true,
-            "area_effect": false,
-            "reload_retreat": true
-          }
-        }
-      ],
-      "equipped_weapon_idx": 0,
-      "tools": [
-        "Scanner"
-      ],
-      "cybernetics": []
-    },
-    {
-      "weapon_configs": [
-        {
-          "base_weapon": "Rifle",
-          "supported_slots": [
-            "Sight",
-            "Barrel",
-            "Magazine",
-            "Stock"
-          ],
-          "attachments": {
-            "Magazine": null,
             "Barrel": null,
             "Stock": null,
+            "Magazine": null,
             "Sight": null
+          },
+          "behavior": {
+            "preferred_range": 150.0,
+            "burst_fire": true,
+            "requires_cover": true,
+            "area_effect": false,
+            "reload_retreat": true
+          }
+        }
+      ],
+      "equipped_weapon_idx": 0,
+      "tools": [
+        "Scanner"
+      ],
+      "cybernetics": []
+    },
+    {
+      "weapon_configs": [
+        {
+          "base_weapon": "Rifle",
+          "supported_slots": [
+            "Sight",
+            "Barrel",
+            "Magazine",
+            "Stock"
+          ],
+          "attachments": {
+            "Stock": null,
+            "Magazine": null,
+            "Sight": null,
+            "Barrel": null
           },
           "behavior": {
             "preferred_range": 150.0,

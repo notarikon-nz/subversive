@@ -3,6 +3,7 @@ use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 use crate::core::*;
 use crate::systems::*;
+use crate::systems::scenes::*;
 
 #[derive(Resource)]
 pub struct CivilianSpawner {
@@ -21,12 +22,37 @@ impl Default for CivilianSpawner {
     fn default() -> Self {
         Self {
             spawn_timer: 0.0,
-            max_civilians: 12,
+            max_civilians: 12, // Will be overridden by config
             spawn_zones: vec![
                 SpawnZone { center: Vec2::new(150.0, 150.0), radius: 80.0 },
                 SpawnZone { center: Vec2::new(-100.0, 100.0), radius: 60.0 },
                 SpawnZone { center: Vec2::new(200.0, -50.0), radius: 70.0 },
             ],
+        }
+    }
+}
+
+// Add config-aware civilian spawning
+pub fn dynamic_civilian_spawn_system_with_config(
+    mut commands: Commands,
+    mut spawner: ResMut<CivilianSpawner>,
+    civilian_query: Query<Entity, With<Civilian>>,
+    sprites: Res<GameSprites>,
+    config: Res<GameConfig>,
+    time: Res<Time>,
+    game_mode: Res<GameMode>,
+) {
+    if game_mode.paused { return; }
+
+    spawner.spawn_timer -= time.delta_secs();
+    spawner.max_civilians = config.civilians.max_civilians; // Update from config
+
+    if spawner.spawn_timer <= 0.0 && civilian_query.iter().count() < spawner.max_civilians as usize {
+        if let Some(spawn_pos) = find_spawn_position(&spawner.spawn_zones) {
+            spawn_civilian_with_config(&mut commands, spawn_pos, &sprites, &config);
+            let interval = config.civilians.spawn_interval_min + 
+                         rand::random::<f32>() * (config.civilians.spawn_interval_max - config.civilians.spawn_interval_min);
+            spawner.spawn_timer = interval;
         }
     }
 }

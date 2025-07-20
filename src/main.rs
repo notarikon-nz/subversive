@@ -11,10 +11,12 @@ mod systems;
 use core::*;
 use systems::*;
 use pool::*;
+use systems::scenes::*;
 
 fn main() {
     let (global_data, research_progress) = load_global_data_or_default();
     systems::scenes::ensure_scenes_directory();
+    ensure_data_directories();
 
     App::new()
         .add_plugins(DefaultPlugins.set(WindowPlugin {
@@ -33,15 +35,21 @@ fn main() {
         .init_state::<GameState>()
 
         .init_resource::<GameMode>()
+        .init_resource::<FontsLoaded>()
         .init_resource::<SelectionState>()
         .init_resource::<MissionData>()
         .init_resource::<InventoryState>()
         .init_resource::<PostMissionResults>()
         .init_resource::<MissionState>()
         .init_resource::<DayNightCycle>()
+
+        .insert_resource(GameConfig::load())
         .insert_resource(global_data)
         .insert_resource(research_progress)
         .insert_resource(ResearchDatabase::load())
+        .insert_resource(CyberneticsDatabase::load())
+        .insert_resource(TraitsDatabase::load())
+        .insert_resource(AttachmentDatabase::load())
 
         .init_resource::<UIState>()
         .init_resource::<PostMissionProcessed>()
@@ -190,8 +198,17 @@ fn setup_mission_scene(
         _ => "mission1",
     };
     
-    let scene = crate::systems::scenes::load_scene(scene_name);
-    crate::systems::scenes::spawn_from_scene(&mut commands, &scene, &*global_data, &sprites);
+    match crate::systems::scenes::load_scene(scene_name) {
+        Some(scene) => {
+            crate::systems::scenes::spawn_from_scene(&mut commands, &scene, &*global_data, &sprites);
+            info!("Loaded scene: {}", scene_name);
+        },
+        None => {
+            error!("Failed to load scene: {}. Creating minimal fallback.", scene_name);
+            // Create minimal fallback scene with just agents
+            spawn_fallback_mission(&mut commands, &*global_data, &sprites);
+        }
+    }
 }
 
 fn setup_camera_and_input(mut commands: Commands) {
@@ -243,4 +260,33 @@ fn apply_loaded_research_benefits(
         &research_db,
         &mut unlocked_attachments,
     );
+}
+
+fn ensure_data_directories() {
+    let directories = [
+        "data/config",
+        "data/attachments", 
+        "scenes"
+    ];
+    
+    for dir in directories {
+        if std::fs::create_dir_all(dir).is_err() {
+            error!("Failed to create directory: {}", dir);
+        }
+    }
+    
+    // Check for required files
+    let required_files = [
+        "data/config/game.json",
+        "data/research.json",
+        "data/cybernetics.json",
+        "data/traits.json",
+        "data/attachments/tier1.json",
+    ];
+    
+    for file in required_files {
+        if !std::path::Path::new(file).exists() {
+            warn!("Missing data file: {} - game may not function properly", file);
+        }
+    }
 }

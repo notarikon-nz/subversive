@@ -1,38 +1,13 @@
+// src/systems/scenes.rs - Optimized and cleaned up
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 use serde::{Deserialize, Serialize};
 use crate::core::*;
-use crate::systems::*;
+use crate::systems::panic_spread::*;
+use crate::systems::ai::*;
 use crate::systems::vehicles::spawn_vehicle;
 
-// First, let's create the scenes directory structure
-pub fn ensure_scenes_directory() {
-    if let Err(_) = std::fs::create_dir_all("scenes") {
-        warn!("Could not create scenes directory");
-    }
-    
-    // Create default mission files if they don't exist
-    let missions = [
-        ("mission1", SceneData::mission1()),
-        ("mission2", SceneData::mission2()),
-        ("mission3", SceneData::mission3()),
-    ];
-    
-    for (name, scene) in missions {
-        let path = format!("scenes/{}.json", name);
-        if !std::path::Path::new(&path).exists() {
-            if let Ok(json) = serde_json::to_string_pretty(&scene) {
-                if let Err(e) = std::fs::write(&path, json) {
-                    warn!("Failed to create {}: {}", path, e);
-                } else {
-                    info!("Created default scene file: {}", path);
-                }
-            }
-        }
-    }
-}
-
- 
+// === SCENE DATA STRUCTURES ===
 #[derive(Serialize, Deserialize)]
 pub struct SceneData {
     pub agents: Vec<AgentSpawn>,
@@ -40,12 +15,6 @@ pub struct SceneData {
     pub enemies: Vec<EnemySpawn>,
     pub terminals: Vec<TerminalSpawn>,
     pub vehicles: Vec<VehicleSpawn>,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct VehicleSpawn {
-    pub position: [f32; 2],
-    pub vehicle_type: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -71,173 +40,25 @@ pub struct TerminalSpawn {
     pub terminal_type: String,
 }
 
-impl SceneData {
-    // Mission 1: Tutorial/Easy
-    pub fn mission1() -> Self {
-        Self {
-            agents: vec![
-                AgentSpawn { position: [-200.0, 0.0], level: 1 },
-                AgentSpawn { position: [-170.0, 0.0], level: 1 },
-                AgentSpawn { position: [-140.0, 0.0], level: 1 },
-            ],
-            civilians: vec![
-                CivilianSpawn { position: [100.0, 100.0] },
-                CivilianSpawn { position: [160.0, 120.0] },
-                CivilianSpawn { position: [220.0, 80.0] },
-                CivilianSpawn { position: [80.0, 180.0] },
-                CivilianSpawn { position: [250.0, 150.0] },
-                CivilianSpawn { position: [120.0, 200.0] },
-                CivilianSpawn { position: [180.0, 60.0] },
-                CivilianSpawn { position: [300.0, 120.0] },
-            ],
-            enemies: vec![
-                EnemySpawn {
-                    position: [200.0, -100.0],
-                    patrol_points: vec![
-                        [200.0, -100.0],
-                        [300.0, -100.0],
-                        [300.0, 50.0],
-                        [200.0, 50.0],
-                    ],
-                },
-            ],
-            terminals: vec![
-                TerminalSpawn { position: [320.0, -50.0], terminal_type: "objective".to_string() },
-                TerminalSpawn { position: [150.0, -80.0], terminal_type: "equipment".to_string() },
-                TerminalSpawn { position: [50.0, 120.0], terminal_type: "intel".to_string() },
-            ],
-            vehicles: vec![
-                VehicleSpawn { position: [50.0, -50.0], vehicle_type: "civilian_car".to_string() },
-                VehicleSpawn { position: [200.0, 150.0], vehicle_type: "police_car".to_string() },
-                VehicleSpawn { position: [-50.0, 200.0], vehicle_type: "civilian_car".to_string() },
-            ],            
-        }
-    }
+#[derive(Serialize, Deserialize)]
+pub struct VehicleSpawn {
+    pub position: [f32; 2],
+    pub vehicle_type: String,
+}
 
-    // Mission 2: Medium difficulty
-    pub fn mission2() -> Self {
-        Self {
-            agents: vec![
-                AgentSpawn { position: [-250.0, -50.0], level: 1 },
-                AgentSpawn { position: [-220.0, -50.0], level: 1 },
-                AgentSpawn { position: [-190.0, -50.0], level: 1 },
-            ],
-            civilians: vec![
-                CivilianSpawn { position: [80.0, 150.0] },
-                CivilianSpawn { position: [120.0, 180.0] },
-                CivilianSpawn { position: [160.0, 200.0] },
-                CivilianSpawn { position: [200.0, 160.0] },
-                CivilianSpawn { position: [240.0, 180.0] },
-                CivilianSpawn { position: [100.0, 120.0] },
-            ],
-            enemies: vec![
-                EnemySpawn {
-                    position: [150.0, -120.0],
-                    patrol_points: vec![
-                        [150.0, -120.0],
-                        [250.0, -120.0],
-                    ],
-                },
-                EnemySpawn {
-                    position: [350.0, 50.0],
-                    patrol_points: vec![
-                        [350.0, 50.0],
-                        [350.0, 150.0],
-                        [250.0, 150.0],
-                    ],
-                },
-            ],
-            terminals: vec![
-                TerminalSpawn { position: [400.0, -20.0], terminal_type: "objective".to_string() },
-                TerminalSpawn { position: [200.0, 200.0], terminal_type: "objective".to_string() },
-                TerminalSpawn { position: [100.0, -150.0], terminal_type: "equipment".to_string() },
-            ],
-            vehicles: vec![
-                VehicleSpawn { position: [300.0, -50.0], vehicle_type: "apc".to_string() },
-                VehicleSpawn { position: [50.0, 250.0], vehicle_type: "civilian_car".to_string() },
-                VehicleSpawn { position: [350.0, 200.0], vehicle_type: "police_car".to_string() },
-            ],            
-        }
-    }
-
-    // Mission 3: Hard
-    pub fn mission3() -> Self {
-        Self {
-            agents: vec![
-                AgentSpawn { position: [-300.0, 0.0], level: 1 },
-                AgentSpawn { position: [-270.0, 0.0], level: 1 },
-                AgentSpawn { position: [-240.0, 0.0], level: 1 },
-            ],
-            civilians: vec![], // No civilians in underground
-            enemies: vec![
-                EnemySpawn {
-                    position: [100.0, -150.0],
-                    patrol_points: vec![
-                        [100.0, -150.0],
-                        [200.0, -150.0],
-                        [200.0, -50.0],
-                        [100.0, -50.0],
-                    ],
-                },
-                EnemySpawn {
-                    position: [300.0, 100.0],
-                    patrol_points: vec![
-                        [300.0, 100.0],
-                        [400.0, 100.0],
-                    ],
-                },
-                EnemySpawn {
-                    position: [150.0, 200.0],
-                    patrol_points: vec![
-                        [150.0, 200.0],
-                        [250.0, 200.0],
-                        [250.0, 300.0],
-                    ],
-                },
-            ],
-            terminals: vec![
-                TerminalSpawn { position: [450.0, 50.0], terminal_type: "objective".to_string() },
-                TerminalSpawn { position: [200.0, 350.0], terminal_type: "objective".to_string() },
-                TerminalSpawn { position: [50.0, -200.0], terminal_type: "equipment".to_string() },
-                TerminalSpawn { position: [350.0, -100.0], terminal_type: "intel".to_string() },
-            ],
-            vehicles: vec![
-                VehicleSpawn { position: [0.0, -250.0], vehicle_type: "tank".to_string() },
-                VehicleSpawn { position: [400.0, 0.0], vehicle_type: "apc".to_string() },
-                VehicleSpawn { position: [100.0, 350.0], vehicle_type: "vtol".to_string() },
-            ],            
-        }
+// === CORE FUNCTIONS ===
+pub fn ensure_scenes_directory() {
+    if std::fs::create_dir_all("scenes").is_err() {
+        error!("Could not create scenes directory");
     }
 }
 
-impl Default for SceneData {
-    fn default() -> Self {
-        Self::mission1()
-    }
-}
-
-pub fn load_scene(name: &str) -> SceneData {
+pub fn load_scene(name: &str) -> Option<SceneData> {
     let path = format!("scenes/{}.json", name);
-    
-    // First try to load from file
-    if let Ok(content) = std::fs::read_to_string(&path) {
-        if let Ok(scene) = serde_json::from_str(&content) {
-            return scene;
-        }
-    }
-    
-    // Fall back to built-in scenes
-    let scene = match name {
-        "mission1" => SceneData::mission1(),
-        "mission2" => SceneData::mission2(),
-        "mission3" => SceneData::mission3(),
-        _ => {
-            warn!("Unknown scene '{}', using mission1", name);
-            SceneData::mission1()
-        }
-    };
-    
-    scene
+    let content = std::fs::read_to_string(&path).ok()?;
+    serde_json::from_str(&content)
+        .map_err(|e| error!("Failed to parse scene {}: {}", name, e))
+        .ok()
 }
 
 pub fn spawn_from_scene(
@@ -246,45 +67,73 @@ pub fn spawn_from_scene(
     global_data: &GlobalData, 
     sprites: &GameSprites
 ) {
-    for (i, agent_data) in scene.agents.iter().enumerate() {
+    // Spawn all entity types
+    spawn_agents(commands, &scene.agents, global_data, sprites);
+    spawn_civilians(commands, &scene.civilians, sprites);
+    spawn_enemies(commands, &scene.enemies, global_data, sprites);
+    spawn_terminals(commands, &scene.terminals, sprites);
+    spawn_vehicles_from_scene(commands, &scene.vehicles, sprites);
+    spawn_cover_points(commands);
+    
+    info!("Scene spawned: {} agents, {} enemies, {} civilians, {} terminals, {} vehicles", 
+          scene.agents.len(), scene.enemies.len(), scene.civilians.len(), 
+          scene.terminals.len(), scene.vehicles.len());
+}
+
+pub fn spawn_fallback_mission(
+    commands: &mut Commands,
+    global_data: &GlobalData,
+    sprites: &GameSprites,
+) {
+    warn!("Using fallback mission");
+    
+    // Minimal viable mission
+    let positions = [Vec2::new(-200.0, 0.0), Vec2::new(-170.0, 0.0), Vec2::new(-140.0, 0.0)];
+    for (i, &pos) in positions.iter().enumerate() {
+        spawn_agent(commands, pos, global_data.agent_levels[i], i, global_data, sprites);
+    }
+    
+    // One objective terminal
+    spawn_terminal_direct(commands, Vec2::new(200.0, 0.0), TerminalType::Objective, sprites);
+    spawn_cover_points(commands);
+}
+
+// === ENTITY SPAWNING FUNCTIONS ===
+fn spawn_agents(commands: &mut Commands, agents: &[AgentSpawn], global_data: &GlobalData, sprites: &GameSprites) {
+    for (i, agent_data) in agents.iter().enumerate() {
         let level = if i < 3 { global_data.agent_levels[i] } else { agent_data.level };
         spawn_agent(commands, Vec2::from(agent_data.position), level, i, global_data, sprites);
     }
-    
-    for civilian_data in &scene.civilians {
+}
+
+fn spawn_civilians(commands: &mut Commands, civilians: &[CivilianSpawn], sprites: &GameSprites) {
+    for civilian_data in civilians {
         spawn_civilian(commands, Vec2::from(civilian_data.position), sprites);
     }
-    
-    for enemy_data in &scene.enemies {
+}
+
+fn spawn_enemies(commands: &mut Commands, enemies: &[EnemySpawn], global_data: &GlobalData, sprites: &GameSprites) {
+    for enemy_data in enemies {
         let patrol_points = enemy_data.patrol_points.iter().map(|&p| Vec2::from(p)).collect();
         spawn_enemy_with_patrol(commands, Vec2::from(enemy_data.position), patrol_points, global_data, sprites);
     }
-    
-    for terminal_data in &scene.terminals {
-        let terminal_type = match terminal_data.terminal_type.as_str() {
-            "objective" => TerminalType::Objective,
-            "equipment" => TerminalType::Equipment,
-            "intel" => TerminalType::Intel,
-            _ => TerminalType::Objective,
-        };
-        spawn_terminal(commands, Vec2::from(terminal_data.position), terminal_type, sprites);
-    }
-
-    for vehicle_data in &scene.vehicles {
-        let vehicle_type = match vehicle_data.vehicle_type.as_str() {
-            "civilian_car" => VehicleType::CivilianCar,
-            "police_car" => VehicleType::PoliceCar,
-            "apc" => VehicleType::APC,
-            "vtol" => VehicleType::VTOL,
-            "tank" => VehicleType::Tank,
-            _ => VehicleType::CivilianCar,
-        };
-        spawn_vehicle(commands, Vec2::from(vehicle_data.position), vehicle_type, sprites);
-    }    
-
-    spawn_cover_points(commands);    
 }
 
+fn spawn_terminals(commands: &mut Commands, terminals: &[TerminalSpawn], sprites: &GameSprites) {
+    for terminal_data in terminals {
+        let terminal_type = parse_terminal_type(&terminal_data.terminal_type);
+        spawn_terminal_direct(commands, Vec2::from(terminal_data.position), terminal_type, sprites);
+    }
+}
+
+fn spawn_vehicles_from_scene(commands: &mut Commands, vehicles: &[VehicleSpawn], sprites: &GameSprites) {
+    for vehicle_data in vehicles {
+        let vehicle_type = parse_vehicle_type(&vehicle_data.vehicle_type);
+        spawn_vehicle(commands, Vec2::from(vehicle_data.position), vehicle_type, sprites);
+    }
+}
+
+// === INDIVIDUAL ENTITY SPAWNERS ===
 fn spawn_agent(
     commands: &mut Commands, 
     position: Vec2, 
@@ -293,25 +142,18 @@ fn spawn_agent(
     global_data: &GlobalData, 
     sprites: &GameSprites
 ) {
-    let (sprite, mut transform) = crate::core::sprites::create_agent_sprite(sprites);
-    transform.translation = position.extend(1.0);
-    
-    // Load agent's saved configuration
+    let (sprite, transform) = create_agent_sprite(sprites);
     let loadout = global_data.get_agent_loadout(agent_idx);
     
     let mut inventory = Inventory::default();
-    
-    // Apply saved weapon configurations
     for weapon_config in &loadout.weapon_configs {
         inventory.add_weapon_config(weapon_config.clone());
     }
     
-    // Set equipped weapon
     if let Some(weapon_config) = loadout.weapon_configs.get(loadout.equipped_weapon_idx) {
         inventory.equipped_weapon = Some(weapon_config.clone());
     }
     
-    // Apply saved tools and cybernetics
     for tool in &loadout.tools {
         inventory.add_tool(tool.clone());
     }
@@ -320,10 +162,8 @@ fn spawn_agent(
         inventory.add_cybernetic(cybernetic.clone());
     }
     
-    // Starting credits based on level
     inventory.add_currency(100 * level as u32);
 
-    // Create weapon state based on equipped weapon
     let weapon_state = if let Some(weapon_config) = loadout.weapon_configs.get(loadout.equipped_weapon_idx) {
         let mut state = WeaponState::new(&weapon_config.base_weapon);
         state.apply_attachment_modifiers(weapon_config);
@@ -332,9 +172,9 @@ fn spawn_agent(
         WeaponState::default()
     };    
     
-    let entity = commands.spawn((
+    commands.spawn((
         sprite,
-        transform,
+        Transform::from_translation(position.extend(1.0)),
         Agent { experience: 0, level },
         Health(100.0),
         MovementSpeed(150.0),
@@ -348,22 +188,45 @@ fn spawn_agent(
         Collider::ball(10.0),
         Velocity::default(),
         Damping { linear_damping: 10.0, angular_damping: 10.0 },
-    )).id();
-    
+    ));
 }
 
 fn spawn_civilian(commands: &mut Commands, position: Vec2, sprites: &GameSprites) {
-    let (sprite, mut transform) = crate::core::sprites::create_civilian_sprite(sprites);
-    transform.translation = position.extend(1.0);
+    let (sprite, _) = create_civilian_sprite(sprites);
     
     commands.spawn((
         sprite,
-        transform,
+        Transform::from_translation(position.extend(1.0)),
         Civilian,
         Health(50.0),
         Morale::new(80.0, 40.0),
-        PanicSpreader::default(),  // ADD THIS LINE
+        PanicSpreader::default(),
         MovementSpeed(100.0),
+        Controllable,
+        NeurovectorTarget,
+        RigidBody::Dynamic,
+        Collider::ball(7.5),
+        Velocity::default(),
+        Damping { linear_damping: 10.0, angular_damping: 10.0 },
+    ));
+}
+
+pub fn spawn_civilian_with_config(
+    commands: &mut Commands, 
+    position: Vec2, 
+    sprites: &GameSprites,
+    config: &GameConfig,
+) {
+    let (sprite, _) = create_civilian_sprite(sprites);
+    
+    commands.spawn((
+        sprite,
+        Transform::from_translation(position.extend(1.0)),
+        Civilian,
+        Health(50.0),
+        Morale::new(config.civilians.base_morale, config.civilians.panic_threshold),
+        PanicSpreader::default(),
+        MovementSpeed(config.civilians.movement_speed),
         Controllable,
         NeurovectorTarget,
         RigidBody::Dynamic,
@@ -380,11 +243,8 @@ fn spawn_enemy_with_patrol(
     global_data: &GlobalData, 
     sprites: &GameSprites
 ) {
-    let region = &global_data.regions[global_data.selected_region];
-    let difficulty = region.mission_difficulty_modifier();
-    
-    let (sprite, mut transform) = crate::core::sprites::create_enemy_sprite(sprites);
-    transform.translation = position.extend(1.0);
+    let (sprite, _) = create_enemy_sprite(sprites);
+    let difficulty = global_data.regions[global_data.selected_region].mission_difficulty_modifier();
     
     let base_weapon = match rand::random::<f32>() {
         x if x < 0.6 => WeaponType::Rifle,
@@ -397,18 +257,17 @@ fn spawn_enemy_with_patrol(
     inventory.equipped_weapon = Some(WeaponConfig::new(base_weapon.clone()));
     
     let enemy = commands.spawn_empty()
-
-    .insert((
+        .insert((
         sprite,
-        transform,
+        Transform::from_translation(position.extend(1.0)),
         Enemy,
         Health(100.0 * difficulty),
         Morale::new(100.0 * difficulty, 25.0),
         MovementSpeed(120.0 * difficulty),
         Vision::new(120.0 * difficulty, 45.0),
-        Patrol::new(patrol_points.clone())
-    ))
-    .insert((
+        Patrol::new(patrol_points),
+        )) // DO NOT REMOVE/JOIN, BEVY HAS A MAX INCLUDE LIMIT AS ONCE
+        .insert((
         AIState::default(),
         GoapAgent::default(),
         WeaponState::new(&base_weapon),
@@ -420,31 +279,25 @@ fn spawn_enemy_with_patrol(
     ));
 }
 
-fn spawn_terminal(commands: &mut Commands, position: Vec2, terminal_type: TerminalType, sprites: &GameSprites) {
-    let (sprite, mut transform) = crate::core::sprites::create_terminal_sprite(sprites, &terminal_type);
-    transform.translation = position.extend(1.0);
+fn spawn_terminal_direct(commands: &mut Commands, position: Vec2, terminal_type: TerminalType, sprites: &GameSprites) {
+    let (sprite, _) = create_terminal_sprite(sprites, &terminal_type);
     
-    let entity = commands.spawn((
+    commands.spawn((
         sprite,
-        transform,
-        Terminal { terminal_type: terminal_type.clone(), range: 30.0, accessed: false },
+        Transform::from_translation(position.extend(1.0)),
+        Terminal { terminal_type, range: 30.0, accessed: false },
         Selectable { radius: 15.0 },
-    )).id();
-    
-    
+    ));
 }
 
 pub fn spawn_cover_points(commands: &mut Commands) {
-    let cover_positions = [
-        Vec2::new(50.0, -50.0),
-        Vec2::new(250.0, -150.0),
-        Vec2::new(-50.0, 100.0),
-        Vec2::new(300.0, 50.0),
-        Vec2::new(150.0, 150.0),
+    let positions = [
+        Vec2::new(50.0, -50.0), Vec2::new(250.0, -150.0), Vec2::new(-50.0, 100.0),
+        Vec2::new(300.0, 50.0), Vec2::new(150.0, 150.0),
     ];
     
-    for &pos in &cover_positions {
-        let entity = commands.spawn((
+    for &pos in &positions {
+        commands.spawn((
             Sprite {
                 color: Color::srgba(0.4, 0.2, 0.1, 0.7),
                 custom_size: Some(Vec2::new(20.0, 40.0)),
@@ -456,15 +309,33 @@ pub fn spawn_cover_points(commands: &mut Commands) {
                 current_users: 0,
                 cover_direction: Vec2::X,
             },
-        )).id();
+        ));
     }
 }
 
-fn alert_color(alert_level: AlertLevel) -> Color {
-    match alert_level {
-        AlertLevel::Green => Color::srgb(0.8, 0.2, 0.2),
-        AlertLevel::Yellow => Color::srgb(0.8, 0.5, 0.2),
-        AlertLevel::Orange => Color::srgb(0.8, 0.8, 0.2),
-        AlertLevel::Red => Color::srgb(1.0, 0.2, 0.2),
+// === UTILITY FUNCTIONS ===
+fn parse_terminal_type(type_str: &str) -> TerminalType {
+    match type_str {
+        "objective" => TerminalType::Objective,
+        "equipment" => TerminalType::Equipment,
+        "intel" => TerminalType::Intel,
+        _ => {
+            warn!("Unknown terminal type: {}, using Objective", type_str);
+            TerminalType::Objective
+        }
+    }
+}
+
+fn parse_vehicle_type(type_str: &str) -> VehicleType {
+    match type_str {
+        "civilian_car" => VehicleType::CivilianCar,
+        "police_car" => VehicleType::PoliceCar,
+        "apc" => VehicleType::APC,
+        "vtol" => VehicleType::VTOL,
+        "tank" => VehicleType::Tank,
+        _ => {
+            warn!("Unknown vehicle type: {}, using CivilianCar", type_str);
+            VehicleType::CivilianCar
+        }
     }
 }

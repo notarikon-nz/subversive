@@ -148,59 +148,37 @@ impl AttachmentDatabase {
     pub fn load() -> Self {
         let mut db = Self::default();
         
-        // Load from JSON files
-        if let Ok(content) = std::fs::read_to_string("assets/attachments/tier1.json") {
-            if let Ok(attachments) = serde_json::from_str::<HashMap<String, WeaponAttachment>>(&content) {
-                for (id, mut attachment) in attachments {
-                    attachment.id = id.clone();
-                    db.attachments.insert(id, attachment);
-                }
+        // Load attachment files from data directory
+        let attachment_files = [
+            "data/attachments/tier1.json",
+            "data/attachments/tier2.json", 
+            "data/attachments/tier3.json"
+        ];
+        
+        for file_path in attachment_files {
+            match std::fs::read_to_string(file_path) {
+                Ok(content) => {
+                    match serde_json::from_str::<HashMap<String, WeaponAttachment>>(&content) {
+                        Ok(attachments) => {
+                            for (id, mut attachment) in attachments {
+                                attachment.id = id.clone();
+                                db.attachments.insert(id, attachment);
+                            }
+                            info!("Loaded {} attachments from {}", db.attachments.len(), file_path);
+                        },
+                        Err(e) => error!("Failed to parse {}: {}", file_path, e),
+                    }
+                },
+                Err(e) => error!("Failed to load {}: {}", file_path, e),
             }
         }
         
-        // Fallback: Create some basic attachments if file loading fails
         if db.attachments.is_empty() {
-            db.create_default_attachments();
+            error!("No attachments loaded! Game may not function properly.");
+            error!("Create attachment files in data/attachments/ directory.");
         }
         
         db
-    }
-    
-    fn create_default_attachments(&mut self) {
-        let attachments = vec![
-            WeaponAttachment {
-                id: "red_dot".to_string(),
-                name: "Red Dot Sight".to_string(),
-                slot: AttachmentSlot::Sight,
-                rarity: AttachmentRarity::Common,
-                stats: AttachmentStats { accuracy: 2, ..Default::default() },
-            },
-            WeaponAttachment {
-                id: "suppressor".to_string(),
-                name: "Sound Suppressor".to_string(),
-                slot: AttachmentSlot::Barrel,
-                rarity: AttachmentRarity::Common,
-                stats: AttachmentStats { range: -2, noise: -5, ..Default::default() },
-            },
-            WeaponAttachment {
-                id: "extended_mag".to_string(),
-                name: "Extended Magazine".to_string(),
-                slot: AttachmentSlot::Magazine,
-                rarity: AttachmentRarity::Rare,
-                stats: AttachmentStats { reload_speed: -2, ammo_capacity: 3, ..Default::default() },
-            },
-            WeaponAttachment {
-                id: "bipod".to_string(),
-                name: "Bipod".to_string(),
-                slot: AttachmentSlot::Grip,
-                rarity: AttachmentRarity::Rare,
-                stats: AttachmentStats { accuracy: 3, reload_speed: -1, ..Default::default() },
-            },
-        ];
-        
-        for attachment in attachments {
-            self.attachments.insert(attachment.id.clone(), attachment);
-        }
     }
     
     pub fn get(&self, id: &str) -> Option<&WeaponAttachment> {

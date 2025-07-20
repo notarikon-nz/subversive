@@ -62,6 +62,14 @@ pub struct VeteranBonus {
 
 // === AGENT TRAITS ===
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum TraitRarity {
+    Common,
+    Uncommon, 
+    Rare,
+    Legendary,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct AgentTrait {
     pub id: String,
     pub name: String,
@@ -71,12 +79,9 @@ pub struct AgentTrait {
     pub rarity: TraitRarity,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub enum TraitRarity {
-    Common,
-    Uncommon, 
-    Rare,
-    Legendary,
+#[derive(Resource, Serialize, Deserialize)]
+pub struct TraitsDatabase {
+    pub traits: Vec<AgentTrait>,
 }
 
 impl TraitRarity {
@@ -87,6 +92,37 @@ impl TraitRarity {
             TraitRarity::Rare => Color::srgb(0.2, 0.6, 1.0),
             TraitRarity::Legendary => Color::srgb(1.0, 0.6, 0.2),
         }
+    }
+}
+
+impl TraitsDatabase {
+    pub fn load() -> Self {
+        match std::fs::read_to_string("data/traits.json") {
+            Ok(content) => {
+                match serde_json::from_str::<TraitsDatabase>(&content) {  // Add type annotation
+                    Ok(data) => {
+                        info!("Loaded {} traits from data/traits.json", data.traits.len());
+                        data
+                    },
+                    Err(e) => {
+                        error!("Failed to parse traits.json: {}", e);
+                        Self { traits: Vec::new() }
+                    }
+                }
+            },
+            Err(e) => {
+                error!("Failed to load data/traits.json: {}", e);
+                Self { traits: Vec::new() }
+            }
+        }
+    }
+    
+    pub fn get_trait(&self, id: &str) -> Option<&AgentTrait> {
+        self.traits.iter().find(|t| t.id == id)
+    }
+    
+    pub fn get_traits_by_rarity(&self, rarity: TraitRarity) -> Vec<&AgentTrait> {
+        self.traits.iter().filter(|t| t.rarity == rarity).collect()
     }
 }
 
@@ -145,176 +181,6 @@ impl AgentUpgrades {
     }
 }
 
-// === TRAIT DEFINITIONS ===
-pub fn create_default_traits() -> Vec<AgentTrait> {
-    vec![
-        AgentTrait {
-            id: "pyromaniac".to_string(),
-            name: "Pyromaniac".to_string(),
-            description: "Obsessed with fire and flames".to_string(),
-            positive_effects: vec![CyberneticEffect::DamageBonus(0.25)], // +25% flamethrower damage
-            negative_effects: vec![CyberneticEffect::AccuracyBonus(-0.10)], // -10% rifle accuracy
-            rarity: TraitRarity::Uncommon,
-        },
-        
-        AgentTrait {
-            id: "marksman".to_string(),
-            name: "Marksman".to_string(),
-            description: "Natural talent with precision weapons".to_string(),
-            positive_effects: vec![CyberneticEffect::AccuracyBonus(0.20)],
-            negative_effects: vec![CyberneticEffect::SpeedBonus(-0.15)], // -15% movement speed
-            rarity: TraitRarity::Common,
-        },
-        
-        AgentTrait {
-            id: "ghost".to_string(),
-            name: "Ghost".to_string(), 
-            description: "Moves like a shadow".to_string(),
-            positive_effects: vec![
-                CyberneticEffect::StealthBonus(0.30),
-                CyberneticEffect::NoiseReduction(0.25)
-            ],
-            negative_effects: vec![CyberneticEffect::HealthBonus(-15.0)], // -15 health
-            rarity: TraitRarity::Rare,
-        },
-        
-        AgentTrait {
-            id: "berserker".to_string(),
-            name: "Berserker".to_string(),
-            description: "Thrives in close combat chaos".to_string(),
-            positive_effects: vec![
-                CyberneticEffect::DamageBonus(0.30),
-                CyberneticEffect::SpeedBonus(0.25)
-            ],
-            negative_effects: vec![
-                CyberneticEffect::AccuracyBonus(-0.20),
-                CyberneticEffect::StealthBonus(-0.25)
-            ],
-            rarity: TraitRarity::Rare,
-        },
-        
-        AgentTrait {
-            id: "tech_savant".to_string(),
-            name: "Tech Savant".to_string(),
-            description: "Gifted with technology and hacking".to_string(),
-            positive_effects: vec![
-                CyberneticEffect::HackingBonus(0.50),
-                CyberneticEffect::ExperienceBonus(0.15)
-            ],
-            negative_effects: vec![CyberneticEffect::DamageBonus(-0.15)],
-            rarity: TraitRarity::Uncommon,
-        },
-        
-        AgentTrait {
-            id: "survivor".to_string(),
-            name: "Survivor".to_string(),
-            description: "Hard to kill, quick to recover".to_string(),
-            positive_effects: vec![
-                CyberneticEffect::HealthBonus(25.0),
-                CyberneticEffect::RecoveryReduction(1)
-            ],
-            negative_effects: vec![CyberneticEffect::SpeedBonus(-0.10)],
-            rarity: TraitRarity::Common,
-        },
-        
-        AgentTrait {
-            id: "cyber_reject".to_string(),
-            name: "Cyber Reject".to_string(),
-            description: "Body rejects cybernetic enhancement".to_string(),
-            positive_effects: vec![CyberneticEffect::ExperienceBonus(0.25)], // Learns faster naturally
-            negative_effects: vec![], // Cannot install cybernetics (handled elsewhere)
-            rarity: TraitRarity::Legendary,
-        },
-    ]
-}
-
-// === CYBERNETIC DEFINITIONS ===
-pub fn create_default_cybernetics() -> Vec<CyberneticUpgrade> {
-    vec![
-        CyberneticUpgrade {
-            id: "neural_enhancer".to_string(),
-            name: "Neural Enhancer".to_string(),
-            description: "Improves reaction time and accuracy".to_string(),
-            cost: 1500,
-            category: CyberneticCategory::Combat,
-            effects: vec![
-                CyberneticEffect::AccuracyBonus(0.15),
-                CyberneticEffect::ExperienceBonus(0.10)
-            ],
-            prerequisites: vec![],
-        },
-        
-        CyberneticUpgrade {
-            id: "muscle_boosters".to_string(),
-            name: "Muscle Boosters".to_string(),
-            description: "Synthetic muscle fibers increase speed and damage".to_string(),
-            cost: 2000,
-            category: CyberneticCategory::Combat,
-            effects: vec![
-                CyberneticEffect::SpeedBonus(0.25),
-                CyberneticEffect::DamageBonus(0.20)
-            ],
-            prerequisites: vec!["neural_enhancer".to_string()],
-        },
-        
-        CyberneticUpgrade {
-            id: "stealth_suite".to_string(),
-            name: "Stealth Suite".to_string(),
-            description: "Advanced cloaking and sound dampening".to_string(),
-            cost: 2500,
-            category: CyberneticCategory::Stealth,
-            effects: vec![
-                CyberneticEffect::StealthBonus(0.40),
-                CyberneticEffect::NoiseReduction(0.35)
-            ],
-            prerequisites: vec![],
-        },
-        
-        CyberneticUpgrade {
-            id: "hacking_implant".to_string(),
-            name: "Hacking Implant".to_string(),
-            description: "Direct neural interface with electronic systems".to_string(),
-            cost: 1800,
-            category: CyberneticCategory::Utility,
-            effects: vec![
-                CyberneticEffect::HackingBonus(0.75),
-                CyberneticEffect::VisionBonus(0.20)
-            ],
-            prerequisites: vec![],
-        },
-        
-        CyberneticUpgrade {
-            id: "bio_regulator".to_string(),
-            name: "Bio Regulator".to_string(),
-            description: "Accelerated healing and enhanced durability".to_string(),
-            cost: 2200,
-            category: CyberneticCategory::Survival,
-            effects: vec![
-                CyberneticEffect::HealthBonus(40.0),
-                CyberneticEffect::RecoveryReduction(2)
-            ],
-            prerequisites: vec![],
-        },
-        
-        CyberneticUpgrade {
-            id: "combat_protocol".to_string(),
-            name: "Combat Protocol Suite".to_string(),
-            description: "Military-grade combat enhancement system".to_string(),
-            cost: 4000,
-            category: CyberneticCategory::Combat,
-            effects: vec![
-                CyberneticEffect::DamageBonus(0.35),
-                CyberneticEffect::AccuracyBonus(0.25),
-                CyberneticEffect::SpeedBonus(0.20)
-            ],
-            prerequisites: vec![
-                "neural_enhancer".to_string(),
-                "muscle_boosters".to_string()
-            ],
-        },
-    ]
-}
-
 // === VETERAN BONUS SYSTEM ===
 pub fn check_veteran_bonuses(performance: &mut AgentPerformance) {
     let mut new_bonuses = Vec::new();
@@ -366,16 +232,20 @@ fn has_bonus(performance: &AgentPerformance, bonus_name: &str) -> bool {
     performance.veteran_bonuses.iter().any(|b| b.name.contains(bonus_name))
 }
 
-// === TRAIT ASSIGNMENT ===
-pub fn assign_random_trait() -> Option<AgentTrait> {
-    let traits = create_default_traits();
+pub fn assign_random_trait_from_db(traits_db: &TraitsDatabase) -> Option<AgentTrait> {
+    if traits_db.traits.is_empty() {
+        warn!("No traits loaded from database");
+        return None;
+    }
+    
     let roll = rand::random::<f32>();
     
-    // 30% chance of no trait, weighted by rarity
+    // 30% chance of no trait
     if roll < 0.3 {
         return None;
     }
     
+    // Weighted rarity selection
     let rarity_roll = rand::random::<f32>();
     let target_rarity = if rarity_roll < 0.50 {
         TraitRarity::Common
@@ -387,20 +257,15 @@ pub fn assign_random_trait() -> Option<AgentTrait> {
         TraitRarity::Legendary
     };
     
-    /*
-    traits.into_iter()
-        .filter(|t| t.rarity == target_rarity)
-        .nth(rand::random::<usize>() % traits.len())
-        */
-    // First: Count how many items PASS the filter
-    let filtered_count = traits.iter()       // Doesn't consume
-        .filter(|t| t.rarity == target_rarity)
-        .count();
-
-    // Then: consume the original with into_iter()
-    traits.into_iter()                      // Now we can consume
-        .filter(|t| t.rarity == target_rarity)
-        .nth(rand::random::<usize>() % filtered_count)        
+    let filtered_traits = traits_db.get_traits_by_rarity(target_rarity);
+    if filtered_traits.is_empty() {
+        // Fallback to any trait if none of target rarity
+        let random_index = rand::random::<usize>() % traits_db.traits.len();
+        Some(traits_db.traits[random_index].clone())
+    } else {
+        let random_index = rand::random::<usize>() % filtered_traits.len();
+        Some(filtered_traits[random_index].clone())
+    }
 }
 
 // === PERFORMANCE TRACKING ===

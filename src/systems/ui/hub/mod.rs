@@ -1,6 +1,7 @@
 // src/systems/ui/hub/mod.rs - Updated with agent state integration
 use bevy::prelude::*;
 use crate::core::*;
+use serde::{Deserialize, Serialize};
 
 // Re-export all tab modules
 pub mod global_map;
@@ -21,15 +22,30 @@ pub struct HubState {
     pub selected_research_project: usize,
 }
 
-#[derive(Resource)]
+#[derive(Resource, Serialize, Deserialize)]
 pub struct CyberneticsDatabase {
     pub cybernetics: Vec<CyberneticUpgrade>,
 }
 
 impl CyberneticsDatabase {
     pub fn load() -> Self {
-        Self {
-            cybernetics: create_default_cybernetics(),
+        match std::fs::read_to_string("data/cybernetics.json") {
+            Ok(content) => {
+                match serde_json::from_str::<CyberneticsDatabase>(&content) {  // Add type annotation
+                    Ok(data) => {
+                        info!("Loaded {} cybernetics from data/cybernetics.json", data.cybernetics.len());
+                        data
+                    },
+                    Err(e) => {
+                        error!("Failed to parse cybernetics.json: {}", e);
+                        Self { cybernetics: Vec::new() }
+                    }
+                }
+            },
+            Err(e) => {
+                error!("Failed to load data/cybernetics.json: {}", e);
+                Self { cybernetics: Vec::new() }
+            }
         }
     }
 }

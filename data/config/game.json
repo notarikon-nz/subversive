@@ -1,0 +1,42 @@
+{
+  "gameplay": {
+    "max_squad_size": 3,
+    "base_mission_time_limit": 300.0,
+    "starting_credits": 1000,
+    "experience_per_level_multiplier": 100
+  },
+  "combat": {
+    "base_agent_health": 100.0,
+    "base_enemy_health": 100.0,
+    "base_weapon_damage": 35.0,
+    "base_weapon_accuracy": 0.8,
+    "base_weapon_range": 150.0
+  },
+  "ai": {
+    "enemy_vision_range": 120.0,
+    "enemy_vision_angle": 45.0,
+    "patrol_speed": 120.0,
+    "alert_duration": 8.0,
+    "goap_planning_interval": 2.0,
+    "sound_detection_range": 200.0
+  },
+  "civilians": {
+    "max_civilians": 12,
+    "spawn_interval_min": 8.0,
+    "spawn_interval_max": 12.0,
+    "base_morale": 80.0,
+    "panic_threshold": 40.0,
+    "movement_speed": 100.0
+  },
+  "neurovector": {
+    "base_range": 200.0,
+    "max_targets": 3,
+    "cooldown": 5.0
+  },
+  "police": {
+    "heat_decay_rate": 2.0,
+    "spawn_threshold": 25.0,
+    "response_time": 30.0,
+    "max_units_per_spawn": 4
+  }
+}

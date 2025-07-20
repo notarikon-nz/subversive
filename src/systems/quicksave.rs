@@ -3,6 +3,7 @@ use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use crate::core::*;
+use crate::systems::scenes::*;
 
 const QUICKSAVE_FILE: &str = "quicksave.json";
 
@@ -44,7 +45,7 @@ pub fn quicksave_system(
         }
     }
 
-    // F8: Quick load - just restart mission with saved progress
+    // F8: Quick load
     if input.just_pressed(KeyCode::F8) {
         if let Ok(content) = fs::read_to_string(QUICKSAVE_FILE) {
             if let Ok(save) = serde_json::from_str::<QuickSave>(&content) {
@@ -54,8 +55,15 @@ pub fn quicksave_system(
                 }
                 
                 // Restart with saved progress
-                let scene = crate::systems::scenes::load_scene("mission1");
-                crate::systems::scenes::spawn_from_scene(&mut commands, &scene, &global_data, &sprites);
+                match crate::systems::scenes::load_scene("mission1") {
+                    Some(scene) => {
+                        crate::systems::scenes::spawn_from_scene(&mut commands, &scene, &global_data, &sprites);
+                    },
+                    None => {
+                        error!("Failed to load scene for quickload. Using fallback.");
+                        spawn_fallback_mission(&mut commands, &*global_data, &sprites);
+                    }
+                }
                 
                 // Restore progress
                 mission_data.timer = save.timer;

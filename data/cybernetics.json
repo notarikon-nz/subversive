@@ -1,0 +1,77 @@
+{
+  "cybernetics": [
+    {
+      "id": "neural_enhancer",
+      "name": "Neural Enhancer",
+      "description": "Improves reaction time and accuracy",
+      "cost": 1500,
+      "category": "Combat",
+      "effects": [
+        {"AccuracyBonus": 0.15},
+        {"ExperienceBonus": 0.10}
+      ],
+      "prerequisites": []
+    },
+    {
+      "id": "muscle_boosters",
+      "name": "Muscle Boosters", 
+      "description": "Synthetic muscle fibers increase speed and damage",
+      "cost": 2000,
+      "category": "Combat",
+      "effects": [
+        {"SpeedBonus": 0.25},
+        {"DamageBonus": 0.20}
+      ],
+      "prerequisites": ["neural_enhancer"]
+    },
+    {
+      "id": "stealth_suite",
+      "name": "Stealth Suite",
+      "description": "Advanced cloaking and sound dampening", 
+      "cost": 2500,
+      "category": "Stealth",
+      "effects": [
+        {"StealthBonus": 0.40},
+        {"NoiseReduction": 0.35}
+      ],
+      "prerequisites": []
+    },
+    {
+      "id": "hacking_implant",
+      "name": "Hacking Implant",
+      "description": "Direct neural interface with electronic systems",
+      "cost": 1800,
+      "category": "Utility",
+      "effects": [
+        {"HackingBonus": 0.75},
+        {"VisionBonus": 0.20}
+      ],
+      "prerequisites": []
+    },
+    {
+      "id": "bio_regulator", 
+      "name": "Bio Regulator",
+      "description": "Accelerated healing and enhanced durability",
+      "cost": 2200,
+      "category": "Survival",
+      "effects": [
+        {"HealthBonus": 40.0},
+        {"RecoveryReduction": 2}
+      ],
+      "prerequisites": []
+    },
+    {
+      "id": "combat_protocol",
+      "name": "Combat Protocol Suite",
+      "description": "Military-grade combat enhancement system",
+      "cost": 4000,
+      "category": "Combat", 
+      "effects": [
+        {"DamageBonus": 0.35},
+        {"AccuracyBonus": 0.25},
+        {"SpeedBonus": 0.20}
+      ],
+      "prerequisites": ["neural_enhancer", "muscle_boosters"]
+    }
+  ]
+}

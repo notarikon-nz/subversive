@@ -50,150 +50,37 @@ impl ResearchProject {
     }
 }
 
-#[derive(Resource)]
+#[derive(Resource, Serialize, Deserialize)]
 pub struct ResearchDatabase {
     pub projects: Vec<ResearchProject>,
 }
 
+
 impl ResearchDatabase {
     pub fn load() -> Self {
-        // Create research projects inspired by original Syndicate but simplified
-        let projects = vec![
-            // === WEAPONS RESEARCH ===
-            ResearchProject {
-                id: "basic_optics".to_string(),
-                name: "Basic Optics".to_string(),
-                description: "Develop improved weapon sighting systems".to_string(),
-                cost: 1000,
-                category: ResearchCategory::Weapons,
-                prerequisites: vec![],
-                benefits: vec![
-                    ResearchBenefit::UnlockAttachment("red_dot".to_string()),
-                    ResearchBenefit::UnlockAttachment("iron_sights".to_string()),
-                ],
+        match std::fs::read_to_string("data/research.json") {
+            Ok(content) => {
+                match serde_json::from_str::<ResearchDatabase>(&content) {  // Add type annotation
+                    Ok(data) => {
+                        info!("Loaded {} research projects from data/research.json", data.projects.len());
+                        data
+                    },
+                    Err(e) => {
+                        error!("Failed to parse research.json: {}", e);
+                        Self { projects: Vec::new() }
+                    }
+                }
             },
-            
-            ResearchProject {
-                id: "suppression_tech".to_string(),
-                name: "Suppression Technology".to_string(),
-                description: "Develop sound dampening for covert operations".to_string(),
-                cost: 1500,
-                category: ResearchCategory::Weapons,
-                prerequisites: vec!["basic_optics".to_string()],
-                benefits: vec![
-                    ResearchBenefit::UnlockAttachment("suppressor".to_string()),
-                    ResearchBenefit::UnlockAttachment("flash_hider".to_string()),
-                ],
-            },
-            
-            ResearchProject {
-                id: "advanced_magazines".to_string(),
-                name: "Advanced Magazines".to_string(),
-                description: "Improve ammunition feeding systems".to_string(),
-                cost: 2000,
-                category: ResearchCategory::Weapons,
-                prerequisites: vec!["suppression_tech".to_string()],
-                benefits: vec![
-                    ResearchBenefit::UnlockAttachment("extended_mag".to_string()),
-                    ResearchBenefit::UnlockAttachment("fast_mag".to_string()),
-                ],
-            },
-            
-            ResearchProject {
-                id: "heavy_weapons".to_string(),
-                name: "Heavy Weapons Platform".to_string(),
-                description: "Develop support weapons for high-threat missions".to_string(),
-                cost: 3000,
-                category: ResearchCategory::Weapons,
-                prerequisites: vec!["advanced_magazines".to_string()],
-                benefits: vec![
-                    ResearchBenefit::UnlockWeapon(WeaponType::Minigun),
-                    ResearchBenefit::UnlockAttachment("bipod".to_string()),
-                ],
-            },
-            
-            // === CYBERNETICS RESEARCH ===
-            ResearchProject {
-                id: "neurovector_implants".to_string(),
-                name: "Neurovector Implants".to_string(),
-                description: "Basic mind control technology for civilian manipulation".to_string(),
-                cost: 2500,
-                category: ResearchCategory::Cybernetics,
-                prerequisites: vec![],
-                benefits: vec![
-                    ResearchBenefit::UnlockCybernetic(CyberneticType::Neurovector),
-                ],
-            },
-            
-            ResearchProject {
-                id: "combat_enhancers".to_string(),
-                name: "Combat Enhancers".to_string(),
-                description: "Improve agent reflexes and combat effectiveness".to_string(),
-                cost: 3500,
-                category: ResearchCategory::Cybernetics,
-                prerequisites: vec!["neurovector_implants".to_string()],
-                benefits: vec![
-                    ResearchBenefit::UnlockCybernetic(CyberneticType::CombatEnhancer),
-                    ResearchBenefit::ExperienceBonus(25), // 25% more XP
-                ],
-            },
-            
-            // === EQUIPMENT RESEARCH ===
-            ResearchProject {
-                id: "surveillance_gear".to_string(),
-                name: "Surveillance Gear".to_string(),
-                description: "Advanced reconnaissance and hacking tools".to_string(),
-                cost: 1200,
-                category: ResearchCategory::Equipment,
-                prerequisites: vec![],
-                benefits: vec![
-                    ResearchBenefit::UnlockTool(ToolType::Scanner),
-                    ResearchBenefit::UnlockTool(ToolType::Hacker),
-                ],
-            },
-            
-            ResearchProject {
-                id: "infiltration_kit".to_string(),
-                name: "Infiltration Kit".to_string(),
-                description: "Tools for covert entry and stealth operations".to_string(),
-                cost: 1800,
-                category: ResearchCategory::Equipment,
-                prerequisites: vec!["surveillance_gear".to_string()],
-                benefits: vec![
-                    ResearchBenefit::UnlockTool(ToolType::Lockpick),
-                    ResearchBenefit::UnlockCybernetic(CyberneticType::StealthModule),
-                ],
-            },
-            
-            // === INTELLIGENCE RESEARCH ===
-            ResearchProject {
-                id: "corporate_intelligence".to_string(),
-                name: "Corporate Intelligence".to_string(),
-                description: "Improve mission planning and regional influence".to_string(),
-                cost: 2200,
-                category: ResearchCategory::Intelligence,
-                prerequisites: vec!["surveillance_gear".to_string()],
-                benefits: vec![
-                    ResearchBenefit::CreditsPerMission(200), // Extra 200 credits per mission
-                    ResearchBenefit::AlertReduction(1), // Alert decays 1 day faster
-                ],
-            },
-            
-            ResearchProject {
-                id: "tech_interface".to_string(),
-                name: "Tech Interface".to_string(),
-                description: "Advanced hacking and electronic warfare capabilities".to_string(),
-                cost: 4000,
-                category: ResearchCategory::Intelligence,
-                prerequisites: vec!["corporate_intelligence".to_string(), "infiltration_kit".to_string()],
-                benefits: vec![
-                    ResearchBenefit::UnlockCybernetic(CyberneticType::TechInterface),
-                    ResearchBenefit::CreditsPerMission(300),
-                ],
-            },
-        ];
-        
-        Self { projects }
+            Err(e) => {
+                error!("Failed to load data/research.json: {}", e);
+                Self { projects: Vec::new() }
+            }
+        }
+    }
+    
+    // Add missing methods that are used elsewhere in the codebase
+    pub fn get_project(&self, id: &str) -> Option<&ResearchProject> {
+        self.projects.iter().find(|p| p.id == id)
     }
     
     pub fn get_available_projects(&self, progress: &ResearchProgress) -> Vec<&ResearchProject> {
@@ -207,11 +94,8 @@ impl ResearchDatabase {
             .filter(|p| p.is_completed(progress))
             .collect()
     }
-    
-    pub fn get_project(&self, id: &str) -> Option<&ResearchProject> {
-        self.projects.iter().find(|p| p.id == id)
-    }
 }
+
 
 // Apply research benefits to game state
 pub fn apply_research_benefits(

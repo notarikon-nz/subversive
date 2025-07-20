@@ -1,0 +1,91 @@
+{
+  "traits": [
+    {
+      "id": "pyromaniac",
+      "name": "Pyromaniac",
+      "description": "Obsessed with fire and flames",
+      "positive_effects": [
+        {"DamageBonus": 0.25}
+      ],
+      "negative_effects": [
+        {"AccuracyBonus": -0.10}
+      ],
+      "rarity": "Uncommon"
+    },
+    {
+      "id": "marksman",
+      "name": "Marksman", 
+      "description": "Natural talent with precision weapons",
+      "positive_effects": [
+        {"AccuracyBonus": 0.20}
+      ],
+      "negative_effects": [
+        {"SpeedBonus": -0.15}
+      ],
+      "rarity": "Common"
+    },
+    {
+      "id": "ghost",
+      "name": "Ghost",
+      "description": "Moves like a shadow",
+      "positive_effects": [
+        {"StealthBonus": 0.30},
+        {"NoiseReduction": 0.25}
+      ],
+      "negative_effects": [
+        {"HealthBonus": -15.0}
+      ],
+      "rarity": "Rare"
+    },
+    {
+      "id": "berserker",
+      "name": "Berserker",
+      "description": "Thrives in close combat chaos",
+      "positive_effects": [
+        {"DamageBonus": 0.30},
+        {"SpeedBonus": 0.25}
+      ],
+      "negative_effects": [
+        {"AccuracyBonus": -0.20},
+        {"StealthBonus": -0.25}
+      ],
+      "rarity": "Rare"
+    },
+    {
+      "id": "tech_savant",
+      "name": "Tech Savant",
+      "description": "Gifted with technology and hacking",
+      "positive_effects": [
+        {"HackingBonus": 0.50},
+        {"ExperienceBonus": 0.15}
+      ],
+      "negative_effects": [
+        {"DamageBonus": -0.15}
+      ],
+      "rarity": "Uncommon"
+    },
+    {
+      "id": "survivor",
+      "name": "Survivor", 
+      "description": "Hard to kill, quick to recover",
+      "positive_effects": [
+        {"HealthBonus": 25.0},
+        {"RecoveryReduction": 1}
+      ],
+      "negative_effects": [
+        {"SpeedBonus": -0.10}
+      ],
+      "rarity": "Common"
+    },
+    {
+      "id": "cyber_reject",
+      "name": "Cyber Reject",
+      "description": "Body rejects cybernetic enhancement",
+      "positive_effects": [
+        {"ExperienceBonus": 0.25}
+      ],
+      "negative_effects": [],
+      "rarity": "Legendary"
+    }
+  ]
+}

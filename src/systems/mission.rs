@@ -1,6 +1,7 @@
 // src/systems/mission.rs - Updated for Bevy 0.16
 use bevy::prelude::*;
 use crate::core::*;
+use crate::systems::scenes::*;
 
 pub fn timer_system(
     mut mission_data: ResMut<MissionData>,
@@ -67,9 +68,8 @@ pub fn restart_system(
     
     info!("Restarting mission - despawning {} entities", entities.iter().count());
     
-    // FIXED: Use Result instead of Option
     for entity in entities.iter() {
-        if let Ok(entity_commands) = commands.get_entity(entity) {
+        if let Ok(_) = commands.get_entity(entity) {
             commands.safe_despawn(entity);
         }
     }
@@ -88,10 +88,17 @@ pub fn restart_system(
         _ => "mission1",
     };
     
-    let scene = crate::systems::scenes::load_scene(scene_name);
-    crate::systems::scenes::spawn_from_scene(&mut commands, &scene, &*global_data, &sprites);
-    
-    info!("Mission restart complete");
+    match crate::systems::scenes::load_scene(scene_name) {
+        Some(scene) => {
+            crate::systems::scenes::spawn_from_scene(&mut commands, &scene, &*global_data, &sprites);
+            info!("Mission restart complete with scene: {}", scene_name);
+        },
+        None => {
+            error!("Failed to load scene during restart: {}. Using fallback.", scene_name);
+            spawn_fallback_mission(&mut commands, &*global_data, &sprites);
+            info!("Mission restart complete with fallback scene");
+        }
+    }
 }
 
 pub fn process_mission_results(
@@ -306,3 +313,4 @@ fn create_results_ui(
 
 #[derive(Component)]
 pub struct PostMissionUI;
+
