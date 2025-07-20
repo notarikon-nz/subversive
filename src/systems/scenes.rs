@@ -76,6 +76,11 @@ impl SceneData {
                 CivilianSpawn { position: [100.0, 100.0] },
                 CivilianSpawn { position: [160.0, 120.0] },
                 CivilianSpawn { position: [220.0, 80.0] },
+                CivilianSpawn { position: [80.0, 180.0] },
+                CivilianSpawn { position: [250.0, 150.0] },
+                CivilianSpawn { position: [120.0, 200.0] },
+                CivilianSpawn { position: [180.0, 60.0] },
+                CivilianSpawn { position: [300.0, 120.0] },
             ],
             enemies: vec![
                 EnemySpawn {
@@ -107,6 +112,10 @@ impl SceneData {
             civilians: vec![
                 CivilianSpawn { position: [80.0, 150.0] },
                 CivilianSpawn { position: [120.0, 180.0] },
+                CivilianSpawn { position: [160.0, 200.0] },
+                CivilianSpawn { position: [200.0, 160.0] },
+                CivilianSpawn { position: [240.0, 180.0] },
+                CivilianSpawn { position: [100.0, 120.0] },
             ],
             enemies: vec![
                 EnemySpawn {

@@ -17,7 +17,7 @@ pub use goap::*;
 pub use research::*;
 pub use attachments::*;
 
-pub use crate::systems::ui::hub::{HubState, HubTab};
+pub use crate::systems::ui::hub::{HubState};
 
 // === INPUT ===
 // Updated for leafwing-input-manager 0.17.1 + Bevy 0.16
@@ -1440,4 +1440,84 @@ impl PoliceResponse {
             _ => 4,
         }
     }
+}
+
+// FORMATIONS
+
+#[derive(Component)]
+pub struct Formation {
+    pub formation_type: FormationType,
+    pub leader: Entity,
+    pub positions: Vec<Vec2>,
+    pub members: Vec<Entity>,
+    pub spacing: f32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum FormationType {
+    Line,
+    Wedge,
+    Column,
+    Box,
+}
+
+impl Formation {
+    pub fn new(formation_type: FormationType, leader: Entity) -> Self {
+        Self {
+            formation_type,
+            leader,
+            positions: Vec::new(),
+            members: vec![leader],
+            spacing: 40.0,
+        }
+    }
+    
+    pub fn calculate_positions(&mut self, leader_pos: Vec2) {
+        self.positions.clear();
+        self.positions.push(leader_pos);
+        let count = self.members.len();
+        
+        match self.formation_type {
+            FormationType::Line => {
+                for i in 1..count {
+                    let offset = Vec2::new((i as f32 - (count as f32 - 1.0) / 2.0) * self.spacing, 0.0);
+                    self.positions.push(leader_pos + offset);
+                }
+            },
+            FormationType::Wedge => {
+                for i in 1..count {
+                    let side = if i % 2 == 1 { -1.0 } else { 1.0 };
+                    let rank = (i + 1) / 2;
+                    let offset = Vec2::new(side * rank as f32 * 28.0, -(rank as f32 * self.spacing));
+                    self.positions.push(leader_pos + offset);
+                }
+            },
+            FormationType::Column => {
+                for i in 1..count {
+                    self.positions.push(leader_pos + Vec2::new(0.0, -(i as f32 * self.spacing)));
+                }
+            },
+            FormationType::Box => {
+                if count >= 4 {
+                    let h = self.spacing * 0.5;
+                    self.positions.push(leader_pos + Vec2::new(-h, -h));
+                    self.positions.push(leader_pos + Vec2::new(h, -h));
+                    if count > 4 {
+                        self.positions.push(leader_pos + Vec2::new(0.0, -self.spacing));
+                    }
+                }
+            },
+        }
+    }
+}
+
+#[derive(Component)]
+pub struct FormationMember {
+    pub formation_entity: Entity,
+    pub position_index: usize,
+}
+
+#[derive(Resource, Default)]
+pub struct FormationState {
+    pub active_formation: Option<Entity>,
 }

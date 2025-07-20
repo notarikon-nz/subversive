@@ -40,6 +40,7 @@ fn main() {
         .insert_resource(global_data)
         .insert_resource(research_progress)
         .insert_resource(ResearchDatabase::load())
+
         .init_resource::<UIState>()
         .init_resource::<PostMissionProcessed>()
         .init_resource::<EntityPool>()
@@ -49,6 +50,8 @@ fn main() {
         .init_resource::<UnlockedAttachments>()
         .init_resource::<ManufactureState>()
         .init_resource::<PoliceResponse>()
+        .init_resource::<FormationState>()
+        .init_resource::<CivilianSpawner>()
 
         .add_event::<ActionEvent>()
         .add_event::<CombatEvent>()
@@ -97,7 +100,6 @@ fn main() {
             
             // AI systems
             goap::goap_ai_system,
-            goap::goap_patrol_advancement_system, // ADDED: Patrol advancement
             ai::goap_sound_detection_system,
             ai::alert_system,
             ai::legacy_enemy_ai_system,
@@ -114,7 +116,7 @@ fn main() {
             weapon_swap::weapon_behavior_system,
 
             // Interaction systems
-            neurovector::system,
+            // neurovector::system,
             interaction::system,
             combat::system,
             combat::death_system,
@@ -139,9 +141,24 @@ fn main() {
             panic_spread::panic_morale_reduction_system,
             police::police_tracking_system,
             police::police_spawn_system,
+        ).run_if(in_state(GameState::Mission)))
+        .add_systems(Update, (            
             area_control::weapon_area_control_system,
             area_control::area_effect_system,
-            area_control::suppression_movement_system,            
+            area_control::suppression_movement_system,
+
+            formations::formation_input_system,
+            formations::formation_movement_system,
+            formations::formation_visual_system,
+
+            enhanced_neurovector::enhanced_neurovector_system,
+            enhanced_neurovector::controlled_civilian_behavior_system,
+            enhanced_neurovector::controlled_civilian_visual_system,
+
+            civilian_spawn::dynamic_civilian_spawn_system,
+            civilian_spawn::civilian_wander_system,
+            civilian_spawn::civilian_cleanup_system,
+
         ).run_if(in_state(GameState::Mission)))
         .add_systems(Update, (
             mission::process_mission_results,  

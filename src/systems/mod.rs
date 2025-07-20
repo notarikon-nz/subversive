@@ -2,7 +2,7 @@ pub mod input;
 pub mod camera;
 pub mod selection;
 pub mod movement;
-pub mod neurovector;
+// pub mod neurovector;
 pub mod interaction;
 pub mod combat;
 pub mod ui;
@@ -16,8 +16,15 @@ pub mod panic_spread;
 pub mod police;
 pub mod area_control;
 
+pub mod formations;
+pub mod enhanced_neurovector;
+pub mod civilian_spawn;
+
 pub use area_control::*;
 pub use panic_spread::*;
+pub use formations::*;
+pub use enhanced_neurovector::*;
+pub use civilian_spawn::*;
 
 pub use save::*;
 

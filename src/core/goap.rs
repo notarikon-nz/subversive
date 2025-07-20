@@ -13,12 +13,6 @@ macro_rules! hashmap {
     };
 }
 
-macro_rules! init_world_state {
-    ($self:ident, $($key:expr => $value:expr),+) => {
-        $( $self.world_state.insert($key, $value); )+
-    };
-}
-
 // === WORLD STATE ===
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum WorldKey {
@@ -670,9 +664,12 @@ impl GoapAgent {
         self.world_state.insert(WorldKey::InWeaponRange, false);
         self.world_state.insert(WorldKey::TooClose, false);
         self.world_state.insert(WorldKey::TooFar, false);
+
         self.world_state.insert(WorldKey::ControllingArea, false);
         self.world_state.insert(WorldKey::SuppressingTarget, false);
         self.world_state.insert(WorldKey::AgentsGroupedInRange, false);        
+
+
     }
     
     pub fn update_world_state(&mut self, key: WorldKey, value: bool) {
@@ -1501,33 +1498,6 @@ fn execute_goap_action(
             ai_state.mode = crate::systems::ai::AIMode::Patrol;
             info!("Enemy {} executing fighting withdrawal", enemy_entity.index());
         },
-    }
-}
-
-// FIXED: Add patrol advancement system
-pub fn goap_patrol_advancement_system(
-    mut enemy_query: Query<(Entity, &Transform, &mut Patrol), With<Enemy>>,
-    move_targets: Query<&MoveTarget>,
-    mut commands: Commands,
-) {
-    for (entity, transform, mut patrol) in enemy_query.iter_mut() {
-        let current_pos = transform.translation.truncate();
-        
-        // Check if enemy has reached its current patrol point
-        if let Some(patrol_target) = patrol.current_target() {
-            let distance = current_pos.distance(patrol_target);
-            let has_move_target = move_targets.get(entity).is_ok();
-            
-            // If close to patrol point and not currently moving, advance patrol
-            if distance < 15.0 && !has_move_target {
-                patrol.advance();
-                
-                // Set move target to next patrol point
-                if let Some(next_target) = patrol.current_target() {
-                    commands.entity(entity).insert(MoveTarget { position: next_target });
-                }
-            }
-        }
     }
 }
 

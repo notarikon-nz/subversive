@@ -1,9 +1,6 @@
 // src/systems/ui/mod.rs - Just split the big file, nothing fancy
 use bevy::prelude::*;
 use crate::core::*;
-use crate::systems::*;
-
-use crate::core::{PostMissionProcessed, PostMissionResults, GlobalData, UIState, GameState, experience_for_level};
 
 pub mod world;      // Gizmos and world-space UI (selection, vision cones)
 pub mod screens;    // All fullscreen UIs (inventory, global map, post-mission, pause)

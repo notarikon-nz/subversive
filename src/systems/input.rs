@@ -69,6 +69,18 @@ pub fn handle_input(
         }
     }    
 
+    // Formation controls - Shift+1-4
+    if keyboard.pressed(KeyCode::ShiftLeft) {
+        if keyboard.just_pressed(KeyCode::Digit1) || keyboard.just_pressed(KeyCode::Digit2) ||
+           keyboard.just_pressed(KeyCode::Digit3) || keyboard.just_pressed(KeyCode::Digit4) {
+            // Handled by formations::formation_input_system
+        }
+    }
+    
+    if keyboard.just_pressed(KeyCode::KeyG) {
+        // Clear formations - handled by formations::formation_input_system
+    }
+
     if game_mode.paused { return; }
 
     // FIXED: Direct mouse detection instead of relying on ActionState
