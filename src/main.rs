@@ -48,6 +48,7 @@ fn main() {
         .init_resource::<HubState>()
         .init_resource::<UnlockedAttachments>()
         .init_resource::<ManufactureState>()
+        .init_resource::<PoliceResponse>()
 
         .add_event::<ActionEvent>()
         .add_event::<CombatEvent>()
@@ -132,6 +133,15 @@ fn main() {
             cover::cover_exit_system,
             quicksave::quicksave_system,
             reload::reload_system,
+
+            // NEW: Enhanced parity systems
+            panic_spread::panic_spread_system,
+            panic_spread::panic_morale_reduction_system,
+            police::police_tracking_system,
+            police::police_spawn_system,
+            area_control::weapon_area_control_system,
+            area_control::area_effect_system,
+            area_control::suppression_movement_system,            
         ).run_if(in_state(GameState::Mission)))
         .add_systems(Update, (
             mission::process_mission_results,  

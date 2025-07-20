@@ -1346,6 +1346,7 @@ impl SafeDespawn for Commands<'_, '_> {
     }
 }
 
+// MORALE SYSTEM
 #[derive(Component)]
 pub struct Morale {
     pub current: f32,
@@ -1390,6 +1391,7 @@ impl Morale {
     }
 }
 
+// FLEEING
 #[derive(Component)]
 pub struct FleeTarget {
     pub destination: Vec2,
@@ -1401,6 +1403,41 @@ impl Default for FleeTarget {
         Self {
             destination: Vec2::ZERO,
             flee_speed_multiplier: 1.5,
+        }
+    }
+}
+
+// POLICE
+#[derive(Component)]
+pub struct Police {
+    pub response_level: u8,
+}
+
+#[derive(Resource, Default)]
+pub struct PoliceResponse {
+    pub heat_level: f32,
+    pub next_spawn_timer: f32,
+    pub civilian_casualties: u32,
+    pub last_incident_pos: Option<Vec2>,
+}
+
+impl PoliceResponse {
+    pub fn add_incident(&mut self, pos: Vec2, severity: f32) {
+        self.heat_level += severity;
+        self.last_incident_pos = Some(pos);
+        self.next_spawn_timer = (10.0 - self.heat_level.min(8.0)).max(2.0);
+    }
+    
+    pub fn should_spawn_police(&self) -> bool {
+        self.heat_level >= 25.0 && self.civilian_casualties > 0
+    }
+    
+    pub fn get_spawn_count(&self) -> u8 {
+        match self.heat_level as u32 {
+            0..=49 => 1,
+            50..=99 => 2,
+            100..=149 => 3,
+            _ => 4,
         }
     }
 }

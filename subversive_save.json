@@ -1,6 +1,6 @@
 {
   "credits": 2050,
-  "current_day": 2,
+  "current_day": 3,
   "agent_levels": [
     1,
     1,
@@ -49,40 +49,9 @@
           ],
           "attachments": {
             "Magazine": null,
-            "Stock": null,
-            "Barrel": null,
-            "Sight": null
-          },
-          "behavior": {
-            "preferred_range": 150.0,
-            "burst_fire": true,
-            "requires_cover": true,
-            "area_effect": false,
-            "reload_retreat": true
-          }
-        }
-      ],
-      "equipped_weapon_idx": 0,
-      "tools": [
-        "Scanner"
-      ],
-      "cybernetics": []
-    },
-    {
-      "weapon_configs": [
-        {
-          "base_weapon": "Rifle",
-          "supported_slots": [
-            "Sight",
-            "Barrel",
-            "Magazine",
-            "Stock"
-          ],
-          "attachments": {
-            "Stock": null,
             "Barrel": null,
             "Sight": null,
-            "Magazine": null
+            "Stock": null
           },
           "behavior": {
             "preferred_range": 150.0,
@@ -111,9 +80,40 @@
           ],
           "attachments": {
             "Barrel": null,
-            "Magazine": null,
             "Stock": null,
+            "Magazine": null,
             "Sight": null
+          },
+          "behavior": {
+            "preferred_range": 150.0,
+            "burst_fire": true,
+            "requires_cover": true,
+            "area_effect": false,
+            "reload_retreat": true
+          }
+        }
+      ],
+      "equipped_weapon_idx": 0,
+      "tools": [
+        "Scanner"
+      ],
+      "cybernetics": []
+    },
+    {
+      "weapon_configs": [
+        {
+          "base_weapon": "Rifle",
+          "supported_slots": [
+            "Sight",
+            "Barrel",
+            "Magazine",
+            "Stock"
+          ],
+          "attachments": {
+            "Magazine": null,
+            "Sight": null,
+            "Barrel": null,
+            "Stock": null
           },
           "behavior": {
             "preferred_range": 150.0,

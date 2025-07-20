@@ -5,7 +5,6 @@ use crate::systems::*;
 
 use crate::core::{PostMissionProcessed, PostMissionResults, GlobalData, UIState, GameState, experience_for_level};
 
-
 pub mod world;      // Gizmos and world-space UI (selection, vision cones)
 pub mod screens;    // All fullscreen UIs (inventory, global map, post-mission, pause)
 pub mod hub;
@@ -14,7 +13,8 @@ pub use world::*;
 pub use screens::*;
 pub use hub::*;
 
-// Add this system to handle state transitions
+// handle state transitions
+// otherwise our UI tends to stay open on the hub
 pub fn cleanup_mission_ui(
     mut commands: Commands,
     mut inventory_state: ResMut<InventoryState>,

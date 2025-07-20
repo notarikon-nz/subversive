@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use crate::core::*;
 
 #[derive(Event)]
 pub struct ActionEvent {
@@ -19,7 +20,9 @@ pub enum Action {
     ThrowGrenade { target_pos: Vec2 },
     ActivateAlarm { panel_pos: Vec2 },
     PickupWeapon,
-    MaintainDistance,    
+    MaintainDistance,
+    AreaDenial { weapon_type: WeaponType },
+    SuppressionFire { weapon_type: WeaponType },    
 }
 
 #[derive(Event)]

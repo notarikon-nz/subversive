@@ -318,6 +318,7 @@ fn spawn_civilian(commands: &mut Commands, position: Vec2, sprites: &GameSprites
         Civilian,
         Health(50.0),
         Morale::new(80.0, 40.0),
+        PanicSpreader::default(),  // ADD THIS LINE
         MovementSpeed(100.0),
         Controllable,
         NeurovectorTarget,

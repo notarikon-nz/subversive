@@ -76,7 +76,11 @@ pub enum WorldKey {
     HasBetterWeapon,
     InWeaponRange,
     TooClose,
-    TooFar,    
+    TooFar,
+    // NEW
+    ControllingArea,
+    SuppressingTarget,
+    AgentsGroupedInRange,    
 }
 
 pub type WorldState = HashMap<WorldKey, bool>;
@@ -495,6 +499,35 @@ impl GoapAgent {
                 action_type: ActionType::MoveTo { target: Vec2::ZERO },
             },
 
+            GoapAction {
+                name: "flamethrower_area_denial",
+                cost: 2.0,
+                preconditions: hashmap![
+                    WorldKey::HasTarget => true,
+                    WorldKey::AgentsGroupedInRange => true,
+                    WorldKey::InWeaponRange => true
+                ],
+                effects: hashmap![
+                    WorldKey::ControllingArea => true,
+                    WorldKey::TacticalAdvantage => true
+                ],
+                action_type: ActionType::Attack { target: Entity::PLACEHOLDER },
+            },
+            
+            GoapAction {
+                name: "minigun_suppression",
+                cost: 1.5,
+                preconditions: hashmap![
+                    WorldKey::HasTarget => true,
+                    WorldKey::InWeaponRange => true,
+                    WorldKey::InCover => true
+                ],
+                effects: hashmap![
+                    WorldKey::SuppressingTarget => true,
+                    WorldKey::EnemySuppressed => true
+                ],
+                action_type: ActionType::Attack { target: Entity::PLACEHOLDER },
+            },
         ];
     }
 
@@ -517,6 +550,15 @@ impl GoapAgent {
                 ],
             },
             
+            Goal {
+                name: "area_control",
+                priority: 7.0,
+                desired_state: hashmap![
+                    WorldKey::ControllingArea => true,
+                    WorldKey::SuppressingTarget => true
+                ],
+            },
+
             Goal {
                 name: "coordinate_defense",
                 priority: 9.0, // High - team tactics
@@ -627,7 +669,10 @@ impl GoapAgent {
         self.world_state.insert(WorldKey::HasBetterWeapon, false);
         self.world_state.insert(WorldKey::InWeaponRange, false);
         self.world_state.insert(WorldKey::TooClose, false);
-        self.world_state.insert(WorldKey::TooFar, false);        
+        self.world_state.insert(WorldKey::TooFar, false);
+        self.world_state.insert(WorldKey::ControllingArea, false);
+        self.world_state.insert(WorldKey::SuppressingTarget, false);
+        self.world_state.insert(WorldKey::AgentsGroupedInRange, false);        
     }
     
     pub fn update_world_state(&mut self, key: WorldKey, value: bool) {
