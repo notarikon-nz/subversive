@@ -107,6 +107,7 @@ fn main() {
             interaction::system,
             combat::system,
             combat::death_system,
+            
         ).run_if(in_state(GameState::Mission)))
         
         .add_systems(Update, (            

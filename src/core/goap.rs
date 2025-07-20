@@ -21,28 +21,33 @@ pub enum WorldKey {
     AtPatrolPoint,
     AtLastKnownPosition,
     AtTarget,
-    
     // Knowledge states
     HasTarget,
     TargetVisible,
     HeardSound,
-    
     // Equipment states
     HasWeapon,
     WeaponLoaded,
-    
     // Alert states
     IsAlert,
     IsInvestigating,
-
     // Cover states
     InCover,
     CoverAvailable,
     UnderFire,
-
     // Communication states
     BackupCalled,
     NearbyAlliesAvailable,    
+    // Flanking
+    FlankingPosition,
+    TacticalAdvantage,
+    // Search
+    AreaSearched,
+    // Retreat
+    IsRetreating,
+    AtSafeDistance,
+    Outnumbered,
+    IsInjured,    
 }
 
 pub type WorldState = HashMap<WorldKey, bool>;
@@ -67,6 +72,9 @@ pub enum ActionType {
     Reload,
     CallForHelp,
     TakeCover,
+    FlankTarget { target_pos: Vec2, flank_pos: Vec2 },
+    SearchArea { center: Vec2, radius: f32 },
+    Retreat { retreat_point: Vec2 },    
 }
 
 // === GOALS ===
@@ -102,7 +110,7 @@ impl Default for GoapAgent {
         agent.setup_default_actions();
         agent.setup_default_goals();
         agent.setup_initial_world_state();
-        
+       
         agent
     }
 }
@@ -110,7 +118,7 @@ impl Default for GoapAgent {
 impl GoapAgent {
     fn setup_default_actions(&mut self) {
         self.available_actions = vec![
-            // Patrol action
+            // === BASIC ACTIONS ===
             GoapAction {
                 name: "patrol",
                 cost: 1.0,
@@ -124,7 +132,6 @@ impl GoapAgent {
                 action_type: ActionType::Patrol,
             },
             
-            // Return to patrol after losing target
             GoapAction {
                 name: "return_to_patrol",
                 cost: 1.5,
@@ -139,7 +146,97 @@ impl GoapAgent {
                 action_type: ActionType::Patrol,
             },
             
-            // Take cover action
+            GoapAction {
+                name: "calm_down",
+                cost: 0.5,
+                preconditions: hashmap![
+                    WorldKey::HasTarget => false,
+                    WorldKey::TargetVisible => false
+                ],
+                effects: hashmap![
+                    WorldKey::IsAlert => false
+                ],
+                action_type: ActionType::Patrol,
+            },
+            
+            // === INVESTIGATION ACTIONS ===
+            GoapAction {
+                name: "investigate",
+                cost: 2.0,
+                preconditions: hashmap![
+                    WorldKey::HeardSound => true,
+                    WorldKey::IsAlert => false
+                ],
+                effects: hashmap![
+                    WorldKey::AtLastKnownPosition => true,
+                    WorldKey::IsInvestigating => true,
+                    WorldKey::HeardSound => false
+                ],
+                action_type: ActionType::Investigate { location: Vec2::ZERO },
+            },
+            
+            // NEW: Search area systematically
+            GoapAction {
+                name: "search_area",
+                cost: 2.5,
+                preconditions: hashmap![
+                    WorldKey::HeardSound => true,
+                    WorldKey::AtLastKnownPosition => true,
+                    WorldKey::AreaSearched => false
+                ],
+                effects: hashmap![
+                    WorldKey::AreaSearched => true,
+                    WorldKey::IsInvestigating => false,
+                    WorldKey::HeardSound => false
+                ],
+                action_type: ActionType::SearchArea { center: Vec2::ZERO, radius: 50.0 },
+            },
+            
+            // === COMBAT ACTIONS ===
+            GoapAction {
+                name: "attack",
+                cost: 1.0,
+                preconditions: hashmap![
+                    WorldKey::HasTarget => true,
+                    WorldKey::TargetVisible => true,
+                    WorldKey::HasWeapon => true
+                ],
+                effects: hashmap![
+                    WorldKey::HasTarget => false
+                ],
+                action_type: ActionType::Attack { target: Entity::PLACEHOLDER },
+            },
+            
+            GoapAction {
+                name: "move_to_target",
+                cost: 3.0,
+                preconditions: hashmap![
+                    WorldKey::HasTarget => true
+                ],
+                effects: hashmap![
+                    WorldKey::AtTarget => true
+                ],
+                action_type: ActionType::MoveTo { target: Vec2::ZERO },
+            },
+            
+            // NEW: Flank target for tactical advantage
+            GoapAction {
+                name: "flank_target",
+                cost: 3.0,
+                preconditions: hashmap![
+                    WorldKey::HasTarget => true,
+                    WorldKey::TargetVisible => true,
+                    WorldKey::FlankingPosition => false
+                ],
+                effects: hashmap![
+                    WorldKey::FlankingPosition => true,
+                    WorldKey::TacticalAdvantage => true,
+                    WorldKey::AtTarget => true
+                ],
+                action_type: ActionType::FlankTarget { target_pos: Vec2::ZERO, flank_pos: Vec2::ZERO },
+            },
+            
+            // === DEFENSIVE ACTIONS ===
             GoapAction {
                 name: "take_cover",
                 cost: 2.0,
@@ -153,69 +250,25 @@ impl GoapAgent {
                 ],
                 action_type: ActionType::TakeCover,
             },
-
-            // Calm down action - simple way to become unalert
+            
+            // NEW: Retreat when outmatched
             GoapAction {
-                name: "calm_down",
-                cost: 0.5,
+                name: "retreat",
+                cost: 1.5,
                 preconditions: hashmap![
-                    WorldKey::HasTarget => false,
-                    WorldKey::TargetVisible => false
+                    WorldKey::IsInjured => true,
+                    WorldKey::Outnumbered => true,
+                    WorldKey::IsRetreating => false
                 ],
                 effects: hashmap![
+                    WorldKey::AtSafeDistance => true,
+                    WorldKey::IsRetreating => true,
                     WorldKey::IsAlert => false
                 ],
-                action_type: ActionType::Patrol, // Just patrol to calm down
+                action_type: ActionType::Retreat { retreat_point: Vec2::ZERO },
             },
             
-            // Move to investigate
-            GoapAction {
-                name: "investigate",
-                cost: 2.0,
-                preconditions: hashmap![
-                    WorldKey::HeardSound => true,
-                    WorldKey::IsAlert => false // Only investigate when not already in combat
-                ],
-                effects: hashmap![
-                    WorldKey::AtLastKnownPosition => true,
-                    WorldKey::IsInvestigating => true,
-                    WorldKey::HeardSound => false
-                ],
-                action_type: ActionType::Investigate { location: Vec2::ZERO }, // Will be updated
-            },
-            
-            // Attack target
-            GoapAction {
-                name: "attack",
-                cost: 1.0,
-                preconditions: hashmap![
-                    WorldKey::HasTarget => true,
-                    WorldKey::TargetVisible => true,
-                    WorldKey::HasWeapon => true
-                    // Removed WeaponLoaded requirement for now
-                ],
-                effects: hashmap![
-                    WorldKey::HasTarget => false // Assume target eliminated
-                ],
-                action_type: ActionType::Attack { target: Entity::PLACEHOLDER },
-            },
-            
-            // Move to target
-            GoapAction {
-                name: "move_to_target",
-                cost: 3.0,
-                preconditions: hashmap![
-                    WorldKey::HasTarget => true
-                    // Removed TargetVisible requirement - we can move to last known position
-                ],
-                effects: hashmap![
-                    WorldKey::AtTarget => true
-                    // Removed TargetVisible effect - moving doesn't guarantee visibility
-                ],
-                action_type: ActionType::MoveTo { target: Vec2::ZERO },
-            },
-
-            // Call for help action
+            // === SUPPORT ACTIONS ===
             GoapAction {
                 name: "call_for_help",
                 cost: 1.5,
@@ -229,8 +282,7 @@ impl GoapAgent {
                 ],
                 action_type: ActionType::CallForHelp,
             },
-
-            // Reload weapon
+            
             GoapAction {
                 name: "reload",
                 cost: 2.0,
@@ -245,30 +297,57 @@ impl GoapAgent {
             },
         ];
     }
-    
+
     fn setup_default_goals(&mut self) {
         self.goals = vec![
             Goal {
-                name: "eliminate_threat",
-                priority: 10.0,
+                name: "survival",
+                priority: 12.0, // Highest - life preservation
                 desired_state: hashmap![
-                    WorldKey::HasTarget => false  // Just eliminate the target, don't worry about alert state
+                    WorldKey::AtSafeDistance => true,
+                    WorldKey::IsInjured => false
+                ],
+            },
+            
+            Goal {
+                name: "eliminate_threat",
+                priority: 10.0, // High - combat effectiveness
+                desired_state: hashmap![
+                    WorldKey::HasTarget => false
+                ],
+            },
+            
+            Goal {
+                name: "tactical_advantage",
+                priority: 8.0, // Medium-high - smart combat
+                desired_state: hashmap![
+                    WorldKey::TacticalAdvantage => true,
+                    WorldKey::FlankingPosition => true
+                ],
+            },
+            
+            Goal {
+                name: "thorough_search",
+                priority: 6.0, // Medium - complete investigation
+                desired_state: hashmap![
+                    WorldKey::AreaSearched => true,
+                    WorldKey::HeardSound => false
                 ],
             },
             
             Goal {
                 name: "investigate_disturbance",
-                priority: 5.0,
+                priority: 5.0, // Medium-low - basic investigation
                 desired_state: hashmap![
-                    WorldKey::HeardSound => false  // Just stop the sound investigation
+                    WorldKey::HeardSound => false
                 ],
             },
             
             Goal {
                 name: "patrol_area",
-                priority: 1.0,
+                priority: 1.0, // Lowest - default behavior
                 desired_state: hashmap![
-                    WorldKey::IsAlert => false  // Just be calm - don't require being at patrol point
+                    WorldKey::IsAlert => false
                 ],
             },
         ];
@@ -290,6 +369,14 @@ impl GoapAgent {
         self.world_state.insert(WorldKey::UnderFire, false);
         self.world_state.insert(WorldKey::BackupCalled, false);
         self.world_state.insert(WorldKey::NearbyAlliesAvailable, false);
+        // New tactical states
+        self.world_state.insert(WorldKey::FlankingPosition, false);
+        self.world_state.insert(WorldKey::TacticalAdvantage, false);
+        self.world_state.insert(WorldKey::AreaSearched, false);
+        self.world_state.insert(WorldKey::IsRetreating, false);
+        self.world_state.insert(WorldKey::AtSafeDistance, false);
+        self.world_state.insert(WorldKey::Outnumbered, false);
+        self.world_state.insert(WorldKey::IsInjured, false);        
     }
     
     pub fn update_world_state(&mut self, key: WorldKey, value: bool) {
@@ -306,32 +393,11 @@ impl GoapAgent {
             let old_goal = self.current_goal.as_ref().map(|g| g.name);
             self.current_goal = Some(goal.clone());
             
-            // Debug output when goal changes
-            if old_goal != Some(goal.name) {
-                // info!("GOAP: New goal selected: {} (priority: {})", goal.name, goal.priority);
-                // info!("GOAP: Goal desired state: {:?}", goal.desired_state);
-            }
-            
             self.current_plan = self.find_plan(&goal.desired_state);
             let success = !self.current_plan.is_empty();
             
-            if success {
-                //  info!("GOAP: Plan found with {} actions", self.current_plan.len());
-                for (i, action) in self.current_plan.iter().enumerate() {
-                    //  info!("  {}: {} (cost: {})", i, action.name, action.cost);
-                }
-            } else {
-                // info!("GOAP: No plan found for goal: {}", goal.name);
-                // info!("GOAP: Current world state: {:?}", self.world_state);
-                // info!("GOAP: Available actions:");
-                for action in &self.available_actions {
-                    // info!("  - {} (cost: {}, preconditions: {:?}, effects: {:?})", action.name, action.cost, action.preconditions, action.effects);
-                }
-            }
-            
             success
         } else {
-            // info!("GOAP: All goals satisfied");
             false
         }
     }
@@ -432,56 +498,67 @@ use crate::core::*;
 use crate::systems::ai::AIState;
 
 pub fn goap_ai_system(
-    mut commands: Commands,  // Add Commands for spawning components
+    mut commands: Commands,
     mut enemy_query: Query<(
         Entity, 
         &Transform, 
         &mut AIState, 
         &mut GoapAgent,
-        &mut Vision,
-        &Patrol
+        &mut Vision, // Make Vision mutable
+        &Patrol,
+        &Health
     ), (With<Enemy>, Without<Dead>)>,
     agent_query: Query<(Entity, &Transform), With<Agent>>,
-    cover_query: Query<(Entity, &Transform, &CoverPoint), Without<Enemy>>,  // Add cover query
-    all_enemy_query: Query<(Entity, &Transform), (With<Enemy>, Without<Dead>)>,  // For counting allies
+    cover_query: Query<(Entity, &Transform, &CoverPoint), Without<Enemy>>,
+    all_enemy_query: Query<(Entity, &Transform), (With<Enemy>, Without<Dead>)>,
     mut action_events: EventWriter<ActionEvent>,
     mut audio_events: EventWriter<AudioEvent>,
-    mut alert_events: EventWriter<AlertEvent>,  // Add alert events
+    mut alert_events: EventWriter<AlertEvent>,
     time: Res<Time>,
     game_mode: Res<GameMode>,
 ) {
     if game_mode.paused { return; }
 
-    for (enemy_entity, enemy_transform, mut ai_state, mut goap_agent, mut vision, patrol) in enemy_query.iter_mut() {
+    for (enemy_entity, enemy_transform, mut ai_state, mut goap_agent, mut vision, patrol, health) in enemy_query.iter_mut() {
         // Update planning cooldown
         goap_agent.planning_cooldown -= time.delta_secs();
         
-        // Update world state based on current situation
+        // Enhanced world state updates with vision direction updates
         update_world_state_from_perception(
             &mut goap_agent,
             enemy_transform,
-            &vision,
+            &mut vision, // Pass as mutable
             &agent_query,
             &mut ai_state,
             patrol,
             &cover_query,
-            &all_enemy_query,  // Pass for ally counting
-            enemy_entity       // Pass current enemy ID
+            &all_enemy_query,
+            enemy_entity,
+            health,
         );
         
-        // Check if current plan is still valid or if we need to replan
+        // Enhanced planning conditions
         let should_replan = goap_agent.current_plan.is_empty() || 
                           goap_agent.planning_cooldown <= 0.0 ||
-                          plan_invalidated(&goap_agent, &ai_state);
+                          plan_invalidated(&goap_agent, &ai_state, health);
         
-        // Also replan more frequently in combat situations
+        // Dynamic planning intervals based on situation
+        let in_danger = *goap_agent.world_state.get(&WorldKey::IsInjured).unwrap_or(&false) ||
+                       *goap_agent.world_state.get(&WorldKey::Outnumbered).unwrap_or(&false);
+        
         let in_combat = *goap_agent.world_state.get(&WorldKey::HasTarget).unwrap_or(&false) ||
                         *goap_agent.world_state.get(&WorldKey::IsAlert).unwrap_or(&false);
         
         if should_replan {
             goap_agent.plan();
-            // Use shorter planning interval in combat
-            goap_agent.planning_cooldown = if in_combat { 0.5 } else { 2.0 };
+            // Adaptive planning intervals
+            goap_agent.planning_cooldown = if in_danger { 
+                0.3 // Very fast replanning when in danger
+            } else if in_combat { 
+                0.5 // Fast replanning in combat
+            } else { 
+                2.0 // Normal interval for patrol
+            };
         }
         
         // Execute the next action in the plan
@@ -493,88 +570,155 @@ pub fn goap_ai_system(
                 &mut ai_state,
                 &mut action_events,
                 &mut audio_events,
-                &mut alert_events,  // Pass alert events
+                &mut alert_events,
                 patrol,
                 &agent_query,
                 &vision,
-                &cover_query,  // Pass cover query
-                &mut commands, // Pass commands
+                &cover_query,
+                &mut commands,
             );
         }
     }
 }
 
+
 fn update_world_state_from_perception(
     goap_agent: &mut GoapAgent,
     enemy_transform: &Transform,
-    vision: &Vision,
+    vision: &mut Vision, // Make vision mutable to update direction
     agent_query: &Query<(Entity, &Transform), With<Agent>>,
     ai_state: &mut AIState,
     patrol: &Patrol,
     cover_query: &Query<(Entity, &Transform, &CoverPoint), Without<Enemy>>,
-    all_enemy_query: &Query<(Entity, &Transform), (With<Enemy>, Without<Dead>)>,  // For ally counting
-    current_enemy: Entity,  // Current enemy ID to exclude from ally count
+    all_enemy_query: &Query<(Entity, &Transform), (With<Enemy>, Without<Dead>)>,
+    current_enemy: Entity,
+    health: &Health,
 ) {
     let enemy_pos = enemy_transform.translation.truncate();
     
-    // Check for visible agents and get their position
+    // === VISION DIRECTION UPDATE ===
+    // Update vision direction based on current activity
+    match &ai_state.mode {
+        crate::systems::ai::AIMode::Patrol => {
+            // Face the direction of movement or next patrol point
+            if let Some(target) = patrol.current_target() {
+                let direction = (target - enemy_pos).normalize_or_zero();
+                if direction != Vec2::ZERO {
+                    vision.direction = direction;
+                }
+            }
+        },
+        crate::systems::ai::AIMode::Combat { target } => {
+            // Face the target if we have one
+            if let Ok((_, target_transform)) = agent_query.get(*target) {
+                let direction = (target_transform.translation.truncate() - enemy_pos).normalize_or_zero();
+                if direction != Vec2::ZERO {
+                    vision.direction = direction;
+                }
+            }
+        },
+        crate::systems::ai::AIMode::Investigate { location } => {
+            // Face the investigation location
+            let direction = (*location - enemy_pos).normalize_or_zero();
+            if direction != Vec2::ZERO {
+                vision.direction = direction;
+            }
+        },
+        crate::systems::ai::AIMode::Search { area } => {
+            // Face the search area center
+            let direction = (*area - enemy_pos).normalize_or_zero();
+            if direction != Vec2::ZERO {
+                vision.direction = direction;
+            }
+        },
+    }
+    
+    // === BASIC PERCEPTION ===
     let visible_agent = check_line_of_sight_goap(enemy_transform, vision, agent_query);
     let has_target = visible_agent.is_some();
     let target_visible = has_target;
     
-    // Update last known target position if we can see a target
+    
     if let Some(agent_entity) = visible_agent {
         if let Ok((_, agent_transform)) = agent_query.get(agent_entity) {
             let target_pos = agent_transform.translation.truncate();
             ai_state.last_known_target = Some(target_pos);
-            info!("GOAP: Updated last known target position to {:?}", target_pos);
         }
     }
     
-    // Check if we're at a patrol point
     let at_patrol_point = if let Some(patrol_target) = patrol.current_target() {
-        enemy_pos.distance(patrol_target) < 20.0 // Within 20 units of patrol point
+        enemy_pos.distance(patrol_target) < 20.0
     } else {
-        true // If no patrol points, consider ourselves "at patrol point"
+        true
     };
     
-    // Check if cover is available
     let cover_available = find_nearest_cover(enemy_pos, cover_query).is_some();
     
-    // Check if nearby allies are available (within 200 units)
     let nearby_allies = all_enemy_query.iter()
         .filter(|(entity, transform)| {
-            *entity != current_enemy && // Exclude self
+            *entity != current_enemy &&
             enemy_pos.distance(transform.translation.truncate()) <= 200.0
         })
         .count() > 0;
     
-    // Update world state
+    // === ENHANCED TACTICAL ASSESSMENT ===
+    
+    // Check if injured (below 50% health)
+    let is_injured = health.0 < 50.0;
+    
+    // Count nearby forces for outnumbered assessment
+    let agent_count = agent_query.iter()
+        .filter(|(_, transform)| {
+            enemy_pos.distance(transform.translation.truncate()) <= 200.0
+        })
+        .count();
+    
+    let nearby_enemy_count = all_enemy_query.iter()
+        .filter(|(entity, transform)| {
+            *entity != current_enemy &&
+            enemy_pos.distance(transform.translation.truncate()) <= 200.0
+        })
+        .count();
+    
+    let outnumbered = agent_count > nearby_enemy_count + 1; // +1 for self
+    
+    // Check if at safe distance (no agents within 150 units)
+    let at_safe_distance = !agent_query.iter()
+        .any(|(_, transform)| {
+            enemy_pos.distance(transform.translation.truncate()) <= 150.0
+        });
+    
+    // Update all world states
     goap_agent.update_world_state(WorldKey::TargetVisible, target_visible);
     goap_agent.update_world_state(WorldKey::HasTarget, has_target);
     goap_agent.update_world_state(WorldKey::AtPatrolPoint, at_patrol_point);
     goap_agent.update_world_state(WorldKey::CoverAvailable, cover_available);
     goap_agent.update_world_state(WorldKey::NearbyAlliesAvailable, nearby_allies);
     
-    // Debug output when target status changes
-    let old_has_target = goap_agent.world_state.get(&WorldKey::HasTarget).copied().unwrap_or(false);
-    if has_target != old_has_target {
-        if has_target {
-            info!("GOAP: Enemy acquired target! Visible: {}", target_visible);
-            // Force immediate replanning when we get a target
-            goap_agent.abort_plan();
-        } else {
-            info!("GOAP: Enemy lost target, returning to patrol");
-            // Clear last known target after a delay or when we reach the investigation point
-            goap_agent.abort_plan(); // Force replanning
-        }
+    // Enhanced tactical states
+    goap_agent.update_world_state(WorldKey::IsInjured, is_injured);
+    goap_agent.update_world_state(WorldKey::Outnumbered, outnumbered);
+    goap_agent.update_world_state(WorldKey::AtSafeDistance, at_safe_distance);
+    
+    // Reset tactical states if no longer applicable
+    if !has_target {
+        goap_agent.update_world_state(WorldKey::FlankingPosition, false);
+        goap_agent.update_world_state(WorldKey::TacticalAdvantage, false);
     }
     
-    // Update based on AI state
+    // Update based on AI state - IMPORTANT: Force mode change when target detected
     match &ai_state.mode {
         crate::systems::ai::AIMode::Patrol => {
             goap_agent.update_world_state(WorldKey::IsAlert, false);
             goap_agent.update_world_state(WorldKey::IsInvestigating, false);
+            goap_agent.update_world_state(WorldKey::IsRetreating, false);
+            
+            // CRITICAL: Switch to combat mode when target detected during patrol
+            if has_target && visible_agent.is_some() {
+                ai_state.mode = crate::systems::ai::AIMode::Combat { target: visible_agent.unwrap() };
+                goap_agent.update_world_state(WorldKey::IsAlert, true);
+                goap_agent.abort_plan(); // Force immediate replanning
+            }
         },
         crate::systems::ai::AIMode::Combat { .. } => {
             goap_agent.update_world_state(WorldKey::IsAlert, true);
@@ -591,11 +735,31 @@ fn update_world_state_from_perception(
     }
 }
 
-fn plan_invalidated(goap_agent: &GoapAgent, ai_state: &AIState) -> bool {
-    // Check if the world state has changed significantly
+
+fn plan_invalidated(goap_agent: &GoapAgent, ai_state: &AIState, health: &Health) -> bool {
+    // Invalidate if health drops critically and not planning survival
+    let critically_injured = health.0 < 30.0;
+    let planning_survival = goap_agent.current_goal.as_ref()
+        .map(|g| g.name == "survival")
+        .unwrap_or(false);
+    
+    if critically_injured && !planning_survival {
+        return true;
+    }
+    
+    // Invalidate if outnumbered and not using tactical approach
+    let outnumbered = *goap_agent.world_state.get(&WorldKey::Outnumbered).unwrap_or(&false);
+    let has_tactical_goal = goap_agent.current_goal.as_ref()
+        .map(|g| g.name == "tactical_advantage" || g.name == "survival")
+        .unwrap_or(false);
+    
+    if outnumbered && !has_tactical_goal {
+        return true;
+    }
+    
+    // Check combat state changes
     match &ai_state.mode {
         crate::systems::ai::AIMode::Combat { .. } => {
-            // In combat, prioritize immediate threats
             !goap_agent.world_state.get(&WorldKey::HasTarget).unwrap_or(&false)
         },
         _ => false,
@@ -617,19 +781,16 @@ fn execute_goap_action(
     commands: &mut Commands,
 ) {
     match &action.action_type {
+        // === BASIC ACTIONS ===
         ActionType::Patrol => {
-            // FIXED: Properly handle patrol movement
             if let Some(target) = patrol.current_target() {
                 ai_state.mode = crate::systems::ai::AIMode::Patrol;
                 action_events.write(ActionEvent {
                     entity: enemy_entity,
                     action: Action::MoveTo(target),
                 });
-                info!("GOAP: Enemy {} patrolling to {:?}", enemy_entity.index(), target);
             } else {
-                // No patrol points defined, just stay in patrol mode
                 ai_state.mode = crate::systems::ai::AIMode::Patrol;
-                info!("GOAP: Enemy {} in patrol mode (no patrol points)", enemy_entity.index());
             }
         },
         
@@ -640,7 +801,7 @@ fn execute_goap_action(
             });
         },
         
-        // ... rest of the actions remain the same
+        // === ENHANCED COMBAT ACTIONS ===
         ActionType::Attack { target: _ } => {
             if let Some(agent_entity) = check_line_of_sight_goap(
                 &Transform::from_translation(enemy_transform.translation),
@@ -674,6 +835,29 @@ fn execute_goap_action(
             }
         },
         
+        // NEW: Flanking maneuver
+        ActionType::FlankTarget { target_pos: _, flank_pos: _ } => {
+            if let Some(agent_entity) = find_closest_agent(enemy_transform, agent_query) {
+                if let Ok((_, agent_transform)) = agent_query.get(agent_entity) {
+                    let agent_pos = agent_transform.translation.truncate();
+                    let enemy_pos = enemy_transform.translation.truncate();
+                    
+                    // Calculate flanking position (90 degrees from current approach)
+                    let to_agent = (agent_pos - enemy_pos).normalize_or_zero();
+                    let flank_offset = Vec2::new(-to_agent.y, to_agent.x) * 80.0; // Perpendicular
+                    let flank_position = agent_pos + flank_offset;
+                    
+                    action_events.write(ActionEvent {
+                        entity: enemy_entity,
+                        action: Action::MoveTo(flank_position),
+                    });
+                    
+                    ai_state.mode = crate::systems::ai::AIMode::Combat { target: agent_entity };
+                }
+            }
+        },
+        
+        // === INVESTIGATION ACTIONS ===
         ActionType::Investigate { location } => {
             let investigation_target = if let Some(last_pos) = ai_state.last_known_target {
                 last_pos
@@ -690,14 +874,33 @@ fn execute_goap_action(
             });
         },
         
+        // NEW: Systematic area search
+        ActionType::SearchArea { center, radius } => {
+            let search_center = if let Some(last_pos) = ai_state.last_known_target {
+                last_pos
+            } else {
+                *center
+            };
+            
+            // Calculate search pattern point using simple spiral
+            let enemy_pos = enemy_transform.translation.truncate();
+            let angle = (enemy_pos.x + enemy_pos.y) * 0.1; // Pseudo-random angle
+            let search_offset = Vec2::new(angle.cos(), angle.sin()) * radius;
+            let search_point = search_center + search_offset;
+            
+            action_events.write(ActionEvent {
+                entity: enemy_entity,
+                action: Action::MoveTo(search_point),
+            });
+            
+            ai_state.mode = crate::systems::ai::AIMode::Search { area: search_center };
+        },
+        
         ActionType::Search { area } => {
             ai_state.mode = crate::systems::ai::AIMode::Search { area: *area };
         },
         
-        ActionType::Reload => {
-            info!("Enemy {} reloading weapon", enemy_entity.index());
-        },
-        
+        // === DEFENSIVE ACTIONS ===
         ActionType::TakeCover => {
             if let Some((cover_entity, cover_pos)) = find_nearest_cover(enemy_transform.translation.truncate(), cover_query) {
                 action_events.write(ActionEvent {
@@ -705,8 +908,45 @@ fn execute_goap_action(
                     action: Action::MoveTo(cover_pos),
                 });
                 commands.entity(enemy_entity).insert(InCover { cover_entity });
-                info!("GOAP: Enemy {} taking cover at {:?}", enemy_entity.index(), cover_pos);
             }
+        },
+        
+        // NEW: Tactical retreat
+        ActionType::Retreat { retreat_point: _ } => {
+            let enemy_pos = enemy_transform.translation.truncate();
+            
+            // Calculate retreat direction - away from nearest agent
+            let retreat_direction = if let Some(agent_entity) = find_closest_agent(enemy_transform, agent_query) {
+                if let Ok((_, agent_transform)) = agent_query.get(agent_entity) {
+                    let to_agent = agent_transform.translation.truncate() - enemy_pos;
+                    -to_agent.normalize_or_zero() // Opposite direction
+                } else {
+                    Vec2::new(1.0, 0.0) // Fallback
+                }
+            } else {
+                // Fallback to patrol point or default direction
+                if let Some(patrol_point) = patrol.current_target() {
+                    (patrol_point - enemy_pos).normalize_or_zero()
+                } else {
+                    Vec2::new(1.0, 0.0)
+                }
+            };
+            
+            let retreat_distance = 120.0;
+            let retreat_point = enemy_pos + retreat_direction * retreat_distance;
+            
+            action_events.write(ActionEvent {
+                entity: enemy_entity,
+                action: Action::MoveTo(retreat_point),
+            });
+            
+            ai_state.mode = crate::systems::ai::AIMode::Patrol;
+            
+        },
+        
+        // === SUPPORT ACTIONS ===
+        ActionType::Reload => {
+            info!("Enemy {} reloading weapon", enemy_entity.index());
         },
         
         ActionType::CallForHelp => {
@@ -720,7 +960,8 @@ fn execute_goap_action(
                 position: enemy_transform.translation.truncate(),
                 alert_type: AlertType::CallForHelp,
             });
-        },        
+            
+        },
     }
 }
 
@@ -741,12 +982,12 @@ pub fn goap_patrol_advancement_system(
             // If close to patrol point and not currently moving, advance patrol
             if distance < 15.0 && !has_move_target {
                 patrol.advance();
-                info!("Enemy {:?} reached patrol point, advancing to next", entity);
+                
                 
                 // Set move target to next patrol point
                 if let Some(next_target) = patrol.current_target() {
                     commands.entity(entity).insert(MoveTarget { position: next_target });
-                    info!("Enemy {:?} moving to next patrol point: {:?}", entity, next_target);
+                    
                 }
             }
         }
@@ -954,4 +1195,20 @@ fn find_nearest_cover(
     }
     
     nearest_cover
+}
+
+// Helper function to find closest agent
+fn find_closest_agent(
+    enemy_transform: &Transform,
+    agent_query: &Query<(Entity, &Transform), With<Agent>>,
+) -> Option<Entity> {
+    let enemy_pos = enemy_transform.translation.truncate();
+    
+    agent_query.iter()
+        .min_by(|(_, a_transform), (_, b_transform)| {
+            let a_distance = enemy_pos.distance(a_transform.translation.truncate());
+            let b_distance = enemy_pos.distance(b_transform.translation.truncate());
+            a_distance.partial_cmp(&b_distance).unwrap_or(std::cmp::Ordering::Equal)
+        })
+        .map(|(entity, _)| entity)
 }

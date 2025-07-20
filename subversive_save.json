@@ -1,20 +1,20 @@
 {
-  "credits": 7550,
-  "current_day": 11,
+  "credits": 8600,
+  "current_day": 13,
   "agent_levels": [
     1,
     1,
     1
   ],
   "agent_experience": [
-    10,
-    10,
-    10
+    20,
+    20,
+    20
   ],
   "agent_recovery": [
-    11,
-    11,
-    11
+    13,
+    13,
+    13
   ],
   "regions": [
     {
@@ -48,8 +48,8 @@
             "Stock"
           ],
           "attachments": {
-            "Magazine": null,
             "Sight": null,
+            "Magazine": null,
             "Barrel": null,
             "Stock": null
           }
@@ -72,9 +72,9 @@
             "Stock"
           ],
           "attachments": {
-            "Magazine": null,
-            "Stock": null,
             "Sight": null,
+            "Stock": null,
+            "Magazine": null,
             "Barrel": null
           }
         }
