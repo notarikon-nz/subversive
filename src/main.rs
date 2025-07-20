@@ -102,6 +102,16 @@ fn main() {
             ai::legacy_enemy_ai_system,
             ai::sound_detection_system,
             
+            // NEW: Parity systems
+            morale::morale_system,
+            morale::civilian_morale_system,
+            morale::flee_system,
+        ).run_if(in_state(GameState::Mission)))
+        .add_systems(Update, (            
+            weapon_swap::weapon_drop_system,
+            weapon_swap::weapon_pickup_system,
+            weapon_swap::weapon_behavior_system,
+
             // Interaction systems
             neurovector::system,
             interaction::system,
@@ -109,13 +119,12 @@ fn main() {
             combat::death_system,
             goap::goap_config_system,
             goap::goap_debug_system,
-            
-        ).run_if(in_state(GameState::Mission)))
-        
-        .add_systems(Update, (            
+
             ui::world::system,
             ui::screens::inventory_system,
             ui::screens::pause_system,
+        ).run_if(in_state(GameState::Mission)))
+        .add_systems(Update, (            
             mission::timer_system,
             mission::check_completion,
             mission::restart_system,
@@ -123,9 +132,7 @@ fn main() {
             cover::cover_exit_system,
             quicksave::quicksave_system,
             reload::reload_system,
-
         ).run_if(in_state(GameState::Mission)))
-
         .add_systems(Update, (
             mission::process_mission_results,  
             ui::screens::post_mission_ui_system,

@@ -10,6 +10,8 @@ pub mod mission;
 pub mod pool;
 pub mod save;
 pub mod reload;
+pub mod morale;
+pub mod weapon_swap;
 
 pub use save::*;
 

@@ -18,6 +18,8 @@ pub enum Action {
     UseMedKit,
     ThrowGrenade { target_pos: Vec2 },
     ActivateAlarm { panel_pos: Vec2 },
+    PickupWeapon,
+    MaintainDistance,    
 }
 
 #[derive(Event)]

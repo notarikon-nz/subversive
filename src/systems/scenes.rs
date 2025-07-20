@@ -31,7 +31,7 @@ pub fn ensure_scenes_directory() {
     }
 }
 
-
+ 
 #[derive(Serialize, Deserialize)]
 pub struct SceneData {
     pub agents: Vec<AgentSpawn>,
@@ -312,11 +312,12 @@ fn spawn_civilian(commands: &mut Commands, position: Vec2, sprites: &GameSprites
     let (sprite, mut transform) = crate::core::sprites::create_civilian_sprite(sprites);
     transform.translation = position.extend(1.0);
     
-    let entity = commands.spawn((
+    commands.spawn((
         sprite,
         transform,
         Civilian,
         Health(50.0),
+        Morale::new(80.0, 40.0),
         MovementSpeed(100.0),
         Controllable,
         NeurovectorTarget,
@@ -324,8 +325,7 @@ fn spawn_civilian(commands: &mut Commands, position: Vec2, sprites: &GameSprites
         Collider::ball(7.5),
         Velocity::default(),
         Damping { linear_damping: 10.0, angular_damping: 10.0 },
-    )).id();
-    
+    ));
 }
 
 fn spawn_enemy_with_patrol(
@@ -341,22 +341,38 @@ fn spawn_enemy_with_patrol(
     let (sprite, mut transform) = crate::core::sprites::create_enemy_sprite(sprites);
     transform.translation = position.extend(1.0);
     
-    let entity = commands.spawn((
+    let base_weapon = match rand::random::<f32>() {
+        x if x < 0.6 => WeaponType::Rifle,
+        x if x < 0.8 => WeaponType::Pistol,
+        x if x < 0.9 => WeaponType::Minigun,
+        _ => WeaponType::Flamethrower,
+    };
+    
+    let mut inventory = Inventory::default();
+    inventory.equipped_weapon = Some(WeaponConfig::new(base_weapon.clone()));
+    
+    let enemy = commands.spawn_empty()
+
+    .insert((
         sprite,
         transform,
         Enemy,
         Health(100.0 * difficulty),
+        Morale::new(100.0 * difficulty, 25.0),
         MovementSpeed(120.0 * difficulty),
         Vision::new(120.0 * difficulty, 45.0),
-        Patrol::new(patrol_points.clone()),
+        Patrol::new(patrol_points.clone())
+    ))
+    .insert((
         AIState::default(),
         GoapAgent::default(),
-        WeaponState::new(&WeaponType::Rifle),
+        WeaponState::new(&base_weapon),
+        inventory,
         RigidBody::Dynamic,
         Collider::ball(9.0),
         Velocity::default(),
         Damping { linear_damping: 10.0, angular_damping: 10.0 },
-    )).id();
+    ));
 }
 
 fn spawn_terminal(commands: &mut Commands, position: Vec2, terminal_type: TerminalType, sprites: &GameSprites) {

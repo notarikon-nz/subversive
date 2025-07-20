@@ -1,27 +1,27 @@
 {
-  "credits": 1900,
-  "current_day": 15,
+  "credits": 2050,
+  "current_day": 2,
   "agent_levels": [
     1,
     1,
     1
   ],
   "agent_experience": [
-    30,
-    30,
-    30
+    10,
+    10,
+    10
   ],
   "agent_recovery": [
-    15,
-    15,
-    15
+    3,
+    3,
+    3
   ],
   "regions": [
     {
       "name": "Neo-Tokyo Central",
       "threat_level": 1,
-      "alert_level": 3,
-      "alert_decay_timer": 20
+      "alert_level": 0,
+      "alert_decay_timer": 0
     },
     {
       "name": "Corporate District",
@@ -49,9 +49,47 @@
           ],
           "attachments": {
             "Magazine": null,
-            "Sight": null,
+            "Stock": null,
             "Barrel": null,
-            "Stock": null
+            "Sight": null
+          },
+          "behavior": {
+            "preferred_range": 150.0,
+            "burst_fire": true,
+            "requires_cover": true,
+            "area_effect": false,
+            "reload_retreat": true
+          }
+        }
+      ],
+      "equipped_weapon_idx": 0,
+      "tools": [
+        "Scanner"
+      ],
+      "cybernetics": []
+    },
+    {
+      "weapon_configs": [
+        {
+          "base_weapon": "Rifle",
+          "supported_slots": [
+            "Sight",
+            "Barrel",
+            "Magazine",
+            "Stock"
+          ],
+          "attachments": {
+            "Stock": null,
+            "Barrel": null,
+            "Sight": null,
+            "Magazine": null
+          },
+          "behavior": {
+            "preferred_range": 150.0,
+            "burst_fire": true,
+            "requires_cover": true,
+            "area_effect": false,
+            "reload_retreat": true
           }
         }
       ],
@@ -73,33 +111,16 @@
           ],
           "attachments": {
             "Barrel": null,
-            "Sight": null,
+            "Magazine": null,
             "Stock": null,
-            "Magazine": null
-          }
-        }
-      ],
-      "equipped_weapon_idx": 0,
-      "tools": [
-        "Scanner"
-      ],
-      "cybernetics": []
-    },
-    {
-      "weapon_configs": [
-        {
-          "base_weapon": "Rifle",
-          "supported_slots": [
-            "Sight",
-            "Barrel",
-            "Magazine",
-            "Stock"
-          ],
-          "attachments": {
-            "Barrel": null,
-            "Sight": null,
-            "Stock": null,
-            "Magazine": null
+            "Sight": null
+          },
+          "behavior": {
+            "preferred_range": 150.0,
+            "burst_fire": true,
+            "requires_cover": true,
+            "area_effect": false,
+            "reload_retreat": true
           }
         }
       ],
@@ -111,13 +132,7 @@
     }
   ],
   "research_progress": {
-    "completed": [
-      "advanced_magazines",
-      "neurovector_implants",
-      "basic_optics",
-      "suppression_tech",
-      "heavy_weapons"
-    ],
-    "credits_invested": 10000
+    "completed": [],
+    "credits_invested": 0
   }
 }

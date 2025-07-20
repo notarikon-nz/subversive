@@ -18,6 +18,7 @@ pub enum AIMode {
     Investigate { location: Vec2 },
     Combat { target: Entity },
     Search { area: Vec2 },
+    Panic,
 }
 
 impl Default for AIState {
@@ -208,6 +209,11 @@ pub fn legacy_enemy_ai_system(
                     ai_state.mode = AIMode::Patrol;
                 }
             },
+
+            AIMode::Panic => {
+                // Panic handled by morale system
+            },
+
         }
     }
 }
@@ -275,11 +281,13 @@ fn update_vision_direction(vision: &mut Vision, ai_state: &AIState, patrol: &Pat
         },
         AIMode::Combat { .. } | AIMode::Investigate { .. } => {
             // Vision direction gets updated in movement when chasing/investigating
-            // For now, keep current direction
         },
         AIMode::Search { .. } => {
             // Future: implement search vision patterns
-        }
+        },
+        AIMode::Panic => {
+            // Random direction when panicked
+        },       
     }
 }
 

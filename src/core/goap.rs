@@ -71,6 +71,12 @@ pub enum WorldKey {
     RetreatPathClear,
     SafelyWithdrawing,
     TacticalRetreat,
+    // Parity
+    IsPanicked,
+    HasBetterWeapon,
+    InWeaponRange,
+    TooClose,
+    TooFar,    
 }
 
 pub type WorldState = HashMap<WorldKey, bool>;
@@ -104,6 +110,7 @@ pub enum ActionType {
     FindBetterCover { new_cover_pos: Vec2 },
     SuppressingFire { target_area: Vec2 },
     FightingWithdrawal { retreat_path: Vec2 },    
+    MaintainDistance,
 }
 
 // === GOALS ===
@@ -434,6 +441,60 @@ impl GoapAgent {
                 ],
                 action_type: ActionType::FightingWithdrawal { retreat_path: Vec2::ZERO },
             },
+
+            GoapAction {
+                name: "pickup_better_weapon",
+                cost: 1.0,
+                preconditions: hashmap![
+                    WorldKey::HasBetterWeapon => true,
+                    WorldKey::IsPanicked => false
+                ],
+                effects: hashmap![
+                    WorldKey::HasBetterWeapon => false
+                ],
+                action_type: ActionType::MoveTo { target: Vec2::ZERO },
+            },
+            
+            GoapAction {
+                name: "panic_flee",
+                cost: 0.5,
+                preconditions: hashmap![
+                    WorldKey::IsPanicked => true
+                ],
+                effects: hashmap![
+                    WorldKey::AtSafeDistance => true
+                ],
+                action_type: ActionType::Retreat { retreat_point: Vec2::ZERO },
+            },
+            
+            GoapAction {
+                name: "maintain_weapon_range",
+                cost: 1.5,
+                preconditions: hashmap![
+                    WorldKey::HasTarget => true,
+                    WorldKey::TooClose => true
+                ],
+                effects: hashmap![
+                    WorldKey::InWeaponRange => true,
+                    WorldKey::TooClose => false
+                ],
+                action_type: ActionType::MaintainDistance,
+            },
+            
+            GoapAction {
+                name: "close_distance",
+                cost: 2.0,
+                preconditions: hashmap![
+                    WorldKey::HasTarget => true,
+                    WorldKey::TooFar => true
+                ],
+                effects: hashmap![
+                    WorldKey::InWeaponRange => true,
+                    WorldKey::TooFar => false
+                ],
+                action_type: ActionType::MoveTo { target: Vec2::ZERO },
+            },
+
         ];
     }
 
@@ -498,6 +559,24 @@ impl GoapAgent {
                     WorldKey::IsAlert => false
                 ],
             },
+
+            Goal {
+                name: "panic_survival",
+                priority: 15.0,
+                desired_state: hashmap![
+                    WorldKey::IsPanicked => false,
+                    WorldKey::AtSafeDistance => true
+                ],
+            },
+            
+            Goal {
+                name: "weapon_upgrade",
+                priority: 4.0,
+                desired_state: hashmap![
+                    WorldKey::HasBetterWeapon => false
+                ],
+            },
+
         ];
     }
     
@@ -543,6 +622,12 @@ impl GoapAgent {
         self.world_state.insert(WorldKey::RetreatPathClear, false);
         self.world_state.insert(WorldKey::SafelyWithdrawing, false);
         self.world_state.insert(WorldKey::TacticalRetreat, false);
+        // NEW: Parity states        
+        self.world_state.insert(WorldKey::IsPanicked, false);
+        self.world_state.insert(WorldKey::HasBetterWeapon, false);
+        self.world_state.insert(WorldKey::InWeaponRange, false);
+        self.world_state.insert(WorldKey::TooClose, false);
+        self.world_state.insert(WorldKey::TooFar, false);        
     }
     
     pub fn update_world_state(&mut self, key: WorldKey, value: bool) {
@@ -791,6 +876,12 @@ fn update_world_state_from_perception(
                 vision.direction = direction;
             }
         },
+        crate::systems::ai::AIMode::Panic => {
+            goap_agent.update_world_state(WorldKey::IsAlert, true);
+            goap_agent.update_world_state(WorldKey::IsInvestigating, false);
+            goap_agent.update_world_state(WorldKey::IsPanicked, true);
+            goap_agent.update_world_state(WorldKey::IsRetreating, true);
+        },        
     }
     
     // === BASIC PERCEPTION ===
@@ -973,27 +1064,37 @@ fn update_world_state_from_perception(
             goap_agent.update_world_state(WorldKey::IsAlert, true);
             goap_agent.update_world_state(WorldKey::IsInvestigating, true);
         },
+        crate::systems::ai::AIMode::Panic => {
+            goap_agent.update_world_state(WorldKey::IsAlert, true);
+            goap_agent.update_world_state(WorldKey::IsInvestigating, false);
+            goap_agent.update_world_state(WorldKey::IsPanicked, true);
+            goap_agent.update_world_state(WorldKey::IsRetreating, true);
+        },         
     }
 }
 
 fn plan_invalidated(goap_agent: &GoapAgent, ai_state: &AIState, health: &Health) -> bool {
-    // Invalidate if health drops critically and not planning survival
     let critically_injured = health.0 < 30.0;
     let planning_survival = goap_agent.current_goal.as_ref()
-        .map(|g| g.name == "survival")
+        .map(|g| g.name == "survival" || g.name == "panic_survival")
         .unwrap_or(false);
     
     if critically_injured && !planning_survival {
         return true;
     }
     
-    // Invalidate if outnumbered and not using tactical approach
     let outnumbered = *goap_agent.world_state.get(&WorldKey::Outnumbered).unwrap_or(&false);
     let has_tactical_goal = goap_agent.current_goal.as_ref()
-        .map(|g| g.name == "tactical_advantage" || g.name == "survival")
+        .map(|g| g.name == "tactical_advantage" || g.name == "survival" || g.name == "panic_survival")
         .unwrap_or(false);
     
     if outnumbered && !has_tactical_goal {
+        return true;
+    }
+    
+    // Check for panic state changes
+    let is_panicked = *goap_agent.world_state.get(&WorldKey::IsPanicked).unwrap_or(&false);
+    if is_panicked && !planning_survival {
         return true;
     }
     
@@ -1001,6 +1102,10 @@ fn plan_invalidated(goap_agent: &GoapAgent, ai_state: &AIState, health: &Health)
     match &ai_state.mode {
         crate::systems::ai::AIMode::Combat { .. } => {
             !goap_agent.world_state.get(&WorldKey::HasTarget).unwrap_or(&false)
+        },
+        crate::systems::ai::AIMode::Panic => {
+            // Always replan when in panic to find escape routes
+            true
         },
         _ => false,
     }
@@ -1295,6 +1400,22 @@ fn execute_goap_action(
             }
         },
         
+        ActionType::MaintainDistance => {
+            if let Some(agent_entity) = find_closest_agent(enemy_transform, agent_query) {
+                if let Ok((_, agent_transform)) = agent_query.get(agent_entity) {
+                    let agent_pos = agent_transform.translation.truncate();
+                    let enemy_pos = enemy_transform.translation.truncate();
+                    let away_direction = (enemy_pos - agent_pos).normalize_or_zero();
+                    let retreat_pos = enemy_pos + away_direction * 80.0;
+                    
+                    action_events.write(ActionEvent {
+                        entity: enemy_entity,
+                        action: Action::MoveTo(retreat_pos),
+                    });
+                }
+            }
+        },
+
         ActionType::FightingWithdrawal { retreat_path: _ } => {
             // Retreat while maintaining defensive fire
             let enemy_pos = enemy_transform.translation.truncate();

@@ -3,6 +3,7 @@ use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use crate::core::WeaponType;
+use crate::core::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum AttachmentSlot {
@@ -55,6 +56,7 @@ pub struct WeaponConfig {
     pub base_weapon: WeaponType,
     pub supported_slots: Vec<AttachmentSlot>,
     pub attachments: HashMap<AttachmentSlot, Option<WeaponAttachment>>,
+    pub behavior: WeaponBehavior,
 }
 
 impl WeaponConfig {
@@ -76,8 +78,11 @@ impl WeaponConfig {
             attachments.insert(slot.clone(), None);
         }
         
+        let behavior = WeaponBehavior::for_weapon_type(&weapon);
+        
         Self {
             base_weapon: weapon,
+            behavior,
             supported_slots,
             attachments,
         }
@@ -100,6 +105,13 @@ impl WeaponConfig {
         }
     }
     
+    // weapon behavior
+    pub fn get_effective_range(&self) -> f32 {
+        let base_range = self.behavior.preferred_range;
+        let stats = self.calculate_total_stats();
+        base_range * (1.0 + stats.range as f32 * 0.1)
+    }
+
     pub fn calculate_total_stats(&self) -> AttachmentStats {
         let mut total = AttachmentStats::default();
         

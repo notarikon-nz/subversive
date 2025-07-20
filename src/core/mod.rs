@@ -1185,6 +1185,49 @@ pub fn generate_mission_briefing(global_data: &GlobalData, region_idx: usize) ->
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WeaponBehavior {
+    pub preferred_range: f32,
+    pub burst_fire: bool,
+    pub requires_cover: bool,
+    pub area_effect: bool,
+    pub reload_retreat: bool,
+}
+
+impl WeaponBehavior {
+    pub fn for_weapon_type(weapon_type: &WeaponType) -> Self {
+        match weapon_type {
+            WeaponType::Pistol => Self {
+                preferred_range: 80.0,
+                burst_fire: false,
+                requires_cover: false,
+                area_effect: false,
+                reload_retreat: false,
+            },
+            WeaponType::Rifle => Self {
+                preferred_range: 150.0,
+                burst_fire: true,
+                requires_cover: true,
+                area_effect: false,
+                reload_retreat: true,
+            },
+            WeaponType::Minigun => Self {
+                preferred_range: 200.0,
+                burst_fire: true,
+                requires_cover: false,
+                area_effect: true,
+                reload_retreat: false,
+            },
+            WeaponType::Flamethrower => Self {
+                preferred_range: 60.0,
+                burst_fire: false,
+                requires_cover: false,
+                area_effect: true,
+                reload_retreat: true,
+            },
+        }
+    }
+}
 
 // WEAPON STATE / RELOAD
 #[derive(Component)]
@@ -1299,6 +1342,65 @@ impl SafeDespawn for Commands<'_, '_> {
     fn safe_despawn_recursive(&mut self, entity: Entity) {
         if let Ok(mut entity_commands) = self.get_entity(entity) {
             entity_commands.despawn_recursive();
+        }
+    }
+}
+
+#[derive(Component)]
+pub struct Morale {
+    pub current: f32,
+    pub max: f32,
+    pub panic_threshold: f32,
+    pub recovery_rate: f32,
+}
+
+impl Default for Morale {
+    fn default() -> Self {
+        Self {
+            current: 100.0,
+            max: 100.0,
+            panic_threshold: 30.0,
+            recovery_rate: 5.0,
+        }
+    }
+}
+
+impl Morale {
+    pub fn new(max: f32, panic_threshold: f32) -> Self {
+        Self {
+            current: max,
+            max,
+            panic_threshold,
+            recovery_rate: max * 0.05,
+        }
+    }
+    
+    pub fn is_panicked(&self) -> bool {
+        self.current <= self.panic_threshold
+    }
+    
+    pub fn reduce(&mut self, amount: f32) {
+        self.current = (self.current - amount).max(0.0);
+    }
+    
+    pub fn recover(&mut self, delta_time: f32) {
+        if !self.is_panicked() {
+            self.current = (self.current + self.recovery_rate * delta_time).min(self.max);
+        }
+    }
+}
+
+#[derive(Component)]
+pub struct FleeTarget {
+    pub destination: Vec2,
+    pub flee_speed_multiplier: f32,
+}
+
+impl Default for FleeTarget {
+    fn default() -> Self {
+        Self {
+            destination: Vec2::ZERO,
+            flee_speed_multiplier: 1.5,
         }
     }
 }

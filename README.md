@@ -83,3 +83,19 @@ src/
 - Reactive UI with proper state management
 
 **Engine:** [Bevy 0.14 ECS](https://bevy.org/) with [Rapier2D physics](https://rapier.rs/)
+
+---
+
+**Current GOAP Actions**
+
+Offensive:
+- patrol, return_to_patrol, calm_down
+- investigate, search_area
+- attack, move_to_target, flank_target
+Defensive:
+- take_cover, retreat, reload, tactical_reload
+Support:
+- call_for_help, use_medkit
+Advanced Tactical:
+- throw_grenade, activate_alarm
+- find_better_cover, suppressing_fire, fighting_withdrawal
