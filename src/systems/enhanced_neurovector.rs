@@ -2,7 +2,6 @@
 use bevy::prelude::*;
 use leafwing_input_manager::prelude::*;
 use crate::core::*;
-use crate::systems::*;
 
 #[derive(Component)]
 pub struct ControlledCivilian {
@@ -27,7 +26,7 @@ pub fn enhanced_neurovector_system(
     mut action_events: EventReader<ActionEvent>,
     mut audio_events: EventWriter<AudioEvent>,
     mut neurovector_query: Query<(&Transform, &mut NeurovectorCapability), With<Agent>>,
-    mut target_query: Query<(Entity, &Transform, &mut Sprite), (With<NeurovectorTarget>, Without<ControlledCivilian>)>,
+    target_query: Query<(Entity, &Transform, &mut Sprite), (With<NeurovectorTarget>, Without<ControlledCivilian>)>,
     game_mode: Res<GameMode>,
     windows: Query<&Window>,
     cameras: Query<(&Camera, &GlobalTransform)>,

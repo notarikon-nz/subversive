@@ -3,13 +3,13 @@ use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 use bevy_light_2d::prelude::*;
 use leafwing_input_manager::prelude::*;
+use systems::ui::hub::{AgentManagementState, CyberneticsDatabase};
 
 mod core;
 mod systems;
 
 use core::*;
 use systems::*;
-use systems::ai::*;
 use pool::*;
 
 fn main() {
@@ -54,6 +54,8 @@ fn main() {
         .init_resource::<PoliceResponse>()
         .init_resource::<FormationState>()
         .init_resource::<CivilianSpawner>()
+        .insert_resource(CyberneticsDatabase::load())
+        .insert_resource(AgentManagementState::default())
 
         .add_event::<ActionEvent>()
         .add_event::<CombatEvent>()

@@ -1,6 +1,7 @@
-// src/systems/ui/hub/mod.rs - Updated for Bevy 0.16
+// src/systems/ui/hub/mod.rs - Updated with agent state integration
 use bevy::prelude::*;
 use crate::core::*;
+use crate::core::agent_upgrades::*;
 
 // Re-export all tab modules
 pub mod global_map;
@@ -23,6 +24,19 @@ pub struct HubState {
     pub active_tab: HubTab,
     pub selected_region: usize,
     pub selected_research_project: usize,
+}
+
+#[derive(Resource)]
+pub struct CyberneticsDatabase {
+    pub cybernetics: Vec<CyberneticUpgrade>,
+}
+
+impl CyberneticsDatabase {
+    pub fn load() -> Self {
+        Self {
+            cybernetics: create_default_cybernetics(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
@@ -68,8 +82,10 @@ pub fn hub_system(
     mut global_data: ResMut<GlobalData>,
     mut hub_state: ResMut<HubState>,
     mut manufacture_state: ResMut<ManufactureState>,
+    mut agent_state: ResMut<AgentManagementState>,
     mut research_progress: ResMut<ResearchProgress>,
     research_db: Res<ResearchDatabase>,
+    cybernetics_db: Res<CyberneticsDatabase>,
     mut unlocked: ResMut<UnlockedAttachments>,
     input: Res<ButtonInput<KeyCode>>,
     screen_query: Query<Entity, With<HubScreen>>,
@@ -90,7 +106,7 @@ pub fn hub_system(
     }
     
     if tab_changed {
-        rebuild_hub(&mut commands, &screen_query, &global_data, &hub_state, &manufacture_state, &research_progress, &research_db, &attachment_db, &unlocked);
+        rebuild_hub(&mut commands, &screen_query, &global_data, &hub_state, &manufacture_state, &agent_state, &research_progress, &research_db, &attachment_db, &unlocked, &cybernetics_db);
     }
 
     // Delegate input handling to appropriate tab
@@ -110,7 +126,10 @@ pub fn hub_system(
         ),
         HubTab::Agents => agents::handle_input(
             &input, 
-            &mut hub_state
+            &mut hub_state,
+            &mut agent_state,
+            &mut global_data,
+            &cybernetics_db.cybernetics
         ),
         HubTab::Manufacture => manufacture::handle_input(
             &input, 
@@ -135,7 +154,7 @@ pub fn hub_system(
 
     // Create/rebuild UI if needed
     if screen_query.is_empty() || needs_rebuild {
-        rebuild_hub(&mut commands, &screen_query, &global_data, &hub_state, &manufacture_state, &research_progress, &research_db, &attachment_db, &unlocked);
+        rebuild_hub(&mut commands, &screen_query, &global_data, &hub_state, &manufacture_state, &agent_state, &research_progress, &research_db, &attachment_db, &unlocked, &cybernetics_db);
     }
 }
 
@@ -145,18 +164,18 @@ fn rebuild_hub(
     global_data: &GlobalData,
     hub_state: &HubState,
     manufacture_state: &ManufactureState,
+    agent_state: &AgentManagementState,
     research_progress: &ResearchProgress,
     research_db: &ResearchDatabase,
     attachment_db: &AttachmentDatabase,
     unlocked: &UnlockedAttachments,
+    cybernetics_db: &CyberneticsDatabase,
 ) {
     for entity in screen_query.iter() {
         commands.safe_despawn_recursive(entity);
     }
-    create_hub_ui(commands, global_data, hub_state, manufacture_state, 
-        research_progress,
-        research_db,
-        attachment_db, unlocked);
+    create_hub_ui(commands, global_data, hub_state, manufacture_state, agent_state,
+        research_progress, research_db, attachment_db, unlocked, cybernetics_db);
 }
 
 fn create_hub_ui(
@@ -164,10 +183,12 @@ fn create_hub_ui(
     global_data: &GlobalData, 
     hub_state: &HubState,
     manufacture_state: &ManufactureState,
+    agent_state: &AgentManagementState,
     research_progress: &ResearchProgress,
     research_db: &ResearchDatabase,
     attachment_db: &AttachmentDatabase,
     unlocked: &UnlockedAttachments,
+    cybernetics_db: &CyberneticsDatabase,
 ) {
     commands.spawn((
         Node {
@@ -195,7 +216,12 @@ fn create_hub_ui(
                 &research_db,
                 hub_state.selected_research_project
             ),
-            HubTab::Agents => agents::create_content(parent, global_data),
+            HubTab::Agents => agents::create_content(
+                parent, 
+                global_data, 
+                agent_state,
+                &cybernetics_db.cybernetics
+            ),
             HubTab::Manufacture => manufacture::create_content(parent, global_data, manufacture_state, attachment_db, unlocked),
             HubTab::Missions => missions::create_content(parent, global_data, hub_state),
         }
@@ -307,7 +333,7 @@ fn create_footer(parent: &mut ChildSpawnerCommands, active_tab: HubTab) {
         let controls = match active_tab {
             HubTab::GlobalMap => "UP/DOWN: Select | W: Wait Day | ENTER: Mission | Q/E: Switch Tabs",
             HubTab::Research => "Navigation: Arrow Keys | Purchase: ENTER | Q/E: Switch Tabs",
-            HubTab::Agents => "Select: Arrow Keys | Modify: ENTER | Q/E: Switch Tabs",
+            HubTab::Agents => "←→: Agent | 1-3: View | ↑↓: Navigate | ENTER: Install | Q/E: Switch Tabs",
             HubTab::Manufacture => "1-3: Agent | ↑↓: Slots | ←→: Attachments | ENTER: Attach/Detach | Q/E: Switch Tabs",
             HubTab::Missions => "Launch: ENTER | Q/E: Switch Tabs | ESC: Quit",
         };

@@ -59,7 +59,7 @@ pub fn pause_system(
     mut commands: Commands,
     mut next_state: ResMut<NextState<GameState>>,
     mut post_mission: ResMut<PostMissionResults>,
-    mut processed: ResMut<PostMissionProcessed>,
+    processed: ResMut<PostMissionProcessed>,
     game_mode: Res<GameMode>,
     input: Res<ButtonInput<KeyCode>>,
     screen_query: Query<Entity, With<PauseScreen>>,

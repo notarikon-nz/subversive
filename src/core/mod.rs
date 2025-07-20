@@ -9,6 +9,7 @@ pub mod sprites;
 pub mod goap; 
 pub mod research;
 pub mod attachments;
+pub mod agent_upgrades;
 
 pub use events::*;
 pub use audio::*;
@@ -16,6 +17,7 @@ pub use sprites::*;
 pub use goap::*;
 pub use research::*;
 pub use attachments::*;
+pub use agent_upgrades::*;
 
 pub use crate::systems::ui::hub::{HubState};
 

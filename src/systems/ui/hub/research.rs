@@ -1,7 +1,6 @@
 // src/systems/ui/hub/research.rs - Updated for Bevy 0.16
 use bevy::prelude::*;
 use crate::core::*;
-use crate::core::research::*;
 
 pub fn handle_input(
     input: &ButtonInput<KeyCode>,

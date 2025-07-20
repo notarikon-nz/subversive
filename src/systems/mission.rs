@@ -1,7 +1,6 @@
 // src/systems/mission.rs - Updated for Bevy 0.16
 use bevy::prelude::*;
 use crate::core::*;
-use crate::systems::*;
 
 pub fn timer_system(
     mut mission_data: ResMut<MissionData>,
@@ -70,7 +69,7 @@ pub fn restart_system(
     
     // FIXED: Use Result instead of Option
     for entity in entities.iter() {
-        if let Ok(mut entity_commands) = commands.get_entity(entity) {
+        if let Ok(entity_commands) = commands.get_entity(entity) {
             commands.safe_despawn_recursive(entity);
         }
     }

@@ -69,7 +69,7 @@ pub fn explosion_damage_system(
 
 pub fn vehicle_cover_system(
     vehicle_query: Query<(&Transform, &Vehicle), With<Vehicle>>,
-    mut agent_query: Query<&Transform, (With<Agent>, Without<Vehicle>)>,
+    agent_query: Query<&Transform, (With<Agent>, Without<Vehicle>)>,
     mut enemy_query: Query<(&mut GoapAgent, &Transform), (With<Enemy>, Without<Vehicle>)>,
 ) {
     for (mut goap_agent, enemy_transform) in enemy_query.iter_mut() {

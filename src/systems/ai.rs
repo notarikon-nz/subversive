@@ -1,7 +1,7 @@
 // src/systems/ai.rs - Updated to integrate with GOAP
 use bevy::prelude::*;
 use crate::core::*;
-use crate::core::goap::*; // Add this import
+ // Add this import
 
 #[derive(Component)]
 pub struct AIState {
@@ -103,7 +103,7 @@ pub fn legacy_enemy_ai_system(
         }
     }
 
-    for (enemy_entity, enemy_transform, mut ai_state, mut vision, mut patrol) in enemy_query.iter_mut() {
+    for (enemy_entity, enemy_transform, mut ai_state, mut vision, patrol) in enemy_query.iter_mut() {
         ai_state.alert_cooldown -= time.delta_secs();
         ai_state.investigation_timer -= time.delta_secs();
 

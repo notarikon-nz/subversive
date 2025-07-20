@@ -683,7 +683,7 @@ impl GoapAgent {
             .max_by(|a, b| a.priority.partial_cmp(&b.priority).unwrap_or(std::cmp::Ordering::Equal));
         
         if let Some(goal) = goal {
-            let old_goal = self.current_goal.as_ref().map(|g| g.name);
+            let _old_goal = self.current_goal.as_ref().map(|g| g.name);
             self.current_goal = Some(goal.clone());
             
             self.current_plan = self.find_plan(&goal.desired_state);
@@ -1044,7 +1044,7 @@ fn update_world_state_from_perception(
     // === WEAPON/AMMO STATE ===
     if let Some(weapon_state) = weapon_state {
         let weapon_loaded = weapon_state.current_ammo > 0;
-        let needs_reload = weapon_state.needs_reload();
+        let _needs_reload = weapon_state.needs_reload();
         
         goap_agent.update_world_state(WorldKey::WeaponLoaded, weapon_loaded);
         goap_agent.update_world_state(WorldKey::HasWeapon, true);
@@ -1424,7 +1424,7 @@ fn execute_goap_action(
         ActionType::SuppressingFire { target_area: _ } => {
             // Sustained fire toward enemy position to pin them down
             if let Some(agent_entity) = find_closest_agent(enemy_transform, agent_query) {
-                if let Ok((_, agent_transform)) = agent_query.get(agent_entity) {
+                if let Ok((_, _agent_transform)) = agent_query.get(agent_entity) {
                     // Fire repeatedly at agent area
                     action_events.write(ActionEvent {
                         entity: enemy_entity,
@@ -1555,7 +1555,7 @@ pub fn goap_debug_system(
 ) {
     if !config.debug_enabled { return; }
     
-    for (entity, transform, goap_agent) in goap_query.iter() {
+    for (_entity, transform, goap_agent) in goap_query.iter() {
         let pos = transform.translation.truncate();
         
         // Draw GOAP indicator (blue circle above enemy)

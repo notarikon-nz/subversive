@@ -87,7 +87,7 @@ pub fn formation_movement_system(
 }
 
 pub fn formation_visual_system(
-    mut gizmos: Gizmos,
+    gizmos: Gizmos,
     formation_query: Query<&Formation>,
     formation_state: Res<FormationState>,
 ) {

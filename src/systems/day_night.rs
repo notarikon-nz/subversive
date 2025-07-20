@@ -16,10 +16,10 @@ pub fn day_night_system(
 }
 
 pub fn lighting_system(
-    mut commands: Commands,
+    commands: Commands,
     day_night: Res<DayNightCycle>,
     overlay_query: Query<Entity, With<DayNightOverlay>>,
-    mut overlay_sprite_query: Query<&mut Sprite, With<DayNightOverlay>>,
+    overlay_sprite_query: Query<&mut Sprite, With<DayNightOverlay>>,
 ) {
     // DISABLED FOR NOW - DO NOT REMOVE
     /*

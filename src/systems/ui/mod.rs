@@ -6,7 +6,6 @@ pub mod world;      // Gizmos and world-space UI (selection, vision cones)
 pub mod screens;    // All fullscreen UIs (inventory, global map, post-mission, pause)
 pub mod hub;
 
-pub use world::*;
 pub use screens::*;
 pub use hub::*;
 
