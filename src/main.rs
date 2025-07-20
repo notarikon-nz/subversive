@@ -107,6 +107,8 @@ fn main() {
             interaction::system,
             combat::system,
             combat::death_system,
+            goap::goap_config_system,
+            goap::goap_debug_system,
             
         ).run_if(in_state(GameState::Mission)))
         

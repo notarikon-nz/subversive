@@ -18,6 +18,7 @@ A quick & dirty 2D top-down squad-based tactical stealth game built with Rust an
 | WASD | Camera movement |
 | I | Inventory |
 | F3 | Toggle FPS |
+| F4 | Toggle GOAP AI Debug |
 | F5 | Quick Save (in mission) |
 | F8 | Quick Load (in mission) |
 | F5 | Save game (global map) |

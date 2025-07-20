@@ -77,7 +77,7 @@ pub fn system(
 
     // Draw health bars for damaged enemies
     for (_, transform, health) in enemy_query.iter() {
-        if health.0 < 100.0 && health.0 > 0.0 {
+        if health.0 <= 100.0 && health.0 > 0.0 {
             draw_health_bar(&mut gizmos, transform.translation.truncate(), health.0, 100.0);
         }
     }

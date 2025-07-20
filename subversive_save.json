@@ -1,20 +1,20 @@
 {
-  "credits": 8600,
-  "current_day": 13,
+  "credits": 1900,
+  "current_day": 15,
   "agent_levels": [
     1,
     1,
     1
   ],
   "agent_experience": [
-    20,
-    20,
-    20
+    30,
+    30,
+    30
   ],
   "agent_recovery": [
-    13,
-    13,
-    13
+    15,
+    15,
+    15
   ],
   "regions": [
     {
@@ -48,57 +48,57 @@
             "Stock"
           ],
           "attachments": {
-            "Stock": null,
-            "Barrel": null,
-            "Magazine": null,
-            "Sight": null
-          }
-        }
-      ],
-      "equipped_weapon_idx": 0,
-      "tools": [
-        "Scanner"
-      ],
-      "cybernetics": []
-    },
-    {
-      "weapon_configs": [
-        {
-          "base_weapon": "Rifle",
-          "supported_slots": [
-            "Sight",
-            "Barrel",
-            "Magazine",
-            "Stock"
-          ],
-          "attachments": {
-            "Magazine": null,
-            "Barrel": null,
-            "Stock": null,
-            "Sight": null
-          }
-        }
-      ],
-      "equipped_weapon_idx": 0,
-      "tools": [
-        "Scanner"
-      ],
-      "cybernetics": []
-    },
-    {
-      "weapon_configs": [
-        {
-          "base_weapon": "Rifle",
-          "supported_slots": [
-            "Sight",
-            "Barrel",
-            "Magazine",
-            "Stock"
-          ],
-          "attachments": {
-            "Magazine": null,
             "Barrel": null,
             "Sight": null,
+            "Magazine": null,
+            "Stock": null
+          }
+        }
+      ],
+      "equipped_weapon_idx": 0,
+      "tools": [
+        "Scanner"
+      ],
+      "cybernetics": []
+    },
+    {
+      "weapon_configs": [
+        {
+          "base_weapon": "Rifle",
+          "supported_slots": [
+            "Sight",
+            "Barrel",
+            "Magazine",
+            "Stock"
+          ],
+          "attachments": {
+            "Stock": null,
+            "Magazine": null,
+            "Sight": null,
+            "Barrel": null
+          }
+        }
+      ],
+      "equipped_weapon_idx": 0,
+      "tools": [
+        "Scanner"
+      ],
+      "cybernetics": []
+    },
+    {
+      "weapon_configs": [
+        {
+          "base_weapon": "Rifle",
+          "supported_slots": [
+            "Sight",
+            "Barrel",
+            "Magazine",
+            "Stock"
+          ],
+          "attachments": {
+            "Sight": null,
+            "Barrel": null,
+            "Magazine": null,
             "Stock": null
           }
         }
@@ -113,8 +113,11 @@
   "research_progress": {
     "completed": [
       "basic_optics",
-      "suppression_tech"
+      "neurovector_implants",
+      "suppression_tech",
+      "advanced_magazines",
+      "heavy_weapons"
     ],
-    "credits_invested": 2500
+    "credits_invested": 10000
   }
 }

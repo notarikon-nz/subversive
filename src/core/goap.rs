@@ -13,11 +13,11 @@ macro_rules! hashmap {
     };
 }
 
-    macro_rules! init_world_state {
-        ($self:ident, $($key:expr => $value:expr),+) => {
-            $( $self.world_state.insert($key, $value); )+
-        };
-    }
+macro_rules! init_world_state {
+    ($self:ident, $($key:expr => $value:expr),+) => {
+        $( $self.world_state.insert($key, $value); )+
+    };
+}
 
 // === WORLD STATE ===
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -60,7 +60,17 @@ pub enum WorldKey {
     SafeThrowDistance,
     NearAlarmPanel,
     FacilityAlert,
-    AllEnemiesAlerted,  
+    AllEnemiesAlerted,
+    // NEW: Tactical movement states
+    BetterCoverAvailable,
+    InBetterCover,
+    SafetyImproved,
+    AlliesAdvancing,
+    EnemySuppressed,
+    AlliesAdvantage,
+    RetreatPathClear,
+    SafelyWithdrawing,
+    TacticalRetreat,
 }
 
 pub type WorldState = HashMap<WorldKey, bool>;
@@ -90,7 +100,10 @@ pub enum ActionType {
     Retreat { retreat_point: Vec2 },
     UseMedKit,
     ThrowGrenade { target_pos: Vec2 },
-    ActivateAlarm { panel_pos: Vec2 },    
+    ActivateAlarm { panel_pos: Vec2 },
+    FindBetterCover { new_cover_pos: Vec2 },
+    SuppressingFire { target_area: Vec2 },
+    FightingWithdrawal { retreat_path: Vec2 },    
 }
 
 // === GOALS ===
@@ -373,6 +386,54 @@ impl GoapAgent {
                 ],
                 action_type: ActionType::ActivateAlarm { panel_pos: Vec2::ZERO },
             },
+
+            // === NEW: TACTICAL MOVEMENT ACTIONS ===
+            GoapAction {
+                name: "find_better_cover",
+                cost: 2.0,
+                preconditions: hashmap![
+                    WorldKey::InCover => true,
+                    WorldKey::UnderFire => true,
+                    WorldKey::BetterCoverAvailable => true
+                ],
+                effects: hashmap![
+                    WorldKey::InBetterCover => true,
+                    WorldKey::SafetyImproved => true,
+                    WorldKey::UnderFire => false
+                ],
+                action_type: ActionType::FindBetterCover { new_cover_pos: Vec2::ZERO },
+            },
+            
+            GoapAction {
+                name: "suppressing_fire",
+                cost: 1.5,
+                preconditions: hashmap![
+                    WorldKey::HasTarget => true,
+                    WorldKey::HasWeapon => true,
+                    WorldKey::AlliesAdvancing => true
+                ],
+                effects: hashmap![
+                    WorldKey::EnemySuppressed => true,
+                    WorldKey::AlliesAdvantage => true
+                ],
+                action_type: ActionType::SuppressingFire { target_area: Vec2::ZERO },
+            },
+            
+            GoapAction {
+                name: "fighting_withdrawal",
+                cost: 2.5,
+                preconditions: hashmap![
+                    WorldKey::Outnumbered => true,
+                    WorldKey::IsInjured => true,
+                    WorldKey::RetreatPathClear => true
+                ],
+                effects: hashmap![
+                    WorldKey::SafelyWithdrawing => true,
+                    WorldKey::TacticalRetreat => true,
+                    WorldKey::AtSafeDistance => true
+                ],
+                action_type: ActionType::FightingWithdrawal { retreat_path: Vec2::ZERO },
+            },
         ];
     }
 
@@ -472,6 +533,16 @@ impl GoapAgent {
         self.world_state.insert(WorldKey::NearAlarmPanel, false);
         self.world_state.insert(WorldKey::FacilityAlert, false);
         self.world_state.insert(WorldKey::AllEnemiesAlerted, false);
+        // NEW: Tactical movement states
+        self.world_state.insert(WorldKey::BetterCoverAvailable, false);
+        self.world_state.insert(WorldKey::InBetterCover, false);
+        self.world_state.insert(WorldKey::SafetyImproved, false);
+        self.world_state.insert(WorldKey::AlliesAdvancing, false);
+        self.world_state.insert(WorldKey::EnemySuppressed, false);
+        self.world_state.insert(WorldKey::AlliesAdvantage, false);
+        self.world_state.insert(WorldKey::RetreatPathClear, false);
+        self.world_state.insert(WorldKey::SafelyWithdrawing, false);
+        self.world_state.insert(WorldKey::TacticalRetreat, false);
     }
     
     pub fn update_world_state(&mut self, key: WorldKey, value: bool) {
@@ -808,6 +879,35 @@ fn update_world_state_from_perception(
     let has_medkit = is_injured && rand::random::<f32>() < 0.3; // 30% chance to have medkit when injured
     let has_grenade = target_grouped && rand::random::<f32>() < 0.2; // 20% chance to have grenade when opportunity exists
     
+    // === NEW: TACTICAL MOVEMENT PERCEPTION ===
+    // Check if better cover is available when under fire
+    let under_fire = agent_count > 0 && enemy_pos.distance(
+        agent_query.iter().next().map(|(_, t)| t.translation.truncate()).unwrap_or(Vec2::ZERO)
+    ) <= 120.0; // Within close combat range
+    
+    let better_cover_available = if under_fire && cover_available {
+        // Simple check: if current cover exists, assume better cover might be available
+        cover_query.iter().count() > 1
+    } else {
+        false
+    };
+    
+    // Check if allies are advancing (other enemies moving toward agents)
+    let allies_advancing = nearby_enemy_count > 0 && agent_count > 0;
+    
+    // Simple retreat path check - clear if no agents between enemy and patrol point
+    let retreat_path_clear = if let Some(patrol_point) = patrol.current_target() {
+        let to_patrol = (patrol_point - enemy_pos).normalize_or_zero();
+        let retreat_blocked = agent_query.iter().any(|(_, agent_transform)| {
+            let agent_pos = agent_transform.translation.truncate();
+            let to_agent = (agent_pos - enemy_pos).normalize_or_zero();
+            to_patrol.dot(to_agent) > 0.7 // Agent is in retreat direction
+        });
+        !retreat_blocked
+    } else {
+        true
+    };
+    
     // === WEAPON/AMMO STATE ===
     if let Some(weapon_state) = weapon_state {
         let weapon_loaded = weapon_state.current_ammo > 0;
@@ -837,6 +937,11 @@ fn update_world_state_from_perception(
     goap_agent.update_world_state(WorldKey::NearAlarmPanel, near_alarm_panel);
     goap_agent.update_world_state(WorldKey::HasMedKit, has_medkit);
     goap_agent.update_world_state(WorldKey::HasGrenade, has_grenade);
+    // NEW: Tactical movement states
+    goap_agent.update_world_state(WorldKey::UnderFire, under_fire);
+    goap_agent.update_world_state(WorldKey::BetterCoverAvailable, better_cover_available);
+    goap_agent.update_world_state(WorldKey::AlliesAdvancing, allies_advancing);
+    goap_agent.update_world_state(WorldKey::RetreatPathClear, retreat_path_clear);
     
     if !has_target {
         goap_agent.update_world_state(WorldKey::FlankingPosition, false);
@@ -1151,6 +1256,85 @@ fn execute_goap_action(
             
             info!("Enemy {} activated facility alarm!", enemy_entity.index());
         },
+        
+        // === NEW: TACTICAL MOVEMENT EXECUTION ===
+        ActionType::FindBetterCover { new_cover_pos: _ } => {
+            // Find the best available cover point (furthest from agents)
+            if let Some((cover_entity, cover_pos)) = find_best_cover(
+                enemy_transform.translation.truncate(), 
+                cover_query, 
+                agent_query
+            ) {
+                action_events.write(ActionEvent {
+                    entity: enemy_entity,
+                    action: Action::MoveTo(cover_pos),
+                });
+                commands.entity(enemy_entity).insert(InCover { cover_entity });
+                info!("Enemy {} moving to better cover", enemy_entity.index());
+            }
+        },
+        
+        ActionType::SuppressingFire { target_area: _ } => {
+            // Sustained fire toward enemy position to pin them down
+            if let Some(agent_entity) = find_closest_agent(enemy_transform, agent_query) {
+                if let Ok((_, agent_transform)) = agent_query.get(agent_entity) {
+                    // Fire repeatedly at agent area
+                    action_events.write(ActionEvent {
+                        entity: enemy_entity,
+                        action: Action::Attack(agent_entity),
+                    });
+                    
+                    // Audio cue for suppressing fire
+                    audio_events.write(AudioEvent {
+                        sound: AudioType::Gunshot,
+                        volume: 0.8,
+                    });
+                    
+                    info!("Enemy {} providing suppressing fire", enemy_entity.index());
+                }
+            }
+        },
+        
+        ActionType::FightingWithdrawal { retreat_path: _ } => {
+            // Retreat while maintaining defensive fire
+            let enemy_pos = enemy_transform.translation.truncate();
+            
+            // Calculate tactical retreat position
+            let retreat_target = if let Some(patrol_point) = patrol.current_target() {
+                // Retreat toward patrol point
+                let to_patrol = (patrol_point - enemy_pos).normalize_or_zero();
+                enemy_pos + to_patrol * 100.0
+            } else {
+                // Fallback: move away from nearest agent
+                if let Some(agent_entity) = find_closest_agent(enemy_transform, agent_query) {
+                    if let Ok((_, agent_transform)) = agent_query.get(agent_entity) {
+                        let away_from_agent = (enemy_pos - agent_transform.translation.truncate()).normalize_or_zero();
+                        enemy_pos + away_from_agent * 100.0
+                    } else {
+                        enemy_pos + Vec2::new(100.0, 0.0)
+                    }
+                } else {
+                    enemy_pos + Vec2::new(100.0, 0.0)
+                }
+            };
+            
+            // Move to retreat position
+            action_events.write(ActionEvent {
+                entity: enemy_entity,
+                action: Action::MoveTo(retreat_target),
+            });
+            
+            // Provide covering fire while retreating
+            if let Some(agent_entity) = find_closest_agent(enemy_transform, agent_query) {
+                action_events.write(ActionEvent {
+                    entity: enemy_entity,
+                    action: Action::Attack(agent_entity),
+                });
+            }
+            
+            ai_state.mode = crate::systems::ai::AIMode::Patrol;
+            info!("Enemy {} executing fighting withdrawal", enemy_entity.index());
+        },
     }
 }
 
@@ -1329,6 +1513,37 @@ pub fn goap_debug_system(
                 Color::srgb(1.0, 0.4, 0.0) // Orange for grouped targets
             );
         }
+        
+        // NEW: Third row - tactical movement states
+        y_offset = -65.0;
+        if *goap_agent.world_state.get(&WorldKey::UnderFire).unwrap_or(&false) {
+            gizmos.rect_2d(
+                pos + Vec2::new(-20.0, y_offset), 
+                Vec2::splat(indicator_size), 
+                Color::srgb(1.0, 0.0, 0.0) // Red for under fire
+            );
+        }
+        if *goap_agent.world_state.get(&WorldKey::BetterCoverAvailable).unwrap_or(&false) {
+            gizmos.rect_2d(
+                pos + Vec2::new(-15.0, y_offset), 
+                Vec2::splat(indicator_size), 
+                Color::srgb(0.0, 0.8, 1.0) // Cyan for better cover
+            );
+        }
+        if *goap_agent.world_state.get(&WorldKey::AlliesAdvancing).unwrap_or(&false) {
+            gizmos.rect_2d(
+                pos + Vec2::new(-10.0, y_offset), 
+                Vec2::splat(indicator_size), 
+                Color::srgb(0.0, 1.0, 0.0) // Green for allies advancing
+            );
+        }
+        if *goap_agent.world_state.get(&WorldKey::TacticalRetreat).unwrap_or(&false) {
+            gizmos.rect_2d(
+                pos + Vec2::new(-5.0, y_offset), 
+                Vec2::splat(indicator_size), 
+                Color::srgb(0.5, 0.5, 1.0) // Light blue for tactical retreat
+            );
+        }
     }
 }
 
@@ -1353,6 +1568,7 @@ pub fn goap_config_system(
             info!("  Cyan line = current plan length");
             info!("  Row 1: Red=HasTarget, Orange=TargetVisible, Yellow=IsAlert, Cyan=HeardSound");
             info!("  Row 2: Purple=IsInjured, Green=HasMedKit, Yellow=HasGrenade, Orange=TargetGrouped");
+            info!("  Row 3: Red=UnderFire, Cyan=BetterCover, Green=AlliesAdvancing, LightBlue=TacticalRetreat");
         }
     }
     
@@ -1442,6 +1658,42 @@ fn find_nearest_cover(
     }
     
     nearest_cover
+}
+
+fn find_best_cover(
+    enemy_pos: Vec2,
+    cover_query: &Query<(Entity, &Transform, &CoverPoint), Without<Enemy>>,
+    agent_query: &Query<(Entity, &Transform), With<Agent>>,
+) -> Option<(Entity, Vec2)> {
+    let mut best_cover = None;
+    let mut best_score = f32::NEG_INFINITY;
+    
+    for (cover_entity, cover_transform, cover_point) in cover_query.iter() {
+        if cover_point.current_users >= cover_point.capacity {
+            continue;
+        }
+        
+        let cover_pos = cover_transform.translation.truncate();
+        let distance_to_cover = enemy_pos.distance(cover_pos);
+        
+        if distance_to_cover > 150.0 { continue; } // Too far
+        
+        // Score based on: close to enemy, far from agents
+        let mut score = 100.0 - distance_to_cover; // Prefer closer cover
+        
+        // Bonus for being far from agents
+        for (_, agent_transform) in agent_query.iter() {
+            let distance_to_agent = cover_pos.distance(agent_transform.translation.truncate());
+            score += distance_to_agent * 0.5; // Prefer cover far from agents
+        }
+        
+        if score > best_score {
+            best_score = score;
+            best_cover = Some((cover_entity, cover_pos));
+        }
+    }
+    
+    best_cover
 }
 
 
