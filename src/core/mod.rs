@@ -1644,6 +1644,16 @@ impl DayNightCycle {
         }
     }
     
+    pub fn get_overlay_color(&self) -> Color {
+        // Semi-transparent overlay that darkens the scene
+        match self.current_period {
+            TimeOfDay::Day => Color::srgba(1.0, 1.0, 0.9, 0.0),      // No overlay during day
+            TimeOfDay::Dusk => Color::srgba(0.8, 0.4, 0.2, 0.2),     // Warm orange tint
+            TimeOfDay::Night => Color::srgba(0.1, 0.1, 0.3, 0.6),    // Dark blue overlay
+            TimeOfDay::Dawn => Color::srgba(0.8, 0.6, 0.8, 0.3),     // Light purple tint
+        }
+    }
+    
     pub fn get_visibility_modifier(&self) -> f32 {
         match self.current_period {
             TimeOfDay::Day => 1.0,

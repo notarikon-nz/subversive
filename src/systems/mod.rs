@@ -20,12 +20,14 @@ pub mod day_night;
 pub mod formations;
 pub mod enhanced_neurovector;
 pub mod civilian_spawn;
+pub mod health_bars;
 
 pub use area_control::*;
 pub use panic_spread::*;
 pub use formations::*;
 pub use enhanced_neurovector::*;
 pub use civilian_spawn::*;
+pub use health_bars::*;
 
 pub use save::*;
 

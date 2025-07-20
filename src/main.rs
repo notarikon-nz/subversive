@@ -39,10 +39,6 @@ fn main() {
         .init_resource::<PostMissionResults>()
         .init_resource::<MissionState>()
         .init_resource::<DayNightCycle>()
-        .insert_resource(AmbientLight2d {
-            color: Color::WHITE,
-            brightness: 1.0,
-        })
         .insert_resource(global_data)
         .insert_resource(research_progress)
         .insert_resource(ResearchDatabase::load())
@@ -79,10 +75,12 @@ fn main() {
             save::auto_save_system,
             save::save_input_system,
             audio::audio_system,
+            
         ))
 
         .add_systems(OnEnter(GameState::PostMission), (
             ui::cleanup_mission_ui,
+            health_bars::cleanup_health_bars_system,
         ))
 
         .add_systems(OnEnter(GameState::GlobalMap), (
@@ -96,22 +94,18 @@ fn main() {
         .add_systems(OnEnter(GameState::Mission), (
             ui::cleanup_global_map_ui,
             setup_mission_scene,
+            health_bars::spawn_health_bar_system,
         ))
 
         .add_systems(Update, (
-            // Core gameplay systems
             camera::movement,
             selection::system,
             movement::system,                    // FIXED: Core movement system
-            
-            // AI systems
             goap::goap_ai_system,
             ai::goap_sound_detection_system,
             ai::alert_system,
             ai::legacy_enemy_ai_system,
             ai::sound_detection_system,
-            
-            // NEW: Parity systems
             morale::morale_system,
             morale::civilian_morale_system,
             morale::flee_system,
@@ -120,15 +114,11 @@ fn main() {
             weapon_swap::weapon_drop_system,
             weapon_swap::weapon_pickup_system,
             weapon_swap::weapon_behavior_system,
-
-            // Interaction systems
-            // neurovector::system,
             interaction::system,
             combat::system,
             combat::death_system,
             goap::goap_config_system,
             goap::goap_debug_system,
-
             ui::world::system,
             ui::screens::inventory_system,
             ui::screens::pause_system,
@@ -141,8 +131,6 @@ fn main() {
             cover::cover_exit_system,
             quicksave::quicksave_system,
             reload::reload_system,
-
-            // NEW: Enhanced parity systems
             panic_spread::panic_spread_system,
             panic_spread::panic_morale_reduction_system,
             police::police_tracking_system,
@@ -152,23 +140,17 @@ fn main() {
             area_control::weapon_area_control_system,
             area_control::area_effect_system,
             area_control::suppression_movement_system,
-
             formations::formation_input_system,
             formations::formation_movement_system,
             formations::formation_visual_system,
-
             enhanced_neurovector::enhanced_neurovector_system,
             enhanced_neurovector::controlled_civilian_behavior_system,
             enhanced_neurovector::controlled_civilian_visual_system,
-
             civilian_spawn::dynamic_civilian_spawn_system,
             civilian_spawn::civilian_wander_system,
             civilian_spawn::civilian_cleanup_system,
-
         ).run_if(in_state(GameState::Mission)))
-        .add_systems(Update, (            
-
-            // NEW: Vehicle and environment systems
+        .add_systems(Update, (
             vehicles::vehicle_explosion_system,
             vehicles::explosion_damage_system,
             vehicles::vehicle_cover_system,
@@ -176,7 +158,7 @@ fn main() {
             day_night::day_night_system,
             day_night::lighting_system,
             day_night::time_ui_system,
-
+            health_bars::update_health_bars_system,
         ).run_if(in_state(GameState::Mission)))
         .add_systems(Update, (
             mission::process_mission_results,  

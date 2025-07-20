@@ -49,8 +49,39 @@
           ],
           "attachments": {
             "Barrel": null,
-            "Magazine": null,
             "Sight": null,
+            "Stock": null,
+            "Magazine": null
+          },
+          "behavior": {
+            "preferred_range": 150.0,
+            "burst_fire": true,
+            "requires_cover": true,
+            "area_effect": false,
+            "reload_retreat": true
+          }
+        }
+      ],
+      "equipped_weapon_idx": 0,
+      "tools": [
+        "Scanner"
+      ],
+      "cybernetics": []
+    },
+    {
+      "weapon_configs": [
+        {
+          "base_weapon": "Rifle",
+          "supported_slots": [
+            "Sight",
+            "Barrel",
+            "Magazine",
+            "Stock"
+          ],
+          "attachments": {
+            "Sight": null,
+            "Magazine": null,
+            "Barrel": null,
             "Stock": null
           },
           "behavior": {
@@ -81,39 +112,8 @@
           "attachments": {
             "Stock": null,
             "Sight": null,
-            "Barrel": null,
-            "Magazine": null
-          },
-          "behavior": {
-            "preferred_range": 150.0,
-            "burst_fire": true,
-            "requires_cover": true,
-            "area_effect": false,
-            "reload_retreat": true
-          }
-        }
-      ],
-      "equipped_weapon_idx": 0,
-      "tools": [
-        "Scanner"
-      ],
-      "cybernetics": []
-    },
-    {
-      "weapon_configs": [
-        {
-          "base_weapon": "Rifle",
-          "supported_slots": [
-            "Sight",
-            "Barrel",
-            "Magazine",
-            "Stock"
-          ],
-          "attachments": {
-            "Barrel": null,
-            "Sight": null,
-            "Stock": null,
-            "Magazine": null
+            "Magazine": null,
+            "Barrel": null
           },
           "behavior": {
             "preferred_range": 150.0,
