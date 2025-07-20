@@ -13,6 +13,8 @@ pub struct GameSprites {
 }
 
 pub fn load_sprites(mut commands: Commands, asset_server: Res<AssetServer>) {
+    info!("Loading sprites...");
+    
     let sprites = GameSprites {
         agent: asset_server.load("sprites/agent.png"),
         civilian: asset_server.load("sprites/civilian.png"),
@@ -23,24 +25,16 @@ pub fn load_sprites(mut commands: Commands, asset_server: Res<AssetServer>) {
     };
     
     commands.insert_resource(sprites);
+    info!("Sprites resource created!");
 }
 
-pub fn spawn_initial_scene(
-    mut commands: Commands,
-    sprites: Res<GameSprites>,
-    global_data: Res<GlobalData>,
-) {
-    let scene = crate::systems::scenes::load_scene("mission1");
-    crate::systems::scenes::spawn_from_scene(&mut commands, &scene, &global_data, &sprites);
-}
-
-// Update spawn functions to use sprites instead of colored rectangles
+// UPDATE spawn functions to include fallback colored rectangles
 pub fn create_agent_sprite(sprites: &GameSprites) -> (Sprite, Transform) {
     (
         Sprite {
             image: sprites.agent.clone(),
             custom_size: Some(Vec2::new(24.0, 24.0)),
-            color: Color::srgb(0.2, 0.8, 0.2), // Fallback color
+            color: Color::srgb(0.2, 0.8, 0.2), // GREEN fallback - will show if texture fails
             ..default()
         },
         Transform::default(),
@@ -52,7 +46,7 @@ pub fn create_civilian_sprite(sprites: &GameSprites) -> (Sprite, Transform) {
         Sprite {
             image: sprites.civilian.clone(),
             custom_size: Some(Vec2::new(18.0, 18.0)),
-            color: Color::srgb(0.8, 0.8, 0.2), // Fallback color
+            color: Color::srgb(0.8, 0.8, 0.2), // YELLOW fallback
             ..default()
         },
         Transform::default(),
@@ -64,7 +58,7 @@ pub fn create_enemy_sprite(sprites: &GameSprites) -> (Sprite, Transform) {
         Sprite {
             image: sprites.enemy.clone(),
             custom_size: Some(Vec2::new(22.0, 22.0)),
-            color: Color::srgb(0.8, 0.2, 0.2), // Fallback color
+            color: Color::srgb(0.8, 0.2, 0.2), // RED fallback
             ..default()
         },
         Transform::default(),
@@ -82,7 +76,7 @@ pub fn create_terminal_sprite(sprites: &GameSprites, terminal_type: &crate::core
         Sprite {
             image: texture.clone(),
             custom_size: Some(Vec2::new(20.0, 20.0)),
-            color: fallback_color, // This will show if texture fails to load
+            color: fallback_color,
             ..default()
         },
         Transform::default(),

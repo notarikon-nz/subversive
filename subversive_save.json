@@ -1,6 +1,6 @@
 {
   "credits": 6500,
-  "current_day": 2,
+  "current_day": 5,
   "agent_levels": [
     1,
     1,
@@ -49,8 +49,8 @@
           ],
           "attachments": {
             "Magazine": null,
-            "Barrel": null,
             "Sight": null,
+            "Barrel": null,
             "Stock": null
           }
         }
@@ -72,10 +72,10 @@
             "Stock"
           ],
           "attachments": {
-            "Stock": null,
             "Magazine": null,
-            "Barrel": null,
-            "Sight": null
+            "Stock": null,
+            "Sight": null,
+            "Barrel": null
           }
         }
       ],
@@ -96,10 +96,10 @@
             "Stock"
           ],
           "attachments": {
-            "Stock": null,
             "Magazine": null,
             "Barrel": null,
-            "Sight": null
+            "Sight": null,
+            "Stock": null
           }
         }
       ],

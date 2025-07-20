@@ -15,37 +15,17 @@ pub fn system(
     cameras: Query<(&Camera, &GlobalTransform)>,
     selection_box_query: Query<Entity, With<SelectionBox>>,
 ) {
-    let Some(world_pos) = get_world_mouse_position(&windows, &cameras) else { return; };
-    let shift_held = keyboard.pressed(KeyCode::ShiftLeft) || keyboard.pressed(KeyCode::ShiftRight);
-
-    // Handle mouse press
+    let Some(world_pos) = get_world_mouse_position(&windows, &cameras) else { 
+        return; 
+    };
+    
+    // Debug output
     if mouse.just_pressed(MouseButton::Left) {
-        if shift_held {
-            // Shift+click: toggle individual agent
-            toggle_agent_selection(&mut commands, &mut selection, world_pos, &selectable_query);
-        } else {
-            // Check if clicking on an agent for single selection
-            let clicked_agent = find_agent_at_position(world_pos, &selectable_query);
-            
-            if clicked_agent.is_some() {
-                // Single select the clicked agent
-                clear_selection(&mut commands, &mut selection, &selected_query);
-                if let Some(entity) = clicked_agent {
-                    add_to_selection(&mut commands, &mut selection, entity);
-                }
-            } else {
-                // Start drag selection
-                drag_state.dragging = true;
-                drag_state.start_pos = world_pos;
-                drag_state.current_pos = world_pos;
-                
-                // Clear current selection if not holding shift
-                clear_selection(&mut commands, &mut selection, &selected_query);
-            }
-        }
+        info!("Left click at world pos: {:?}", world_pos);
+        info!("Selectable agents: {}", selectable_query.iter().count());
     }
-
-    // Handle mouse drag
+    
+    // Check if we're dragging for selection box
     if drag_state.dragging {
         drag_state.current_pos = world_pos;
         
@@ -54,8 +34,8 @@ pub fn system(
         
         // Handle mouse release
         if mouse.just_released(MouseButton::Left) {
-            // Complete drag selection
-            complete_drag_selection(&mut commands, &mut selection, &drag_state, &selectable_query, shift_held, &selected_query);
+            info!("Completing drag selection");
+            complete_drag_selection(&mut commands, &mut selection, &drag_state, &selectable_query, false, &selected_query);
             
             // Clean up drag state and selection box
             drag_state.dragging = false;
@@ -65,13 +45,24 @@ pub fn system(
         }
     }
     
-    // Also clean up selection box if drag state gets reset somehow
-    if !drag_state.dragging && !selection_box_query.is_empty() {
-        for entity in selection_box_query.iter() {
-            commands.entity(entity).despawn();
+    // Handle mouse press
+    if mouse.just_pressed(MouseButton::Left) {
+        let clicked_agent = find_agent_at_position(world_pos, &selectable_query);
+        
+        if let Some(agent) = clicked_agent {
+            info!("Clicked on agent: {:?}", agent);
+            clear_selection(&mut commands, &mut selection, &selected_query);
+            add_to_selection(&mut commands, &mut selection, agent);
+        } else {
+            info!("Starting drag selection");
+            drag_state.dragging = true;
+            drag_state.start_pos = world_pos;
+            drag_state.current_pos = world_pos;
+            clear_selection(&mut commands, &mut selection, &selected_query);
         }
     }
 }
+
 fn toggle_agent_selection(
     commands: &mut Commands,
     selection: &mut SelectionState,

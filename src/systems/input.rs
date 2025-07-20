@@ -64,8 +64,25 @@ pub fn handle_input(
 
     if game_mode.paused { return; }
 
+    if mouse.just_pressed(MouseButton::Right) {
+        info!("Right click detected! Selected agents: {}", selection.selected.len());
+        
+        if let Some(world_pos) = get_world_mouse_position(&windows, &cameras) {
+            info!("Mouse world position: {:?}", world_pos);
+            
+            for &entity in &selection.selected {
+                info!("Sending move command to entity {:?}", entity);
+                action_events.write(ActionEvent {
+                    entity,
+                    action: Action::MoveTo(world_pos),
+                });
+            }
+        } else {
+            info!("Failed to get world mouse position");
+        }
+    }
 
-    // Handle mouse movement (keep working mouse input)
+    /*
     if mouse.just_pressed(MouseButton::Right) {
         if let Some(world_pos) = get_world_mouse_position(&windows, &cameras) {
             for &entity in &selection.selected {
@@ -76,6 +93,7 @@ pub fn handle_input(
             }
         }
     }
+    */
 }
 
 fn toggle_neurovector_targeting(game_mode: &mut GameMode, agent: Entity) {

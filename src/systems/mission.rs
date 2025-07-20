@@ -66,8 +66,13 @@ pub fn restart_system(
 ) {
     if restart_check.is_none() { return; }
     
+    info!("Restarting mission - despawning {} entities", entities.iter().count());
+    
+    // FIXED: Use Result instead of Option
     for entity in entities.iter() {
-        commands.entity(entity).despawn_recursive();
+        if let Ok(mut entity_commands) = commands.get_entity(entity) {
+            entity_commands.despawn_recursive();
+        }
     }
     
     *mission_data = MissionData::default();
@@ -86,6 +91,8 @@ pub fn restart_system(
     
     let scene = crate::systems::scenes::load_scene(scene_name);
     crate::systems::scenes::spawn_from_scene(&mut commands, &scene, &*global_data, &sprites);
+    
+    info!("Mission restart complete");
 }
 
 pub fn process_mission_results(
