@@ -30,9 +30,11 @@ pub struct CombatEvent {
 
 #[derive(Event)]
 pub struct AlertEvent {
+    pub alerter: Entity,  // FIXED: Add alerter field that GOAP system expects
     pub position: Vec2,
     pub alert_level: u8,
     pub source: AlertSource,
+    pub alert_type: AlertType, // FIXED: Add alert_type field for compatibility
 }
 
 #[derive(Debug, Clone)]
@@ -42,6 +44,13 @@ pub enum AlertSource {
     MissingPatrol,
     Alarm,
     Grenade, // NEW
+}
+
+#[derive(Debug, Clone)]
+pub enum AlertType {
+    CallForHelp,
+    GunshotHeard,
+    EnemySpotted,
 }
 
 // NEW: Specific events for advanced actions

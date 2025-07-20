@@ -48,9 +48,9 @@
             "Stock"
           ],
           "attachments": {
-            "Barrel": null,
-            "Sight": null,
             "Magazine": null,
+            "Sight": null,
+            "Barrel": null,
             "Stock": null
           }
         }
@@ -72,10 +72,10 @@
             "Stock"
           ],
           "attachments": {
+            "Barrel": null,
+            "Sight": null,
             "Stock": null,
-            "Magazine": null,
-            "Sight": null,
-            "Barrel": null
+            "Magazine": null
           }
         }
       ],
@@ -96,10 +96,10 @@
             "Stock"
           ],
           "attachments": {
-            "Sight": null,
             "Barrel": null,
-            "Magazine": null,
-            "Stock": null
+            "Sight": null,
+            "Stock": null,
+            "Magazine": null
           }
         }
       ],
@@ -112,10 +112,10 @@
   ],
   "research_progress": {
     "completed": [
-      "basic_optics",
-      "neurovector_implants",
-      "suppression_tech",
       "advanced_magazines",
+      "neurovector_implants",
+      "basic_optics",
+      "suppression_tech",
       "heavy_weapons"
     ],
     "credits_invested": 10000
