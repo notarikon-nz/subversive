@@ -40,7 +40,6 @@ pub fn cleanup_mission_ui(
     }
 }
 
-// Also add cleanup when entering global map
 pub fn cleanup_global_map_ui(
     mut commands: Commands,
     mut inventory_state: ResMut<InventoryState>,

@@ -4,6 +4,34 @@ use serde::{Deserialize, Serialize};
 use crate::core::*;
 use crate::systems::*;
 
+// First, let's create the scenes directory structure
+pub fn ensure_scenes_directory() {
+    if let Err(_) = std::fs::create_dir_all("scenes") {
+        warn!("Could not create scenes directory");
+    }
+    
+    // Create default mission files if they don't exist
+    let missions = [
+        ("mission1", SceneData::mission1()),
+        ("mission2", SceneData::mission2()),
+        ("mission3", SceneData::mission3()),
+    ];
+    
+    for (name, scene) in missions {
+        let path = format!("scenes/{}.json", name);
+        if !std::path::Path::new(&path).exists() {
+            if let Ok(json) = serde_json::to_string_pretty(&scene) {
+                if let Err(e) = std::fs::write(&path, json) {
+                    warn!("Failed to create {}: {}", path, e);
+                } else {
+                    info!("Created default scene file: {}", path);
+                }
+            }
+        }
+    }
+}
+
+
 #[derive(Serialize, Deserialize)]
 pub struct SceneData {
     pub agents: Vec<AgentSpawn>,
@@ -35,20 +63,19 @@ pub struct TerminalSpawn {
     pub terminal_type: String,
 }
 
-impl Default for SceneData {
-    fn default() -> Self {
+impl SceneData {
+    // Mission 1: Tutorial/Easy
+    pub fn mission1() -> Self {
         Self {
             agents: vec![
                 AgentSpawn { position: [-200.0, 0.0], level: 1 },
-                AgentSpawn { position: [-150.0, 0.0], level: 1 },
-                AgentSpawn { position: [-100.0, 0.0], level: 1 },
+                AgentSpawn { position: [-170.0, 0.0], level: 1 },
+                AgentSpawn { position: [-140.0, 0.0], level: 1 },
             ],
             civilians: vec![
                 CivilianSpawn { position: [100.0, 100.0] },
                 CivilianSpawn { position: [160.0, 120.0] },
                 CivilianSpawn { position: [220.0, 80.0] },
-                CivilianSpawn { position: [280.0, 140.0] },
-                CivilianSpawn { position: [340.0, 60.0] },
             ],
             enemies: vec![
                 EnemySpawn {
@@ -68,20 +95,130 @@ impl Default for SceneData {
             ],
         }
     }
+
+    // Mission 2: Medium difficulty
+    pub fn mission2() -> Self {
+        Self {
+            agents: vec![
+                AgentSpawn { position: [-250.0, -50.0], level: 1 },
+                AgentSpawn { position: [-220.0, -50.0], level: 1 },
+                AgentSpawn { position: [-190.0, -50.0], level: 1 },
+            ],
+            civilians: vec![
+                CivilianSpawn { position: [80.0, 150.0] },
+                CivilianSpawn { position: [120.0, 180.0] },
+            ],
+            enemies: vec![
+                EnemySpawn {
+                    position: [150.0, -120.0],
+                    patrol_points: vec![
+                        [150.0, -120.0],
+                        [250.0, -120.0],
+                    ],
+                },
+                EnemySpawn {
+                    position: [350.0, 50.0],
+                    patrol_points: vec![
+                        [350.0, 50.0],
+                        [350.0, 150.0],
+                        [250.0, 150.0],
+                    ],
+                },
+            ],
+            terminals: vec![
+                TerminalSpawn { position: [400.0, -20.0], terminal_type: "objective".to_string() },
+                TerminalSpawn { position: [200.0, 200.0], terminal_type: "objective".to_string() },
+                TerminalSpawn { position: [100.0, -150.0], terminal_type: "equipment".to_string() },
+            ],
+        }
+    }
+
+    // Mission 3: Hard
+    pub fn mission3() -> Self {
+        Self {
+            agents: vec![
+                AgentSpawn { position: [-300.0, 0.0], level: 1 },
+                AgentSpawn { position: [-270.0, 0.0], level: 1 },
+                AgentSpawn { position: [-240.0, 0.0], level: 1 },
+            ],
+            civilians: vec![], // No civilians in underground
+            enemies: vec![
+                EnemySpawn {
+                    position: [100.0, -150.0],
+                    patrol_points: vec![
+                        [100.0, -150.0],
+                        [200.0, -150.0],
+                        [200.0, -50.0],
+                        [100.0, -50.0],
+                    ],
+                },
+                EnemySpawn {
+                    position: [300.0, 100.0],
+                    patrol_points: vec![
+                        [300.0, 100.0],
+                        [400.0, 100.0],
+                    ],
+                },
+                EnemySpawn {
+                    position: [150.0, 200.0],
+                    patrol_points: vec![
+                        [150.0, 200.0],
+                        [250.0, 200.0],
+                        [250.0, 300.0],
+                    ],
+                },
+            ],
+            terminals: vec![
+                TerminalSpawn { position: [450.0, 50.0], terminal_type: "objective".to_string() },
+                TerminalSpawn { position: [200.0, 350.0], terminal_type: "objective".to_string() },
+                TerminalSpawn { position: [50.0, -200.0], terminal_type: "equipment".to_string() },
+                TerminalSpawn { position: [350.0, -100.0], terminal_type: "intel".to_string() },
+            ],
+        }
+    }
+}
+
+impl Default for SceneData {
+    fn default() -> Self {
+        Self::mission1()
+    }
 }
 
 pub fn load_scene(name: &str) -> SceneData {
     let path = format!("scenes/{}.json", name);
-    std::fs::read_to_string(&path)
-        .ok()
-        .and_then(|content| serde_json::from_str(&content).ok())
-        .unwrap_or_else(|| {
-            warn!("Failed to load scene '{}', using default", name);
-            SceneData::default()
-        })
+    
+    // First try to load from file
+    if let Ok(content) = std::fs::read_to_string(&path) {
+        if let Ok(scene) = serde_json::from_str(&content) {
+            info!("Successfully loaded scene '{}'", name);
+            return scene;
+        }
+    }
+    
+    // Fall back to built-in scenes
+    let scene = match name {
+        "mission1" => SceneData::mission1(),
+        "mission2" => SceneData::mission2(),
+        "mission3" => SceneData::mission3(),
+        _ => {
+            warn!("Unknown scene '{}', using mission1", name);
+            SceneData::mission1()
+        }
+    };
+    
+    info!("Using built-in scene for '{}'", name);
+    scene
 }
 
-pub fn spawn_from_scene(commands: &mut Commands, scene: &SceneData, global_data: &GlobalData, sprites: &GameSprites) {
+pub fn spawn_from_scene(
+    commands: &mut Commands, 
+    scene: &SceneData, 
+    global_data: &GlobalData, 
+    sprites: &GameSprites
+) {
+    info!("Spawning scene: {} agents, {} enemies, {} civilians, {} terminals", 
+          scene.agents.len(), scene.enemies.len(), scene.civilians.len(), scene.terminals.len());
+    
     for (i, agent_data) in scene.agents.iter().enumerate() {
         let level = if i < 3 { global_data.agent_levels[i] } else { agent_data.level };
         spawn_agent(commands, Vec2::from(agent_data.position), level, i, global_data, sprites);
@@ -109,7 +246,14 @@ pub fn spawn_from_scene(commands: &mut Commands, scene: &SceneData, global_data:
     spawn_cover_points(commands);    
 }
 
-fn spawn_agent(commands: &mut Commands, position: Vec2, level: u8, agent_idx: usize, global_data: &GlobalData, sprites: &GameSprites) {
+fn spawn_agent(
+    commands: &mut Commands, 
+    position: Vec2, 
+    level: u8, 
+    agent_idx: usize, 
+    global_data: &GlobalData, 
+    sprites: &GameSprites
+) {
     let (sprite, mut transform) = crate::core::sprites::create_agent_sprite(sprites);
     transform.translation = position.extend(1.0);
     
@@ -140,12 +284,10 @@ fn spawn_agent(commands: &mut Commands, position: Vec2, level: u8, agent_idx: us
     // Starting credits based on level
     inventory.add_currency(100 * level as u32);
     
-    info!("Spawned Agent {} with {} weapons, {} tools", 
-          agent_idx + 1, 
-          inventory.weapons.len(), 
-          inventory.tools.len());
+    info!("Spawning Agent {} at {:?} with {} weapons, {} tools", 
+          agent_idx + 1, position, inventory.weapons.len(), inventory.tools.len());
     
-    commands.spawn((
+    let entity = commands.spawn((
         sprite,
         transform,
         Agent { experience: 0, level },
@@ -160,15 +302,16 @@ fn spawn_agent(commands: &mut Commands, position: Vec2, level: u8, agent_idx: us
         Collider::ball(10.0),
         Velocity::default(),
         Damping { linear_damping: 10.0, angular_damping: 10.0 },
-    ));
+    )).id();
+    
+    info!("Spawned Agent {} as entity {:?}", agent_idx + 1, entity);
 }
-
 
 fn spawn_civilian(commands: &mut Commands, position: Vec2, sprites: &GameSprites) {
     let (sprite, mut transform) = crate::core::sprites::create_civilian_sprite(sprites);
     transform.translation = position.extend(1.0);
     
-    commands.spawn((
+    let entity = commands.spawn((
         sprite,
         transform,
         Civilian,
@@ -180,73 +323,85 @@ fn spawn_civilian(commands: &mut Commands, position: Vec2, sprites: &GameSprites
         Collider::ball(7.5),
         Velocity::default(),
         Damping { linear_damping: 10.0, angular_damping: 10.0 },
-    ));
+    )).id();
+    
+    info!("Spawned Civilian as entity {:?} at {:?}", entity, position);
 }
 
-fn spawn_enemy_with_patrol(commands: &mut Commands, position: Vec2, patrol_points: Vec<Vec2>, global_data: &GlobalData, sprites: &GameSprites) {
+fn spawn_enemy_with_patrol(
+    commands: &mut Commands, 
+    position: Vec2, 
+    patrol_points: Vec<Vec2>, 
+    global_data: &GlobalData, 
+    sprites: &GameSprites
+) {
     let region = &global_data.regions[global_data.selected_region];
     let difficulty = region.mission_difficulty_modifier();
     
     let (sprite, mut transform) = crate::core::sprites::create_enemy_sprite(sprites);
     transform.translation = position.extend(1.0);
     
-    // Spawn with both AI systems - GOAP is primary, legacy as fallback
-    commands.spawn((
+    let entity = commands.spawn((
         sprite,
         transform,
         Enemy,
         Health(100.0 * difficulty),
         MovementSpeed(120.0 * difficulty),
         Vision::new(120.0 * difficulty, 45.0),
-        Patrol::new(patrol_points),
-        AIState::default(), // Legacy AI state
-        GoapAgent::default(), // GOAP AI agent
+        Patrol::new(patrol_points.clone()),
+        AIState::default(),
+        GoapAgent::default(),
         RigidBody::Dynamic,
         Collider::ball(9.0),
         Velocity::default(),
         Damping { linear_damping: 10.0, angular_damping: 10.0 },
-    ));
+    )).id();
+    
+    info!("Spawned Enemy as entity {:?} at {:?} with {} patrol points", 
+          entity, position, patrol_points.len());
 }
-
 
 fn spawn_terminal(commands: &mut Commands, position: Vec2, terminal_type: TerminalType, sprites: &GameSprites) {
     let (sprite, mut transform) = crate::core::sprites::create_terminal_sprite(sprites, &terminal_type);
     transform.translation = position.extend(1.0);
     
-    commands.spawn((
+    let entity = commands.spawn((
         sprite,
         transform,
-        Terminal { terminal_type, range: 30.0, accessed: false },
+        Terminal { terminal_type: terminal_type.clone(), range: 30.0, accessed: false },
         Selectable { radius: 15.0 },
-    ));
+    )).id();
+    
+    info!("Spawned {:?} Terminal as entity {:?} at {:?}", terminal_type, entity, position);
 }
 
 pub fn spawn_cover_points(commands: &mut Commands) {
     let cover_positions = [
-        Vec2::new(50.0, -50.0),   // Near terminals
-        Vec2::new(250.0, -150.0), // Corner positions
-        Vec2::new(-50.0, 100.0),  // Scattered around map
+        Vec2::new(50.0, -50.0),
+        Vec2::new(250.0, -150.0),
+        Vec2::new(-50.0, 100.0),
         Vec2::new(300.0, 50.0),
         Vec2::new(150.0, 150.0),
     ];
     
     for &pos in &cover_positions {
-        commands.spawn((
+        let entity = commands.spawn((
             Sprite {
-                    color: Color::srgba(0.4, 0.2, 0.1, 0.7), // Brown, semi-transparent
-                    custom_size: Some(Vec2::new(20.0, 40.0)), // Rectangular cover
-                    ..default()
-                },
-            Transform::from_translation(pos.extend(0.5)), // Slightly behind other objects
+                color: Color::srgba(0.4, 0.2, 0.1, 0.7),
+                custom_size: Some(Vec2::new(20.0, 40.0)),
+                ..default()
+            },
+            Transform::from_translation(pos.extend(0.5)),
             CoverPoint {
                 capacity: 2,
                 current_users: 0,
-                cover_direction: Vec2::X, // Covers from the right (will be calculated dynamically)
+                cover_direction: Vec2::X,
             },
-        ));
+        )).id();
+        
+        info!("Spawned Cover Point as entity {:?} at {:?}", entity, pos);
     }
 }
-
 
 fn alert_color(alert_level: AlertLevel) -> Color {
     match alert_level {

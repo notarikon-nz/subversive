@@ -1,27 +1,27 @@
 {
-  "credits": 6500,
-  "current_day": 5,
+  "credits": 7550,
+  "current_day": 11,
   "agent_levels": [
     1,
     1,
     1
   ],
   "agent_experience": [
-    0,
-    0,
-    0
+    10,
+    10,
+    10
   ],
   "agent_recovery": [
-    5,
-    5,
-    5
+    11,
+    11,
+    11
   ],
   "regions": [
     {
       "name": "Neo-Tokyo Central",
       "threat_level": 1,
-      "alert_level": 2,
-      "alert_decay_timer": 9
+      "alert_level": 3,
+      "alert_decay_timer": 20
     },
     {
       "name": "Corporate District",
@@ -112,8 +112,8 @@
   ],
   "research_progress": {
     "completed": [
-      "suppression_tech",
-      "basic_optics"
+      "basic_optics",
+      "suppression_tech"
     ],
     "credits_invested": 2500
   }

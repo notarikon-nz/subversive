@@ -64,21 +64,25 @@ pub fn handle_input(
 
     if game_mode.paused { return; }
 
+    // FIXED: Direct mouse detection instead of relying on ActionState
     if mouse.just_pressed(MouseButton::Right) {
-        info!("Right click detected! Selected agents: {}", selection.selected.len());
+        info!("INPUT DEBUG: Right click detected! Selected agents: {}", selection.selected.len());
         
         if let Some(world_pos) = get_world_mouse_position(&windows, &cameras) {
-            info!("Mouse world position: {:?}", world_pos);
+            info!("INPUT DEBUG: Mouse world position: {:?}", world_pos);
             
+            // Send movement commands for all selected agents
             for &entity in &selection.selected {
-                info!("Sending move command to entity {:?}", entity);
+                info!("INPUT DEBUG: Sending move command to entity {:?}", entity);
                 action_events.write(ActionEvent {
                     entity,
                     action: Action::MoveTo(world_pos),
                 });
             }
+            
+            info!("INPUT DEBUG: Sent {} movement commands", selection.selected.len());
         } else {
-            info!("Failed to get world mouse position");
+            info!("INPUT DEBUG: Failed to get world mouse position");
         }
     }
 

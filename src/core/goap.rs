@@ -609,7 +609,7 @@ fn execute_goap_action(
     ai_state: &mut AIState,
     action_events: &mut EventWriter<ActionEvent>,
     audio_events: &mut EventWriter<AudioEvent>,
-    alert_events: &mut EventWriter<AlertEvent>,  // Add alert events
+    alert_events: &mut EventWriter<AlertEvent>,
     patrol: &Patrol,
     agent_query: &Query<(Entity, &Transform), With<Agent>>,
     vision: &Vision,
@@ -618,6 +618,7 @@ fn execute_goap_action(
 ) {
     match &action.action_type {
         ActionType::Patrol => {
+            // FIXED: Properly handle patrol movement
             if let Some(target) = patrol.current_target() {
                 ai_state.mode = crate::systems::ai::AIMode::Patrol;
                 action_events.write(ActionEvent {
@@ -639,61 +640,37 @@ fn execute_goap_action(
             });
         },
         
+        // ... rest of the actions remain the same
         ActionType::Attack { target: _ } => {
-            info!("GOAP: Executing attack action...");
-            
-            // First, try to find a visible target using the same vision system
             if let Some(agent_entity) = check_line_of_sight_goap(
                 &Transform::from_translation(enemy_transform.translation),
-                vision, // Now we have access to the vision component
+                vision,
                 agent_query
             ) {
-                // Get target position for distance check
                 if let Ok((_, agent_transform)) = agent_query.get(agent_entity) {
                     let distance = enemy_transform.translation.truncate()
                         .distance(agent_transform.translation.truncate());
                     
-                    info!("GOAP: Target visible at distance {:.1}", distance);
-                    
-                    // Update AI state to combat mode
                     ai_state.mode = crate::systems::ai::AIMode::Combat { target: agent_entity };
                     
-                    // Check if we're in attack range
                     if distance <= 150.0 {
                         action_events.write(ActionEvent {
                             entity: enemy_entity,
                             action: Action::Attack(agent_entity),
                         });
-                        info!("GOAP: Enemy {} attacking target {} at range {:.1}", 
-                              enemy_entity.index(), agent_entity.index(), distance);
                     } else {
-                        // Too far, move closer
                         action_events.write(ActionEvent {
                             entity: enemy_entity,
                             action: Action::MoveTo(agent_transform.translation.truncate()),
                         });
-                        info!("GOAP: Enemy {} moving closer to target (distance: {:.1})", 
-                              enemy_entity.index(), distance);
                     }
                 }
-            } else {
-                info!("GOAP: No target visible during attack execution");
-                
-                // No visible target, try to move to the last known position if we have one
-                if let Some(last_pos) = ai_state.last_known_target {
-                    let distance_to_last_known = enemy_transform.translation.truncate().distance(last_pos);
-                    
-                    action_events.write(ActionEvent {
-                        entity: enemy_entity,
-                        action: Action::MoveTo(last_pos),
-                    });
-                    
-                    ai_state.mode = crate::systems::ai::AIMode::Investigate { location: last_pos };
-                    info!("GOAP: Enemy {} moving to last known target position {:?} (distance: {:.1})", 
-                          enemy_entity.index(), last_pos, distance_to_last_known);
-                } else {
-                    info!("GOAP: Attack action but no target visible and no last known position!");
-                }
+            } else if let Some(last_pos) = ai_state.last_known_target {
+                action_events.write(ActionEvent {
+                    entity: enemy_entity,
+                    action: Action::MoveTo(last_pos),
+                });
+                ai_state.mode = crate::systems::ai::AIMode::Investigate { location: last_pos };
             }
         },
         
@@ -718,44 +695,61 @@ fn execute_goap_action(
         },
         
         ActionType::Reload => {
-            // Handle reload logic - for now just a placeholder
             info!("Enemy {} reloading weapon", enemy_entity.index());
         },
         
         ActionType::TakeCover => {
-            info!("GOAP: Executing take cover action...");
-            
             if let Some((cover_entity, cover_pos)) = find_nearest_cover(enemy_transform.translation.truncate(), cover_query) {
-                // Move to cover position
                 action_events.write(ActionEvent {
                     entity: enemy_entity,
                     action: Action::MoveTo(cover_pos),
                 });
-                
-                // Add InCover component when we reach the cover
                 commands.entity(enemy_entity).insert(InCover { cover_entity });
-                
                 info!("GOAP: Enemy {} taking cover at {:?}", enemy_entity.index(), cover_pos);
-            } else {
-                info!("GOAP: No cover available!");
             }
         },
+        
         ActionType::CallForHelp => {
-            info!("GOAP: Enemy {} calling for help!", enemy_entity.index());
-            
-            // Play alert sound
             audio_events.write(AudioEvent {
                 sound: AudioType::Alert,
                 volume: 1.0,
             });
             
-            // Send alert event to notify nearby enemies
             alert_events.write(AlertEvent {
                 alerter: enemy_entity,
                 position: enemy_transform.translation.truncate(),
                 alert_type: AlertType::CallForHelp,
             });
         },        
+    }
+}
+
+// FIXED: Add patrol advancement system
+pub fn goap_patrol_advancement_system(
+    mut enemy_query: Query<(Entity, &Transform, &mut Patrol), With<Enemy>>,
+    move_targets: Query<&MoveTarget>,
+    mut commands: Commands,
+) {
+    for (entity, transform, mut patrol) in enemy_query.iter_mut() {
+        let current_pos = transform.translation.truncate();
+        
+        // Check if enemy has reached its current patrol point
+        if let Some(patrol_target) = patrol.current_target() {
+            let distance = current_pos.distance(patrol_target);
+            let has_move_target = move_targets.get(entity).is_ok();
+            
+            // If close to patrol point and not currently moving, advance patrol
+            if distance < 15.0 && !has_move_target {
+                patrol.advance();
+                info!("Enemy {:?} reached patrol point, advancing to next", entity);
+                
+                // Set move target to next patrol point
+                if let Some(next_target) = patrol.current_target() {
+                    commands.entity(entity).insert(MoveTarget { position: next_target });
+                    info!("Enemy {:?} moving to next patrol point: {:?}", entity, next_target);
+                }
+            }
+        }
     }
 }
 

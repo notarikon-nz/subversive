@@ -28,13 +28,13 @@ pub fn load_sprites(mut commands: Commands, asset_server: Res<AssetServer>) {
     info!("Sprites resource created!");
 }
 
-// UPDATE spawn functions to include fallback colored rectangles
+// FIXED: Much more visible fallback sprites with borders
 pub fn create_agent_sprite(sprites: &GameSprites) -> (Sprite, Transform) {
     (
         Sprite {
             image: sprites.agent.clone(),
             custom_size: Some(Vec2::new(24.0, 24.0)),
-            color: Color::srgb(0.2, 0.8, 0.2), // GREEN fallback - will show if texture fails
+            color: Color::srgb(0.1, 1.0, 0.1), // BRIGHT GREEN - very visible
             ..default()
         },
         Transform::default(),
@@ -46,7 +46,7 @@ pub fn create_civilian_sprite(sprites: &GameSprites) -> (Sprite, Transform) {
         Sprite {
             image: sprites.civilian.clone(),
             custom_size: Some(Vec2::new(18.0, 18.0)),
-            color: Color::srgb(0.8, 0.8, 0.2), // YELLOW fallback
+            color: Color::srgb(1.0, 1.0, 0.1), // BRIGHT YELLOW - very visible
             ..default()
         },
         Transform::default(),
@@ -58,7 +58,7 @@ pub fn create_enemy_sprite(sprites: &GameSprites) -> (Sprite, Transform) {
         Sprite {
             image: sprites.enemy.clone(),
             custom_size: Some(Vec2::new(22.0, 22.0)),
-            color: Color::srgb(0.8, 0.2, 0.2), // RED fallback
+            color: Color::srgb(1.0, 0.1, 0.1), // BRIGHT RED - very visible
             ..default()
         },
         Transform::default(),
@@ -67,9 +67,9 @@ pub fn create_enemy_sprite(sprites: &GameSprites) -> (Sprite, Transform) {
 
 pub fn create_terminal_sprite(sprites: &GameSprites, terminal_type: &crate::core::TerminalType) -> (Sprite, Transform) {
     let (texture, fallback_color) = match terminal_type {
-        crate::core::TerminalType::Objective => (&sprites.terminal_objective, Color::srgb(0.9, 0.2, 0.2)),
-        crate::core::TerminalType::Equipment => (&sprites.terminal_equipment, Color::srgb(0.2, 0.5, 0.9)),
-        crate::core::TerminalType::Intel => (&sprites.terminal_intel, Color::srgb(0.2, 0.8, 0.3)),
+        crate::core::TerminalType::Objective => (&sprites.terminal_objective, Color::srgb(1.0, 0.1, 0.1)),
+        crate::core::TerminalType::Equipment => (&sprites.terminal_equipment, Color::srgb(0.1, 0.5, 1.0)),
+        crate::core::TerminalType::Intel => (&sprites.terminal_intel, Color::srgb(0.1, 1.0, 0.3)),
     };
     
     (
@@ -81,4 +81,13 @@ pub fn create_terminal_sprite(sprites: &GameSprites, terminal_type: &crate::core
         },
         Transform::default(),
     )
+}
+
+// NEW: Create a simple colored rectangle sprite as a guaranteed fallback
+pub fn create_colored_rectangle(size: Vec2, color: Color) -> Sprite {
+    Sprite {
+        color,
+        custom_size: Some(size),
+        ..default()
+    }
 }

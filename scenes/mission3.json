@@ -1,0 +1,118 @@
+{
+  "agents": [
+    {
+      "position": [
+        -300.0,
+        0.0
+      ],
+      "level": 1
+    },
+    {
+      "position": [
+        -270.0,
+        0.0
+      ],
+      "level": 1
+    },
+    {
+      "position": [
+        -240.0,
+        0.0
+      ],
+      "level": 1
+    }
+  ],
+  "civilians": [],
+  "enemies": [
+    {
+      "position": [
+        100.0,
+        -150.0
+      ],
+      "patrol_points": [
+        [
+          100.0,
+          -150.0
+        ],
+        [
+          200.0,
+          -150.0
+        ],
+        [
+          200.0,
+          -50.0
+        ],
+        [
+          100.0,
+          -50.0
+        ]
+      ]
+    },
+    {
+      "position": [
+        300.0,
+        100.0
+      ],
+      "patrol_points": [
+        [
+          300.0,
+          100.0
+        ],
+        [
+          400.0,
+          100.0
+        ]
+      ]
+    },
+    {
+      "position": [
+        150.0,
+        200.0
+      ],
+      "patrol_points": [
+        [
+          150.0,
+          200.0
+        ],
+        [
+          250.0,
+          200.0
+        ],
+        [
+          250.0,
+          300.0
+        ]
+      ]
+    }
+  ],
+  "terminals": [
+    {
+      "position": [
+        450.0,
+        50.0
+      ],
+      "terminal_type": "objective"
+    },
+    {
+      "position": [
+        200.0,
+        350.0
+      ],
+      "terminal_type": "objective"
+    },
+    {
+      "position": [
+        50.0,
+        -200.0
+      ],
+      "terminal_type": "equipment"
+    },
+    {
+      "position": [
+        350.0,
+        -100.0
+      ],
+      "terminal_type": "intel"
+    }
+  ]
+}
