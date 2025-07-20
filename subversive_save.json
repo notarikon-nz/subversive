@@ -1,20 +1,20 @@
 {
-  "credits": 2050,
-  "current_day": 3,
+  "credits": 4150,
+  "current_day": 6,
   "agent_levels": [
     1,
     1,
     1
   ],
   "agent_experience": [
-    10,
-    10,
-    10
+    30,
+    30,
+    30
   ],
   "agent_recovery": [
-    3,
-    3,
-    3
+    6,
+    6,
+    6
   ],
   "regions": [
     {
@@ -48,10 +48,10 @@
             "Stock"
           ],
           "attachments": {
-            "Stock": null,
-            "Magazine": null,
             "Barrel": null,
-            "Sight": null
+            "Magazine": null,
+            "Sight": null,
+            "Stock": null
           },
           "behavior": {
             "preferred_range": 150.0,
@@ -79,41 +79,41 @@
             "Stock"
           ],
           "attachments": {
+            "Stock": null,
+            "Sight": null,
+            "Barrel": null,
+            "Magazine": null
+          },
+          "behavior": {
+            "preferred_range": 150.0,
+            "burst_fire": true,
+            "requires_cover": true,
+            "area_effect": false,
+            "reload_retreat": true
+          }
+        }
+      ],
+      "equipped_weapon_idx": 0,
+      "tools": [
+        "Scanner"
+      ],
+      "cybernetics": []
+    },
+    {
+      "weapon_configs": [
+        {
+          "base_weapon": "Rifle",
+          "supported_slots": [
+            "Sight",
+            "Barrel",
+            "Magazine",
+            "Stock"
+          ],
+          "attachments": {
+            "Barrel": null,
             "Sight": null,
             "Stock": null,
-            "Magazine": null,
-            "Barrel": null
-          },
-          "behavior": {
-            "preferred_range": 150.0,
-            "burst_fire": true,
-            "requires_cover": true,
-            "area_effect": false,
-            "reload_retreat": true
-          }
-        }
-      ],
-      "equipped_weapon_idx": 0,
-      "tools": [
-        "Scanner"
-      ],
-      "cybernetics": []
-    },
-    {
-      "weapon_configs": [
-        {
-          "base_weapon": "Rifle",
-          "supported_slots": [
-            "Sight",
-            "Barrel",
-            "Magazine",
-            "Stock"
-          ],
-          "attachments": {
-            "Magazine": null,
-            "Barrel": null,
-            "Stock": null,
-            "Sight": null
+            "Magazine": null
           },
           "behavior": {
             "preferred_range": 150.0,

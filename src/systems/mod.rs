@@ -15,7 +15,8 @@ pub mod weapon_swap;
 pub mod panic_spread;
 pub mod police;
 pub mod area_control;
-
+pub mod vehicles;
+pub mod day_night;
 pub mod formations;
 pub mod enhanced_neurovector;
 pub mod civilian_spawn;

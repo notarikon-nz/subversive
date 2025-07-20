@@ -3,6 +3,7 @@ use bevy_rapier2d::prelude::*;
 use serde::{Deserialize, Serialize};
 use crate::core::*;
 use crate::systems::*;
+use crate::systems::vehicles::spawn_vehicle;
 
 // First, let's create the scenes directory structure
 pub fn ensure_scenes_directory() {
@@ -38,6 +39,13 @@ pub struct SceneData {
     pub civilians: Vec<CivilianSpawn>,
     pub enemies: Vec<EnemySpawn>,
     pub terminals: Vec<TerminalSpawn>,
+    pub vehicles: Vec<VehicleSpawn>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct VehicleSpawn {
+    pub position: [f32; 2],
+    pub vehicle_type: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -98,6 +106,11 @@ impl SceneData {
                 TerminalSpawn { position: [150.0, -80.0], terminal_type: "equipment".to_string() },
                 TerminalSpawn { position: [50.0, 120.0], terminal_type: "intel".to_string() },
             ],
+            vehicles: vec![
+                VehicleSpawn { position: [50.0, -50.0], vehicle_type: "civilian_car".to_string() },
+                VehicleSpawn { position: [200.0, 150.0], vehicle_type: "police_car".to_string() },
+                VehicleSpawn { position: [-50.0, 200.0], vehicle_type: "civilian_car".to_string() },
+            ],            
         }
     }
 
@@ -139,6 +152,11 @@ impl SceneData {
                 TerminalSpawn { position: [200.0, 200.0], terminal_type: "objective".to_string() },
                 TerminalSpawn { position: [100.0, -150.0], terminal_type: "equipment".to_string() },
             ],
+            vehicles: vec![
+                VehicleSpawn { position: [300.0, -50.0], vehicle_type: "apc".to_string() },
+                VehicleSpawn { position: [50.0, 250.0], vehicle_type: "civilian_car".to_string() },
+                VehicleSpawn { position: [350.0, 200.0], vehicle_type: "police_car".to_string() },
+            ],            
         }
     }
 
@@ -183,6 +201,11 @@ impl SceneData {
                 TerminalSpawn { position: [50.0, -200.0], terminal_type: "equipment".to_string() },
                 TerminalSpawn { position: [350.0, -100.0], terminal_type: "intel".to_string() },
             ],
+            vehicles: vec![
+                VehicleSpawn { position: [0.0, -250.0], vehicle_type: "tank".to_string() },
+                VehicleSpawn { position: [400.0, 0.0], vehicle_type: "apc".to_string() },
+                VehicleSpawn { position: [100.0, 350.0], vehicle_type: "vtol".to_string() },
+            ],            
         }
     }
 }
@@ -246,6 +269,18 @@ pub fn spawn_from_scene(
         };
         spawn_terminal(commands, Vec2::from(terminal_data.position), terminal_type, sprites);
     }
+
+    for vehicle_data in &scene.vehicles {
+        let vehicle_type = match vehicle_data.vehicle_type.as_str() {
+            "civilian_car" => VehicleType::CivilianCar,
+            "police_car" => VehicleType::PoliceCar,
+            "apc" => VehicleType::APC,
+            "vtol" => VehicleType::VTOL,
+            "tank" => VehicleType::Tank,
+            _ => VehicleType::CivilianCar,
+        };
+        spawn_vehicle(commands, Vec2::from(vehicle_data.position), vehicle_type, sprites);
+    }    
 
     spawn_cover_points(commands);    
 }

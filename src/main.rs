@@ -1,6 +1,7 @@
 // src/main.rs - Clean version with core systems only
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
+use bevy_light_2d::prelude::*;
 use leafwing_input_manager::prelude::*;
 
 mod core;
@@ -26,6 +27,7 @@ fn main() {
         }))    
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.0))
         .add_plugins(InputManagerPlugin::<PlayerAction>::default())
+        .add_plugins(Light2dPlugin) // bevy_light_2d
         .register_type::<PlayerAction>()
 
         .init_state::<GameState>()
@@ -36,7 +38,11 @@ fn main() {
         .init_resource::<InventoryState>()
         .init_resource::<PostMissionResults>()
         .init_resource::<MissionState>()
-
+        .init_resource::<DayNightCycle>()
+        .insert_resource(AmbientLight2d {
+            color: Color::WHITE,
+            brightness: 1.0,
+        })
         .insert_resource(global_data)
         .insert_resource(research_progress)
         .insert_resource(ResearchDatabase::load())
@@ -158,6 +164,18 @@ fn main() {
             civilian_spawn::dynamic_civilian_spawn_system,
             civilian_spawn::civilian_wander_system,
             civilian_spawn::civilian_cleanup_system,
+
+        ).run_if(in_state(GameState::Mission)))
+        .add_systems(Update, (            
+
+            // NEW: Vehicle and environment systems
+            vehicles::vehicle_explosion_system,
+            vehicles::explosion_damage_system,
+            vehicles::vehicle_cover_system,
+            vehicles::vehicle_spawn_system,
+            day_night::day_night_system,
+            day_night::lighting_system,
+            day_night::time_ui_system,
 
         ).run_if(in_state(GameState::Mission)))
         .add_systems(Update, (

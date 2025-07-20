@@ -15,6 +15,7 @@ pub fn system(
     agent_query: Query<(&Transform, &Inventory), With<Agent>>,
     mut agent_weapon_query: Query<&mut WeaponState, With<Agent>>, // Add weapon state query
     mut enemy_query: Query<(Entity, &Transform, &mut Health), (With<Enemy>, Without<Dead>)>,
+    mut vehicle_query: Query<(Entity, &Transform, &mut Health), (With<Vehicle>, Without<Dead>)>,    
     game_mode: Res<GameMode>,
     windows: Query<&Window>,
     cameras: Query<(&Camera, &GlobalTransform)>,
@@ -60,6 +61,19 @@ pub fn system(
                 }
             }
             
+            // Draw vehicle targets
+            for (vehicle_entity, vehicle_transform, vehicle_health) in vehicle_query.iter() {
+                if vehicle_health.0 <= 0.0 { continue; }
+                
+                let vehicle_pos = vehicle_transform.translation.truncate();
+                let distance = agent_pos.distance(vehicle_pos);
+                
+                if distance <= range {
+                    gizmos.circle_2d(vehicle_pos, 35.0, Color::srgb(0.8, 0.8, 0.2));
+                    draw_crosshair(&mut gizmos, vehicle_pos, 20.0, Color::srgb(0.8, 0.6, 0.2));
+                }
+            }
+
             if action_state.just_pressed(&PlayerAction::Select) {
                 if let Some(target) = find_combat_target(*agent, &agent_query, &enemy_query, &windows, &cameras, range) {
                     execute_attack(*agent, target, &agent_query, &mut agent_weapon_query, &mut enemy_query, &mut combat_events, &mut audio_events);
@@ -83,6 +97,18 @@ pub fn system(
     }
 }
 
+fn draw_crosshair(gizmos: &mut Gizmos, position: Vec2, size: f32, color: Color) {
+    gizmos.line_2d(
+        position + Vec2::new(-size, 0.0),
+        position + Vec2::new(size, 0.0),
+        color,
+    );
+    gizmos.line_2d(
+        position + Vec2::new(0.0, -size),
+        position + Vec2::new(0.0, size),
+        color,
+    );
+}
 
 pub fn death_system(
     mut commands: Commands,
@@ -318,4 +344,95 @@ fn draw_health_bar(gizmos: &mut Gizmos, position: Vec2, current: f32, max: f32) 
         Vec2::new(fill_width, bar_height),
         health_color,
     );
+}
+
+fn find_vehicle_target(
+    agent: Entity,
+    agent_query: &Query<(&Transform, &Inventory), With<Agent>>,
+    vehicle_query: &Query<(Entity, &Transform, &mut Health), (With<Vehicle>, Without<Dead>)>,
+    windows: &Query<&Window>,
+    cameras: &Query<(&Camera, &GlobalTransform)>,
+    weapon_range: f32,
+) -> Option<Entity> {
+    let (agent_transform, _) = agent_query.get(agent).ok()?;
+    let mouse_pos = get_world_mouse_position(windows, cameras)?;
+    
+    let mut closest_target = None;
+    let mut closest_distance = f32::INFINITY;
+
+    for (entity, transform, health) in vehicle_query.iter() {
+        if health.0 <= 0.0 { continue; }
+        
+        let vehicle_pos = transform.translation.truncate();
+        let agent_distance = agent_transform.translation.truncate().distance(vehicle_pos);
+        let mouse_distance = mouse_pos.distance(vehicle_pos);
+
+        if agent_distance <= weapon_range && mouse_distance < 40.0 && mouse_distance < closest_distance {
+            closest_distance = mouse_distance;
+            closest_target = Some(entity);
+        }
+    }
+
+    closest_target
+}
+
+fn execute_vehicle_attack(
+    attacker: Entity,
+    target: Entity,
+    agent_query: &Query<(&Transform, &Inventory), With<Agent>>,
+    agent_weapon_query: &mut Query<&mut WeaponState, With<Agent>>,
+    vehicle_query: &mut Query<(Entity, &Transform, &mut Health), (With<Vehicle>, Without<Dead>)>,
+    combat_events: &mut EventWriter<CombatEvent>,
+    audio_events: &mut EventWriter<AudioEvent>,
+) {
+    let can_fire = if let Ok(weapon_state) = agent_weapon_query.get(attacker) {
+        weapon_state.can_fire()
+    } else {
+        true
+    };
+    
+    if !can_fire {
+        return;
+    }
+    
+    let (damage, hit_chance, noise_level) = if let Ok((_, inventory)) = agent_query.get(attacker) {
+        if let Ok(weapon_state) = agent_weapon_query.get(attacker) {
+            calculate_attack_stats_with_ammo(inventory, &weapon_state)
+        } else {
+            (35.0, 0.8, 1.0)
+        }
+    } else {
+        (35.0, 0.8, 1.0)
+    };
+    
+    if let Ok(mut weapon_state) = agent_weapon_query.get_mut(attacker) {
+        if !weapon_state.consume_ammo() {
+            return;
+        }
+    }
+    
+    if let Ok((_, _, mut health)) = vehicle_query.get_mut(target) {
+        let hit = rand::random::<f32>() < hit_chance;
+        
+        if hit {
+            health.0 -= damage * 0.5; // Vehicles take reduced damage
+            
+            let volume = (0.7 * noise_level).clamp(0.1, 1.0);
+            audio_events.write(AudioEvent {
+                sound: AudioType::Gunshot,
+                volume,
+            });
+            
+            if health.0 <= 0.0 {
+                health.0 = 0.0;
+            }
+        }
+        
+        combat_events.write(CombatEvent {
+            attacker,
+            target,
+            damage: if hit { damage * 0.5 } else { 0.0 },
+            hit,
+        });
+    }
 }

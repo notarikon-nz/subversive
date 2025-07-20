@@ -628,7 +628,7 @@ pub enum TerrainType {
     Underground,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum TimeOfDay {
     Day,
     Dusk,
@@ -1520,4 +1520,142 @@ pub struct FormationMember {
 #[derive(Resource, Default)]
 pub struct FormationState {
     pub active_formation: Option<Entity>,
+}
+
+// vehicle components
+
+#[derive(Component)]
+pub struct Vehicle {
+    pub vehicle_type: VehicleType,
+    pub armor: f32,
+    pub cover_value: f32,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum VehicleType {
+    CivilianCar,
+    PoliceCar,
+    APC,
+    VTOL,
+    Tank,
+}
+
+impl Vehicle {
+    pub fn new(vehicle_type: VehicleType) -> Self {
+        let (armor, cover_value) = match vehicle_type {
+            VehicleType::CivilianCar => (50.0, 30.0),
+            VehicleType::PoliceCar => (80.0, 40.0),
+            VehicleType::APC => (200.0, 60.0),
+            VehicleType::VTOL => (120.0, 25.0),
+            VehicleType::Tank => (300.0, 80.0),
+        };
+        
+        Self {
+            vehicle_type,
+            armor,
+            cover_value,
+        }
+    }
+    
+    pub fn max_health(&self) -> f32 {
+        match self.vehicle_type {
+            VehicleType::CivilianCar => 100.0,
+            VehicleType::PoliceCar => 150.0,
+            VehicleType::APC => 400.0,
+            VehicleType::VTOL => 200.0,
+            VehicleType::Tank => 600.0,
+        }
+    }
+    
+    pub fn explosion_radius(&self) -> f32 {
+        match self.vehicle_type {
+            VehicleType::CivilianCar => 60.0,
+            VehicleType::PoliceCar => 70.0,
+            VehicleType::APC => 100.0,
+            VehicleType::VTOL => 120.0,
+            VehicleType::Tank => 150.0,
+        }
+    }
+    
+    pub fn explosion_damage(&self) -> f32 {
+        match self.vehicle_type {
+            VehicleType::CivilianCar => 40.0,
+            VehicleType::PoliceCar => 50.0,
+            VehicleType::APC => 80.0,
+            VehicleType::VTOL => 100.0,
+            VehicleType::Tank => 120.0,
+        }
+    }
+}
+
+#[derive(Component)]
+pub struct VehicleExplosion {
+    pub radius: f32,
+    pub damage: f32,
+    pub duration: f32,
+}
+
+#[derive(Component)]
+pub struct VehicleCover {
+    pub cover_positions: Vec<Vec2>,
+    pub occupied: Vec<bool>,
+}
+
+
+// DAY NIGHT CYCLE
+#[derive(Resource)]
+pub struct DayNightCycle {
+    pub time_of_day: f32, // 0.0 to 24.0 hours
+    pub cycle_speed: f32, // Real seconds per game hour
+    pub current_period: TimeOfDay,
+}
+
+impl Default for DayNightCycle {
+    fn default() -> Self {
+        Self {
+            time_of_day: 12.0, // Start at noon
+            cycle_speed: 2.0,   // 2 real seconds = 1 game hour
+            current_period: TimeOfDay::Day,
+        }
+    }
+}
+
+impl DayNightCycle {
+    pub fn advance_time(&mut self, delta_secs: f32) {
+        self.time_of_day += delta_secs / self.cycle_speed;
+        if self.time_of_day >= 24.0 {
+            self.time_of_day -= 24.0;
+        }
+        
+        self.current_period = match self.time_of_day {
+            t if t >= 6.0 && t < 18.0 => TimeOfDay::Day,
+            t if t >= 18.0 && t < 20.0 => TimeOfDay::Dusk,
+            t if t >= 20.0 || t < 4.0 => TimeOfDay::Night,
+            _ => TimeOfDay::Dawn,
+        };
+    }
+    
+    pub fn get_ambient_light(&self) -> Color {
+        match self.current_period {
+            TimeOfDay::Day => Color::srgb(1.0, 1.0, 1.0),
+            TimeOfDay::Dusk => Color::srgb(0.9, 0.7, 0.5),
+            TimeOfDay::Night => Color::srgb(0.3, 0.3, 0.5),
+            TimeOfDay::Dawn => Color::srgb(0.8, 0.8, 0.9),
+        }
+    }
+    
+    pub fn get_visibility_modifier(&self) -> f32 {
+        match self.current_period {
+            TimeOfDay::Day => 1.0,
+            TimeOfDay::Dusk => 0.8,
+            TimeOfDay::Night => 0.5,
+            TimeOfDay::Dawn => 0.7,
+        }
+    }
+    
+    pub fn get_time_string(&self) -> String {
+        let hours = self.time_of_day as u32;
+        let minutes = ((self.time_of_day - hours as f32) * 60.0) as u32;
+        format!("{:02}:{:02}", hours, minutes)
+    }
 }
