@@ -34,9 +34,13 @@ pub fn cleanup_inactive_entities(
 ) {
     for entity in query.iter() {
         pool.inactive.retain(|&e| e != entity);
-        commands.entity(entity).insert((
-            Visibility::Hidden,
-            Transform::from_translation(Vec3::new(10000.0, 10000.0, 0.0))
-        ));
+        
+        // Safe cleanup with existence check
+        if let Ok(mut entity_commands) = commands.get_entity(entity) {
+            entity_commands.insert((
+                Visibility::Hidden,
+                Transform::from_translation(Vec3::new(10000.0, 10000.0, 0.0))
+            ));
+        }
     }
 }

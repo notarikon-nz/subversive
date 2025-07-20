@@ -30,13 +30,13 @@ pub fn cleanup_mission_ui(
     game_mode.targeting = None;
     game_mode.paused = false;
     
-    // Despawn any open UI windows
+    // Safe despawn UI windows
     for entity in inventory_ui_query.iter() {
-        commands.entity(entity).despawn_recursive();
+        commands.safe_despawn_recursive(entity);
     }
     
     for entity in pause_ui_query.iter() {
-        commands.entity(entity).despawn_recursive();
+        commands.safe_despawn_recursive(entity);
     }
 }
 
@@ -46,16 +46,15 @@ pub fn cleanup_global_map_ui(
     inventory_ui_query: Query<Entity, With<InventoryUI>>,
     post_mission_ui_query: Query<Entity, With<PostMissionScreen>>,
 ) {
-    // Make sure inventory is closed in global map
     inventory_state.ui_open = false;
     inventory_state.selected_agent = None;
     
-    // Clean up any lingering UI
+    // Safe despawn lingering UI
     for entity in inventory_ui_query.iter() {
-        commands.entity(entity).despawn_recursive();
+        commands.safe_despawn_recursive(entity);
     }
     
     for entity in post_mission_ui_query.iter() {
-        commands.entity(entity).despawn_recursive();
+        commands.safe_despawn_recursive(entity);
     }
 }

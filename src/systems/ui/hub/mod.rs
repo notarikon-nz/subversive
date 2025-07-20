@@ -151,7 +151,7 @@ fn rebuild_hub(
     unlocked: &UnlockedAttachments,
 ) {
     for entity in screen_query.iter() {
-        commands.entity(entity).despawn_recursive();
+        commands.safe_despawn_recursive(entity);
     }
     create_hub_ui(commands, global_data, hub_state, manufacture_state, 
         research_progress,

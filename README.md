@@ -14,6 +14,7 @@ A quick & dirty 2D top-down squad-based tactical stealth game built with Rust an
 | N | Neurovector targeting |
 | F | Combat targeting |
 | E | Interact with terminals |
+| R | Reload Weapon |
 | WASD | Camera movement |
 | I | Inventory |
 | F3 | Toggle FPS |
@@ -71,7 +72,7 @@ src/
 
 **Key Features:**
 - Squad-based multi-agent selection and control
-- Enemy AI with sight, sound detection, and state machines
+- Enemy AI with sight, sound detection, and GOAP
 - JSON scene system for data-driven missions
 - Entity pooling for performance
 - Audio system with context-aware sound effects

@@ -44,7 +44,7 @@ pub fn fps_system(
         ));
     } else if !ui_state.fps_visible && !fps_query.is_empty() {
         for entity in fps_query.iter() {
-            commands.entity(entity).despawn_recursive();
+            commands.safe_despawn_recursive(entity);
         }
     } else if ui_state.fps_visible && !fps_query.is_empty() {
         let fps = 1.0 / time.delta_secs();
@@ -82,7 +82,7 @@ pub fn pause_system(
         
         // Clear pause UI
         for entity in screen_query.iter() {
-            commands.entity(entity).despawn_recursive();
+            commands.safe_despawn_recursive(entity);
         }
         
         // Go to post-mission to handle agent recovery properly
@@ -124,7 +124,7 @@ pub fn pause_system(
         });
     } else if !should_show && ui_exists {
         for entity in screen_query.iter() {
-            commands.entity(entity).despawn_recursive();
+            commands.safe_despawn_recursive(entity);
         }
     }
 }
@@ -140,7 +140,7 @@ pub fn inventory_system(
     if !inventory_state.ui_open {
         if !inventory_ui_query.is_empty() {
             for entity in inventory_ui_query.iter() {
-                commands.entity(entity).despawn_recursive();
+                commands.safe_despawn_recursive(entity);
             }
         }
         return;
@@ -152,7 +152,7 @@ pub fn inventory_system(
     
     if needs_update {
         for entity in inventory_ui_query.iter() {
-            commands.entity(entity).despawn_recursive();
+            commands.safe_despawn_recursive(entity);
         }
         
         let (inventory, weapon_state) = inventory_state.selected_agent
@@ -313,7 +313,7 @@ pub fn post_mission_ui_system(
 ) {
     if input.just_pressed(KeyCode::KeyR) {
         for entity in screen_query.iter() {
-            commands.entity(entity).despawn_recursive();
+            commands.safe_despawn_recursive(entity);
         }
         processed.0 = false;
         next_state.set(GameState::GlobalMap);

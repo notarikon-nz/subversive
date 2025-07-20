@@ -1279,3 +1279,26 @@ impl WeaponState {
         }
     }
 }
+
+// === BETTER DESPAWNING ===
+/*
+2025-07-20T05:35:24.557541Z  WARN bevy_ecs::error::handler: Encountered an error in command `<bevy_ecs::system::commands::entity_command::despawn::{{closure}} as bevy_ecs::error::command_handling::CommandWithEntity<core::result::Result<(), bevy_ecs::world::error::EntityMutableFetchError>>>::with_entity::{{closure}}`: The entity with ID 106v1 does not exist (enable `track_location` feature for more details)
+*/
+pub trait SafeDespawn {
+    fn safe_despawn(&mut self, entity: Entity);
+    fn safe_despawn_recursive(&mut self, entity: Entity);
+}
+
+impl SafeDespawn for Commands<'_, '_> {
+    fn safe_despawn(&mut self, entity: Entity) {
+        if let Ok(mut entity_commands) = self.get_entity(entity) {
+            entity_commands.despawn();
+        }
+    }
+    
+    fn safe_despawn_recursive(&mut self, entity: Entity) {
+        if let Ok(mut entity_commands) = self.get_entity(entity) {
+            entity_commands.despawn_recursive();
+        }
+    }
+}

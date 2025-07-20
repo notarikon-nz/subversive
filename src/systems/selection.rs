@@ -19,26 +19,23 @@ pub fn system(
         return; 
     };
     
-    // Check if we're dragging for selection box
     if drag_state.dragging {
         drag_state.current_pos = world_pos;
-        
-        // Update selection box visual
         update_selection_box(&mut commands, &drag_state, &selection_box_query);
         
-        // Handle mouse release
         if mouse.just_released(MouseButton::Left) {
             complete_drag_selection(&mut commands, &mut selection, &drag_state, &selectable_query, false, &selected_query);
             
-            // Clean up drag state and selection box
             drag_state.dragging = false;
+            
+            // Safe cleanup selection box
             for entity in selection_box_query.iter() {
-                commands.entity(entity).despawn();
+                commands.safe_despawn(entity);
             }
         }
     }
     
-    // Handle mouse press
+    // Rest of selection logic...
     if mouse.just_pressed(MouseButton::Left) {
         let clicked_agent = find_agent_at_position(world_pos, &selectable_query);
         
@@ -112,14 +109,15 @@ fn add_to_selection(
     }
 }
 
+
 fn update_selection_box(
     commands: &mut Commands,
     drag_state: &SelectionDrag,
     selection_box_query: &Query<Entity, With<SelectionBox>>,
 ) {
-    // Remove existing selection box
+    // Safe cleanup existing selection box
     for entity in selection_box_query.iter() {
-        commands.entity(entity).despawn();
+        commands.safe_despawn(entity);
     }
     
     // Create new selection box
@@ -132,14 +130,14 @@ fn update_selection_box(
     let height = max_y - min_y;
     let center = Vec2::new(min_x + width / 2.0, min_y + height / 2.0);
     
-    if width > 5.0 || height > 5.0 { // Only show box if drag is significant
+    if width > 5.0 || height > 5.0 {
         commands.spawn((
             Sprite {
                 color: Color::srgba(0.2, 0.8, 0.2, 0.3),
                 custom_size: Some(Vec2::new(width, height)),
                 ..default()
             },
-            Transform::from_translation(center.extend(10.0)), // High Z for visibility
+            Transform::from_translation(center.extend(10.0)),
             SelectionBox {
                 start: drag_state.start_pos,
                 end: drag_state.current_pos,
