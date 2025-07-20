@@ -1,7 +1,6 @@
 // src/core/goap.rs
 use bevy::prelude::*;
 use std::collections::{HashMap, VecDeque};
-use crate::systems::*;
 
 // Macro for easier HashMap creation
 macro_rules! hashmap {
@@ -295,6 +294,22 @@ impl GoapAgent {
                 ],
                 action_type: ActionType::Reload,
             },
+            
+            // Tactical reload (reload when low on ammo, not empty)
+            GoapAction {
+                name: "tactical_reload",
+                cost: 1.5,
+                preconditions: hashmap![
+                    WorldKey::HasWeapon => true,
+                    WorldKey::WeaponLoaded => true, // Has some ammo but low
+                    WorldKey::HasTarget => false // Safe to reload
+                ],
+                effects: hashmap![
+                    WorldKey::WeaponLoaded => true
+                ],
+                action_type: ActionType::Reload,
+            },
+
         ];
     }
 
@@ -504,9 +519,10 @@ pub fn goap_ai_system(
         &Transform, 
         &mut AIState, 
         &mut GoapAgent,
-        &mut Vision, // Make Vision mutable
+        &mut Vision,
         &Patrol,
-        &Health
+        &Health,
+        Option<&WeaponState> // Add optional weapon state
     ), (With<Enemy>, Without<Dead>)>,
     agent_query: Query<(Entity, &Transform), With<Agent>>,
     cover_query: Query<(Entity, &Transform, &CoverPoint), Without<Enemy>>,
@@ -519,15 +535,14 @@ pub fn goap_ai_system(
 ) {
     if game_mode.paused { return; }
 
-    for (enemy_entity, enemy_transform, mut ai_state, mut goap_agent, mut vision, patrol, health) in enemy_query.iter_mut() {
-        // Update planning cooldown
+    for (enemy_entity, enemy_transform, mut ai_state, mut goap_agent, mut vision, patrol, health, weapon_state) in enemy_query.iter_mut() {
         goap_agent.planning_cooldown -= time.delta_secs();
         
-        // Enhanced world state updates with vision direction updates
+        // Enhanced world state updates with weapon state
         update_world_state_from_perception(
             &mut goap_agent,
             enemy_transform,
-            &mut vision, // Pass as mutable
+            &mut vision,
             &agent_query,
             &mut ai_state,
             patrol,
@@ -535,14 +550,13 @@ pub fn goap_ai_system(
             &all_enemy_query,
             enemy_entity,
             health,
+            weapon_state, // Pass weapon state
         );
         
-        // Enhanced planning conditions
         let should_replan = goap_agent.current_plan.is_empty() || 
                           goap_agent.planning_cooldown <= 0.0 ||
                           plan_invalidated(&goap_agent, &ai_state, health);
         
-        // Dynamic planning intervals based on situation
         let in_danger = *goap_agent.world_state.get(&WorldKey::IsInjured).unwrap_or(&false) ||
                        *goap_agent.world_state.get(&WorldKey::Outnumbered).unwrap_or(&false);
         
@@ -551,17 +565,15 @@ pub fn goap_ai_system(
         
         if should_replan {
             goap_agent.plan();
-            // Adaptive planning intervals
             goap_agent.planning_cooldown = if in_danger { 
-                0.3 // Very fast replanning when in danger
+                0.3
             } else if in_combat { 
-                0.5 // Fast replanning in combat
+                0.5
             } else { 
-                2.0 // Normal interval for patrol
+                2.0
             };
         }
         
-        // Execute the next action in the plan
         if let Some(action) = goap_agent.get_next_action() {
             execute_goap_action(
                 &action,
@@ -585,7 +597,7 @@ pub fn goap_ai_system(
 fn update_world_state_from_perception(
     goap_agent: &mut GoapAgent,
     enemy_transform: &Transform,
-    vision: &mut Vision, // Make vision mutable to update direction
+    vision: &mut Vision,
     agent_query: &Query<(Entity, &Transform), With<Agent>>,
     ai_state: &mut AIState,
     patrol: &Patrol,
@@ -593,14 +605,13 @@ fn update_world_state_from_perception(
     all_enemy_query: &Query<(Entity, &Transform), (With<Enemy>, Without<Dead>)>,
     current_enemy: Entity,
     health: &Health,
+    weapon_state: Option<&WeaponState>, // Add weapon state parameter
 ) {
     let enemy_pos = enemy_transform.translation.truncate();
     
     // === VISION DIRECTION UPDATE ===
-    // Update vision direction based on current activity
     match &ai_state.mode {
         crate::systems::ai::AIMode::Patrol => {
-            // Face the direction of movement or next patrol point
             if let Some(target) = patrol.current_target() {
                 let direction = (target - enemy_pos).normalize_or_zero();
                 if direction != Vec2::ZERO {
@@ -609,7 +620,6 @@ fn update_world_state_from_perception(
             }
         },
         crate::systems::ai::AIMode::Combat { target } => {
-            // Face the target if we have one
             if let Ok((_, target_transform)) = agent_query.get(*target) {
                 let direction = (target_transform.translation.truncate() - enemy_pos).normalize_or_zero();
                 if direction != Vec2::ZERO {
@@ -618,14 +628,12 @@ fn update_world_state_from_perception(
             }
         },
         crate::systems::ai::AIMode::Investigate { location } => {
-            // Face the investigation location
             let direction = (*location - enemy_pos).normalize_or_zero();
             if direction != Vec2::ZERO {
                 vision.direction = direction;
             }
         },
         crate::systems::ai::AIMode::Search { area } => {
-            // Face the search area center
             let direction = (*area - enemy_pos).normalize_or_zero();
             if direction != Vec2::ZERO {
                 vision.direction = direction;
@@ -637,7 +645,6 @@ fn update_world_state_from_perception(
     let visible_agent = check_line_of_sight_goap(enemy_transform, vision, agent_query);
     let has_target = visible_agent.is_some();
     let target_visible = has_target;
-    
     
     if let Some(agent_entity) = visible_agent {
         if let Ok((_, agent_transform)) = agent_query.get(agent_entity) {
@@ -662,11 +669,8 @@ fn update_world_state_from_perception(
         .count() > 0;
     
     // === ENHANCED TACTICAL ASSESSMENT ===
-    
-    // Check if injured (below 50% health)
     let is_injured = health.0 < 50.0;
     
-    // Count nearby forces for outnumbered assessment
     let agent_count = agent_query.iter()
         .filter(|(_, transform)| {
             enemy_pos.distance(transform.translation.truncate()) <= 200.0
@@ -680,13 +684,25 @@ fn update_world_state_from_perception(
         })
         .count();
     
-    let outnumbered = agent_count > nearby_enemy_count + 1; // +1 for self
+    let outnumbered = agent_count > nearby_enemy_count + 1;
     
-    // Check if at safe distance (no agents within 150 units)
     let at_safe_distance = !agent_query.iter()
         .any(|(_, transform)| {
             enemy_pos.distance(transform.translation.truncate()) <= 150.0
         });
+    
+    // === WEAPON/AMMO STATE ===
+    if let Some(weapon_state) = weapon_state {
+        let weapon_loaded = weapon_state.current_ammo > 0;
+        let needs_reload = weapon_state.needs_reload();
+        
+        goap_agent.update_world_state(WorldKey::WeaponLoaded, weapon_loaded);
+        goap_agent.update_world_state(WorldKey::HasWeapon, true);
+        
+    } else {
+        goap_agent.update_world_state(WorldKey::WeaponLoaded, true);
+        goap_agent.update_world_state(WorldKey::HasWeapon, true);
+    }
     
     // Update all world states
     goap_agent.update_world_state(WorldKey::TargetVisible, target_visible);
@@ -694,30 +710,26 @@ fn update_world_state_from_perception(
     goap_agent.update_world_state(WorldKey::AtPatrolPoint, at_patrol_point);
     goap_agent.update_world_state(WorldKey::CoverAvailable, cover_available);
     goap_agent.update_world_state(WorldKey::NearbyAlliesAvailable, nearby_allies);
-    
-    // Enhanced tactical states
     goap_agent.update_world_state(WorldKey::IsInjured, is_injured);
     goap_agent.update_world_state(WorldKey::Outnumbered, outnumbered);
     goap_agent.update_world_state(WorldKey::AtSafeDistance, at_safe_distance);
     
-    // Reset tactical states if no longer applicable
     if !has_target {
         goap_agent.update_world_state(WorldKey::FlankingPosition, false);
         goap_agent.update_world_state(WorldKey::TacticalAdvantage, false);
     }
     
-    // Update based on AI state - IMPORTANT: Force mode change when target detected
+    // Update based on AI state with immediate mode switch for target detection
     match &ai_state.mode {
         crate::systems::ai::AIMode::Patrol => {
             goap_agent.update_world_state(WorldKey::IsAlert, false);
             goap_agent.update_world_state(WorldKey::IsInvestigating, false);
             goap_agent.update_world_state(WorldKey::IsRetreating, false);
             
-            // CRITICAL: Switch to combat mode when target detected during patrol
             if has_target && visible_agent.is_some() {
                 ai_state.mode = crate::systems::ai::AIMode::Combat { target: visible_agent.unwrap() };
                 goap_agent.update_world_state(WorldKey::IsAlert, true);
-                goap_agent.abort_plan(); // Force immediate replanning
+                goap_agent.abort_plan();
             }
         },
         crate::systems::ai::AIMode::Combat { .. } => {
@@ -944,11 +956,6 @@ fn execute_goap_action(
             
         },
         
-        // === SUPPORT ACTIONS ===
-        ActionType::Reload => {
-            info!("Enemy {} reloading weapon", enemy_entity.index());
-        },
-        
         ActionType::CallForHelp => {
             audio_events.write(AudioEvent {
                 sound: AudioType::Alert,
@@ -962,6 +969,14 @@ fn execute_goap_action(
             });
             
         },
+
+        ActionType::Reload => {
+            action_events.write(ActionEvent {
+                entity: enemy_entity,
+                action: Action::Reload,
+            });
+        },
+         
     }
 }
 

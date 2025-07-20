@@ -143,32 +143,6 @@ impl GoapAgent {
     }
 }
 
-// === EXTENDED ACTION TYPES ===
-// Add these to your main ActionType enum:
-/*
-pub enum ActionType {
-    // Existing actions...
-    
-    // Defensive actions
-    TakeCover,
-    UseMedKit,
-    
-    // Communication actions
-    CallBackup,
-    RequestSupport,
-    
-    // Tactical actions
-    FlankTarget,
-    SetupAmbush,
-    ThrowGrenade,
-    
-    // Environmental actions
-    OpenDoor,
-    TriggerAlarm,
-    DisableAlarm,
-}
-*/
-
 // === DYNAMIC BEHAVIOR SYSTEM ===
 #[derive(Component)]
 pub struct BehaviorProfile {

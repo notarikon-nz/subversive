@@ -13,6 +13,7 @@ pub fn system(
     mut audio_events: EventWriter<AudioEvent>,
     selection: Res<SelectionState>,
     agent_query: Query<(&Transform, &Inventory), With<Agent>>,
+    mut agent_weapon_query: Query<&mut WeaponState, With<Agent>>, // Add weapon state query
     mut enemy_query: Query<(Entity, &Transform, &mut Health), (With<Enemy>, Without<Dead>)>,
     game_mode: Res<GameMode>,
     windows: Query<&Window>,
@@ -27,13 +28,15 @@ pub fn system(
         if let Ok((agent_transform, inventory)) = agent_query.get(*agent) {
             let agent_pos = agent_transform.translation.truncate();
             
-            // Calculate weapon stats with attachments
-            let (range, _accuracy_bonus) = calculate_weapon_stats(inventory);
+            // Get weapon state for range calculation
+            let (range, _accuracy_bonus) = if let Ok(weapon_state) = agent_weapon_query.get(*agent) {
+                calculate_weapon_stats_with_ammo(inventory, &weapon_state)
+            } else {
+                (150.0, 0.8) // Default values
+            };
             
-            // Draw combat range with attachment modifiers
             gizmos.circle_2d(agent_pos, range, Color::srgba(0.8, 0.2, 0.2, 0.3));
             
-            // Highlight valid targets
             for (enemy_entity, enemy_transform, enemy_health) in enemy_query.iter() {
                 if enemy_health.0 <= 0.0 { continue; }
                 
@@ -43,7 +46,6 @@ pub fn system(
                 if distance <= range {
                     gizmos.circle_2d(enemy_pos, 25.0, Color::srgb(1.0, 0.5, 0.5));
                     
-                    // Draw crosshairs
                     let size = 15.0;
                     gizmos.line_2d(
                         enemy_pos + Vec2::new(-size, 0.0),
@@ -58,10 +60,9 @@ pub fn system(
                 }
             }
             
-            // Handle target selection
             if action_state.just_pressed(&PlayerAction::Select) {
                 if let Some(target) = find_combat_target(*agent, &agent_query, &enemy_query, &windows, &cameras, range) {
-                    execute_attack(*agent, target, &agent_query, &mut enemy_query, &mut combat_events, &mut audio_events);
+                    execute_attack(*agent, target, &agent_query, &mut agent_weapon_query, &mut enemy_query, &mut combat_events, &mut audio_events);
                 }
             }
         }
@@ -70,7 +71,7 @@ pub fn system(
     // Process attack actions from events
     for event in action_events.read() {
         if let Action::Attack(target) = event.action {
-            execute_attack(event.entity, target, &agent_query, &mut enemy_query, &mut combat_events, &mut audio_events);
+            execute_attack(event.entity, target, &agent_query, &mut agent_weapon_query, &mut enemy_query, &mut combat_events, &mut audio_events);
         }
     }
 
@@ -81,6 +82,7 @@ pub fn system(
         }
     }
 }
+
 
 pub fn death_system(
     mut commands: Commands,
@@ -112,6 +114,25 @@ fn calculate_weapon_stats(inventory: &Inventory) -> (f32, f32) {
         
         let final_range = (base_range * range_modifier).max(50.0); // Minimum 50 range
         let final_accuracy = (base_accuracy + accuracy_modifier).clamp(0.1, 1.0); // 10% to 100% accuracy
+        
+        (final_range, final_accuracy)
+    } else {
+        (base_range, base_accuracy)
+    }
+}
+
+fn calculate_weapon_stats_with_ammo(inventory: &Inventory, weapon_state: &WeaponState) -> (f32, f32) {
+    let base_range = 150.0;
+    let base_accuracy = 0.8;
+    
+    if let Some(weapon_config) = &inventory.equipped_weapon {
+        let stats = weapon_config.calculate_total_stats();
+        
+        let range_modifier = 1.0 + (stats.range as f32 * 0.1);
+        let accuracy_modifier = stats.accuracy as f32 * 0.05;
+        
+        let final_range = (base_range * range_modifier).max(50.0);
+        let final_accuracy = (base_accuracy + accuracy_modifier).clamp(0.1, 1.0);
         
         (final_range, final_accuracy)
     } else {
@@ -153,24 +174,49 @@ fn execute_attack(
     attacker: Entity,
     target: Entity,
     agent_query: &Query<(&Transform, &Inventory), With<Agent>>,
+    agent_weapon_query: &mut Query<&mut WeaponState, With<Agent>>,
     enemy_query: &mut Query<(Entity, &Transform, &mut Health), (With<Enemy>, Without<Dead>)>,
     combat_events: &mut EventWriter<CombatEvent>,
     audio_events: &mut EventWriter<AudioEvent>,
 ) {
-    if let Ok((_, _, mut health)) = enemy_query.get_mut(target) {
-        // Calculate damage and accuracy with attachments
-        let (damage, hit_chance, noise_level) = if let Ok((_, inventory)) = agent_query.get(attacker) {
-            calculate_attack_stats(inventory)
+    // Check if can fire
+    let can_fire = if let Ok(weapon_state) = agent_weapon_query.get(attacker) {
+        weapon_state.can_fire()
+    } else {
+        true // Assume enemies can always fire for now
+    };
+    
+    if !can_fire {
+        info!("Attack failed - no ammo or reloading!");
+        return;
+    }
+    
+    // Get attack stats
+    let (damage, hit_chance, noise_level) = if let Ok((_, inventory)) = agent_query.get(attacker) {
+        if let Ok(weapon_state) = agent_weapon_query.get(attacker) {
+            calculate_attack_stats_with_ammo(inventory, &weapon_state)
         } else {
-            (35.0, 0.8, 1.0) // Default stats
-        };
-        
+            (35.0, 0.8, 1.0)
+        }
+    } else {
+        (35.0, 0.8, 1.0) // Enemy default
+    };
+    
+    // Consume ammo for agents
+    if let Ok(mut weapon_state) = agent_weapon_query.get_mut(attacker) {
+        if !weapon_state.consume_ammo() {
+            info!("Attack failed - couldn't consume ammo!");
+            return;
+        }
+        info!("Ammo consumed. Remaining: {}/{}", weapon_state.current_ammo, weapon_state.max_ammo);
+    }
+    
+    if let Ok((_, _, mut health)) = enemy_query.get_mut(target) {
         let hit = rand::random::<f32>() < hit_chance;
         
         if hit {
             health.0 -= damage;
             
-            // Play gunshot with noise modifier
             let volume = (0.7 * noise_level).clamp(0.1, 1.0);
             audio_events.write(AudioEvent {
                 sound: AudioType::Gunshot,
@@ -179,7 +225,6 @@ fn execute_attack(
             
             if health.0 <= 0.0 {
                 health.0 = 0.0;
-                info!("Enemy defeated!");
             }
         }
         
@@ -198,7 +243,7 @@ fn execute_attack(
     }
 }
 
-fn calculate_attack_stats(inventory: &Inventory) -> (f32, f32, f32) {
+fn calculate_attack_stats_with_ammo(inventory: &Inventory, weapon_state: &WeaponState) -> (f32, f32, f32) {
     let base_damage = 35.0;
     let base_accuracy = 0.8;
     let base_noise = 1.0;
@@ -206,18 +251,42 @@ fn calculate_attack_stats(inventory: &Inventory) -> (f32, f32, f32) {
     if let Some(weapon_config) = &inventory.equipped_weapon {
         let stats = weapon_config.calculate_total_stats();
         
-        // Apply attachment modifiers
-        let damage_modifier = 1.0 + (stats.accuracy as f32 * 0.02); // Accuracy slightly increases damage
-        let accuracy_modifier = stats.accuracy as f32 * 0.05; // Each point = 5% accuracy
-        let noise_modifier = 1.0 + (stats.noise as f32 * 0.1); // Each point = 10% noise change
+        let damage_modifier = 1.0 + (stats.accuracy as f32 * 0.02);
+        let accuracy_modifier = stats.accuracy as f32 * 0.05;
+        let noise_modifier = 1.0 + (stats.noise as f32 * 0.1);
         
         let final_damage = base_damage * damage_modifier;
         let final_accuracy = (base_accuracy + accuracy_modifier).clamp(0.1, 0.95);
-        let final_noise = (base_noise * noise_modifier).max(0.1); // Minimum 10% noise
+        let final_noise = (base_noise * noise_modifier).max(0.1);
         
         (final_damage, final_accuracy, final_noise)
     } else {
         (base_damage, base_accuracy, base_noise)
+    }
+}
+
+fn calculate_attack_stats(inventory: &Inventory,  weapon_state: &WeaponState) -> (f32, f32, f32, bool) {
+    let base_damage = 35.0;
+    let base_accuracy = 0.8;
+    let base_noise = 1.0;
+    
+    // Check if can fire
+    let can_fire = weapon_state.can_fire();
+    
+    if let Some(weapon_config) = &inventory.equipped_weapon {
+        let stats = weapon_config.calculate_total_stats();
+        
+        let damage_modifier = 1.0 + (stats.accuracy as f32 * 0.02);
+        let accuracy_modifier = stats.accuracy as f32 * 0.05;
+        let noise_modifier = 1.0 + (stats.noise as f32 * 0.1);
+        
+        let final_damage = base_damage * damage_modifier;
+        let final_accuracy = (base_accuracy + accuracy_modifier).clamp(0.1, 0.95);
+        let final_noise = (base_noise * noise_modifier).max(0.1);
+        
+        (final_damage, final_accuracy, final_noise, can_fire)
+    } else {
+        (base_damage, base_accuracy, base_noise, can_fire)
     }
 }
 

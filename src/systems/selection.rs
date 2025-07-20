@@ -19,12 +19,6 @@ pub fn system(
         return; 
     };
     
-    // Debug output
-    if mouse.just_pressed(MouseButton::Left) {
-        info!("Left click at world pos: {:?}", world_pos);
-        info!("Selectable agents: {}", selectable_query.iter().count());
-    }
-    
     // Check if we're dragging for selection box
     if drag_state.dragging {
         drag_state.current_pos = world_pos;
@@ -34,7 +28,6 @@ pub fn system(
         
         // Handle mouse release
         if mouse.just_released(MouseButton::Left) {
-            info!("Completing drag selection");
             complete_drag_selection(&mut commands, &mut selection, &drag_state, &selectable_query, false, &selected_query);
             
             // Clean up drag state and selection box
@@ -50,11 +43,9 @@ pub fn system(
         let clicked_agent = find_agent_at_position(world_pos, &selectable_query);
         
         if let Some(agent) = clicked_agent {
-            info!("Clicked on agent: {:?}", agent);
             clear_selection(&mut commands, &mut selection, &selected_query);
             add_to_selection(&mut commands, &mut selection, agent);
         } else {
-            info!("Starting drag selection");
             drag_state.dragging = true;
             drag_state.start_pos = world_pos;
             drag_state.current_pos = world_pos;
@@ -195,7 +186,5 @@ fn complete_drag_selection(
                 }
             }
         }
-        
-        info!("Selected {} agents", selection.selected.len());
     }
 }

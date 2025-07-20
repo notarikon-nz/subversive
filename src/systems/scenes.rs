@@ -190,7 +190,6 @@ pub fn load_scene(name: &str) -> SceneData {
     // First try to load from file
     if let Ok(content) = std::fs::read_to_string(&path) {
         if let Ok(scene) = serde_json::from_str(&content) {
-            info!("Successfully loaded scene '{}'", name);
             return scene;
         }
     }
@@ -206,7 +205,6 @@ pub fn load_scene(name: &str) -> SceneData {
         }
     };
     
-    info!("Using built-in scene for '{}'", name);
     scene
 }
 
@@ -216,9 +214,6 @@ pub fn spawn_from_scene(
     global_data: &GlobalData, 
     sprites: &GameSprites
 ) {
-    info!("Spawning scene: {} agents, {} enemies, {} civilians, {} terminals", 
-          scene.agents.len(), scene.enemies.len(), scene.civilians.len(), scene.terminals.len());
-    
     for (i, agent_data) in scene.agents.iter().enumerate() {
         let level = if i < 3 { global_data.agent_levels[i] } else { agent_data.level };
         spawn_agent(commands, Vec2::from(agent_data.position), level, i, global_data, sprites);
@@ -283,9 +278,15 @@ fn spawn_agent(
     
     // Starting credits based on level
     inventory.add_currency(100 * level as u32);
-    
-    info!("Spawning Agent {} at {:?} with {} weapons, {} tools", 
-          agent_idx + 1, position, inventory.weapons.len(), inventory.tools.len());
+
+    // Create weapon state based on equipped weapon
+    let weapon_state = if let Some(weapon_config) = loadout.weapon_configs.get(loadout.equipped_weapon_idx) {
+        let mut state = WeaponState::new(&weapon_config.base_weapon);
+        state.apply_attachment_modifiers(weapon_config);
+        state
+    } else {
+        WeaponState::default()
+    };    
     
     let entity = commands.spawn((
         sprite,
@@ -298,13 +299,13 @@ fn spawn_agent(
         Vision::new(150.0, 60.0),
         NeurovectorCapability::default(),
         inventory,
+        weapon_state,
         RigidBody::Dynamic,
         Collider::ball(10.0),
         Velocity::default(),
         Damping { linear_damping: 10.0, angular_damping: 10.0 },
     )).id();
     
-    info!("Spawned Agent {} as entity {:?}", agent_idx + 1, entity);
 }
 
 fn spawn_civilian(commands: &mut Commands, position: Vec2, sprites: &GameSprites) {
@@ -325,7 +326,6 @@ fn spawn_civilian(commands: &mut Commands, position: Vec2, sprites: &GameSprites
         Damping { linear_damping: 10.0, angular_damping: 10.0 },
     )).id();
     
-    info!("Spawned Civilian as entity {:?} at {:?}", entity, position);
 }
 
 fn spawn_enemy_with_patrol(
@@ -351,14 +351,12 @@ fn spawn_enemy_with_patrol(
         Patrol::new(patrol_points.clone()),
         AIState::default(),
         GoapAgent::default(),
+        WeaponState::new(&WeaponType::Rifle),
         RigidBody::Dynamic,
         Collider::ball(9.0),
         Velocity::default(),
         Damping { linear_damping: 10.0, angular_damping: 10.0 },
     )).id();
-    
-    info!("Spawned Enemy as entity {:?} at {:?} with {} patrol points", 
-          entity, position, patrol_points.len());
 }
 
 fn spawn_terminal(commands: &mut Commands, position: Vec2, terminal_type: TerminalType, sprites: &GameSprites) {
@@ -372,7 +370,7 @@ fn spawn_terminal(commands: &mut Commands, position: Vec2, terminal_type: Termin
         Selectable { radius: 15.0 },
     )).id();
     
-    info!("Spawned {:?} Terminal as entity {:?} at {:?}", terminal_type, entity, position);
+    
 }
 
 pub fn spawn_cover_points(commands: &mut Commands) {
@@ -398,8 +396,6 @@ pub fn spawn_cover_points(commands: &mut Commands) {
                 cover_direction: Vec2::X,
             },
         )).id();
-        
-        info!("Spawned Cover Point as entity {:?} at {:?}", entity, pos);
     }
 }
 

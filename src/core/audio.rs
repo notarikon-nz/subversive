@@ -1,6 +1,5 @@
 use bevy::prelude::*;
 use bevy::audio::PlaybackSettings;  // Remove Volume import
-use crate::core::*;
 
 #[derive(Resource)]
 pub struct GameAudio {
@@ -9,6 +8,8 @@ pub struct GameAudio {
     pub footstep: Handle<AudioSource>,
     pub alert: Handle<AudioSource>,
     pub neurovector: Handle<AudioSource>,
+    pub reload: Handle<AudioSource>,
+    pub reload_complete: Handle<AudioSource>,
 }
 
 #[derive(Event)]
@@ -24,6 +25,8 @@ pub enum AudioType {
     Footstep,
     Alert,
     Neurovector,
+    Reload,
+    ReloadComplete,    
 }
 
 impl Default for AudioEvent {
@@ -42,8 +45,9 @@ pub fn setup_audio(mut commands: Commands, asset_server: Res<AssetServer>) {
         footstep: asset_server.load("audio/footstep.ogg"),
         alert: asset_server.load("audio/alert.ogg"),
         neurovector: asset_server.load("audio/neurovector.ogg"),
+        reload: asset_server.load("audio/reload.ogg"),
+        reload_complete: asset_server.load("audio/reload_complete.ogg"),
     };
-    
     commands.insert_resource(audio);
 }
 
@@ -59,6 +63,8 @@ pub fn audio_system(
             AudioType::Footstep => &audio.footstep,
             AudioType::Alert => &audio.alert,
             AudioType::Neurovector => &audio.neurovector,
+            AudioType::Reload => &audio.reload,
+            AudioType::ReloadComplete => &audio.reload_complete,
         };
         
         // FIXED: Use default settings for now, volume control can be added later

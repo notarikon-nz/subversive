@@ -13,6 +13,7 @@ pub enum Action {
     TakeDamage(f32),
     NeurovectorControl { target: Entity },
     InteractWith(Entity),
+    Reload,
 }
 
 #[derive(Event)]

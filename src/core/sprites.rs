@@ -1,6 +1,4 @@
 use bevy::prelude::*;
-use crate::core::*;
-use crate::systems::*;
 
 #[derive(Resource)]
 pub struct GameSprites {

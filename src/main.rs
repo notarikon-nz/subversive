@@ -120,6 +120,8 @@ fn main() {
             cover::cover_management_system,
             cover::cover_exit_system,
             quicksave::quicksave_system,
+            reload::reload_system,
+
         ).run_if(in_state(GameState::Mission)))
 
         .add_systems(Update, (
@@ -162,7 +164,8 @@ fn setup_camera_and_input(mut commands: Commands) {
         .with(PlayerAction::Neurovector, KeyCode::KeyN)
         .with(PlayerAction::Combat, KeyCode::KeyF)
         .with(PlayerAction::Interact, KeyCode::KeyE)
-        .with(PlayerAction::Inventory, KeyCode::KeyI);
+        .with(PlayerAction::Inventory, KeyCode::KeyI)
+        .with(PlayerAction::Reload, KeyCode::KeyR);
     
     commands.spawn((
         input_map,
