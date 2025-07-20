@@ -38,7 +38,6 @@ pub fn system(
                     // Draw "E" prompt
                     gizmos.rect_2d(
                         terminal_pos + Vec2::new(0.0, 25.0), 
-                        0.0, 
                         Vec2::new(15.0, 15.0), 
                         Color::srgba(1.0, 1.0, 1.0, 0.8)
                     );
@@ -98,7 +97,7 @@ fn execute_terminal_interaction(
             mission_data.terminals_accessed += 1;
             
            // Play terminal access sound
-            audio_events.send(AudioEvent {
+            audio_events.write(AudioEvent {
                 sound: AudioType::TerminalAccess,
                 volume: 0.6,
             });

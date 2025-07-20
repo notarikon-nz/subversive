@@ -20,7 +20,7 @@ pub fn system(
     // Update cooldowns
     for (_, mut neurovector) in neurovector_query.iter_mut() {
         if neurovector.current_cooldown > 0.0 {
-            neurovector.current_cooldown -= time.delta_seconds();
+            neurovector.current_cooldown -= time.delta_secs();
         }
     }
 
@@ -93,7 +93,7 @@ fn execute_neurovector_control(
         neurovector.current_cooldown = neurovector.cooldown;
 
         // Play neurovector sound
-        audio_events.send(AudioEvent {
+        audio_events.write(AudioEvent {
             sound: AudioType::Neurovector,
             volume: 0.5,
         });

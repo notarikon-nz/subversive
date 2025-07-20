@@ -47,7 +47,7 @@ pub fn fps_system(
             commands.entity(entity).despawn_recursive();
         }
     } else if ui_state.fps_visible && !fps_query.is_empty() {
-        let fps = 1.0 / time.delta_seconds();
+        let fps = 1.0 / time.delta_secs();
         if let Ok(mut text) = fps_text_query.get_single_mut() {
             **text = format!("FPS: {:.0}", fps);
         }

@@ -25,6 +25,6 @@ pub fn movement(
     }
 
     if direction != Vec3::ZERO {
-        transform.translation += direction.normalize() * CAMERA_SPEED * time.delta_seconds();
+        transform.translation += direction.normalize() * CAMERA_SPEED * time.delta_secs();
     }
 }

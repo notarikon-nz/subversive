@@ -1,3 +1,4 @@
+// src/systems/mission.rs - Updated for Bevy 0.16
 use bevy::prelude::*;
 use crate::core::*;
 use crate::systems::*;
@@ -11,7 +12,7 @@ pub fn timer_system(
 ) {
     if game_mode.paused { return; }
     
-    mission_data.timer += time.delta_seconds();
+    mission_data.timer += time.delta_secs();
     
     if mission_data.timer >= mission_data.time_limit {
         *post_mission = PostMissionResults {
@@ -181,7 +182,7 @@ fn update_mission_results(
     global_data: &mut GlobalData,
     post_mission: &PostMissionResults,
     agent_query: &Query<&Agent>,
-    research_db: Res<ResearchDatabase>,               // ADD
+    research_db: Res<ResearchDatabase>,
 ) {
     let region_idx = global_data.selected_region;
     global_data.current_day += 1;
@@ -235,61 +236,64 @@ fn create_results_ui(
     };
     
     commands.spawn((
-        NodeBundle {
-            style: Style {
-                width: Val::Percent(100.0),
-                height: Val::Percent(100.0),
-                position_type: PositionType::Absolute,
-                justify_content: JustifyContent::Center,
-                align_items: AlignItems::Center,
-                flex_direction: FlexDirection::Column,
-                ..default()
-            },
-            background_color: Color::srgba(0.0, 0.0, 0.0, 0.8).into(),
-            z_index: ZIndex::Global(200),
+        Node {
+            width: Val::Percent(100.0),
+            height: Val::Percent(100.0),
+            position_type: PositionType::Absolute,
+            justify_content: JustifyContent::Center,
+            align_items: AlignItems::Center,
+            flex_direction: FlexDirection::Column,
             ..default()
         },
+        BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.8)),
+        ZIndex(200),
         PostMissionUI,
     )).with_children(|parent| {
-        parent.spawn(TextBundle::from_section(title, TextStyle {
-            font_size: 48.0, color, ..default()
-        }));
+        parent.spawn((
+            Text::new(title),
+            TextFont { font_size: 48.0, ..default() },
+            TextColor(color),
+        ));
         
-        parent.spawn(TextBundle::from_section(
-            format!(
+        parent.spawn((
+            Text::new(format!(
                 "\nTime: {:.1}s\nEnemies: {}\nTerminals: {}\nCredits: {}\nAlert: {:?}",
                 post_mission.time_taken,
                 post_mission.enemies_killed,
                 post_mission.terminals_accessed,
                 post_mission.credits_earned,
                 post_mission.alert_level
-            ),
-            TextStyle { font_size: 24.0, color: Color::WHITE, ..default() }
+            )),
+            TextFont { font_size: 24.0, ..default() },
+            TextColor(Color::WHITE),
         ));
         
         if post_mission.success {
             let exp = 10 + (post_mission.enemies_killed * 5);
-            parent.spawn(TextBundle::from_section(
-                format!("\nEXP GAINED: {}", exp),
-                TextStyle { font_size: 20.0, color: Color::srgb(0.2, 0.8, 0.8), ..default() }
+            parent.spawn((
+                Text::new(format!("\nEXP GAINED: {}", exp)),
+                TextFont { font_size: 20.0, ..default() },
+                TextColor(Color::srgb(0.2, 0.8, 0.8)),
             ));
             
             for i in 0..3 {
-                parent.spawn(TextBundle::from_section(
-                    format!("Agent {}: Lv{} ({}/{})", 
+                parent.spawn((
+                    Text::new(format!("Agent {}: Lv{} ({}/{})", 
                         i + 1, 
                         global_data.agent_levels[i],
                         global_data.agent_experience[i],
                         experience_for_level(global_data.agent_levels[i] + 1)
-                    ),
-                    TextStyle { font_size: 16.0, color: Color::WHITE, ..default() }
+                    )),
+                    TextFont { font_size: 16.0, ..default() },
+                    TextColor(Color::WHITE),
                 ));
             }
         }
         
-        parent.spawn(TextBundle::from_section(
-            "\nR: Return to Map | ESC: Quit",
-            TextStyle { font_size: 16.0, color: Color::srgb(0.7, 0.7, 0.7), ..default() }
+        parent.spawn((
+            Text::new("\nR: Return to Map | ESC: Quit"),
+            TextFont { font_size: 16.0, ..default() },
+            TextColor(Color::srgb(0.7, 0.7, 0.7)),
         ));
     });
 }

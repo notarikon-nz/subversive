@@ -1,6 +1,6 @@
 /target
 /removed
-quicksave.json
-subversive_save.json
 .gitignore
 Cargo.lock
+quicksave.json
+subversive_save.json

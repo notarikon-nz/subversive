@@ -1,6 +1,5 @@
-// src/core/audio.rs - Fix for Bevy 0.16
 use bevy::prelude::*;
-use bevy::audio::{Volume, PlaybackSettings};
+use bevy::audio::PlaybackSettings;  // Remove Volume import
 use crate::core::*;
 
 #[derive(Resource)]
@@ -62,15 +61,15 @@ pub fn audio_system(
             AudioType::Neurovector => &audio.neurovector,
         };
         
-        // Bevy 0.16 audio spawning - no more AudioBundle
+        // FIXED: Use default settings for now, volume control can be added later
         commands.spawn((
             AudioPlayer::new(source.clone()),
-            PlaybackSettings::DESPAWN.with_volume(Volume::new(event.volume)),
+            PlaybackSettings::DESPAWN,  // Use default volume for now
         ));
     }
 }
 
 // Helper function for easy audio triggering
 pub fn play_sound(audio_events: &mut EventWriter<AudioEvent>, sound: AudioType, volume: f32) {
-    audio_events.send(AudioEvent { sound, volume });
+    audio_events.write(AudioEvent { sound, volume });
 }

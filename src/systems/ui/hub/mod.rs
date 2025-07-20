@@ -1,4 +1,4 @@
-// src/systems/ui/hub/mod.rs - Main hub coordination
+// src/systems/ui/hub/mod.rs - Updated for Bevy 0.16
 use bevy::prelude::*;
 use crate::core::*;
 
@@ -68,9 +68,9 @@ pub fn hub_system(
     mut global_data: ResMut<GlobalData>,
     mut hub_state: ResMut<HubState>,
     mut manufacture_state: ResMut<ManufactureState>,
-    mut research_progress: ResMut<ResearchProgress>,  // ADD
-    research_db: Res<ResearchDatabase>,               // ADD
-    mut unlocked: ResMut<UnlockedAttachments>, // ADD
+    mut research_progress: ResMut<ResearchProgress>,
+    research_db: Res<ResearchDatabase>,
+    mut unlocked: ResMut<UnlockedAttachments>,
     input: Res<ButtonInput<KeyCode>>,
     screen_query: Query<Entity, With<HubScreen>>,
     attachment_db: Res<AttachmentDatabase>,
@@ -94,7 +94,6 @@ pub fn hub_system(
     }
 
     // Delegate input handling to appropriate tab
-    // Spaced out for easier debugging
     let mut needs_rebuild = match hub_state.active_tab {
         HubTab::GlobalMap => global_map::handle_input(
             &input, 
@@ -146,8 +145,8 @@ fn rebuild_hub(
     global_data: &GlobalData,
     hub_state: &HubState,
     manufacture_state: &ManufactureState,
-    research_progress: &ResearchProgress,  // ADD
-    research_db: &ResearchDatabase,        // ADD    
+    research_progress: &ResearchProgress,
+    research_db: &ResearchDatabase,
     attachment_db: &AttachmentDatabase,
     unlocked: &UnlockedAttachments,
 ) {
@@ -171,16 +170,13 @@ fn create_hub_ui(
     unlocked: &UnlockedAttachments,
 ) {
     commands.spawn((
-        NodeBundle {
-            style: Style {
-                width: Val::Percent(100.0),
-                height: Val::Percent(100.0),
-                flex_direction: FlexDirection::Column,
-                ..default()
-            },
-            background_color: Color::srgb(0.1, 0.1, 0.2).into(),
+        Node {
+            width: Val::Percent(100.0),
+            height: Val::Percent(100.0),
+            flex_direction: FlexDirection::Column,
             ..default()
         },
+        BackgroundColor(Color::srgb(0.1, 0.1, 0.2)),
         HubScreen,
     )).with_children(|parent| {
         // Fixed header
@@ -210,56 +206,54 @@ fn create_hub_ui(
 }
 
 fn create_header(parent: &mut ChildSpawnerCommands, global_data: &GlobalData) {
-    parent.spawn(NodeBundle {
-        style: Style {
+    parent.spawn((
+        Node {
             width: Val::Percent(100.0),
             height: Val::Px(80.0),
-            flex_shrink: 0.0, // Don't allow shrinking
+            flex_shrink: 0.0,
             justify_content: JustifyContent::SpaceBetween,
             align_items: AlignItems::Center,
             padding: UiRect::all(Val::Px(20.0)),
             ..default()
         },
-        background_color: Color::srgb(0.15, 0.15, 0.25).into(),
-        ..default()
-    }).with_children(|header| {
-        header.spawn(TextBundle::from_section(
-            "SUBVERSIVE",
-            TextStyle { font_size: 32.0, color: Color::WHITE, ..default() }
+        BackgroundColor(Color::srgb(0.15, 0.15, 0.25)),
+    )).with_children(|header| {
+        header.spawn((
+            Text::new("SUBVERSIVE"),
+            TextFont { font_size: 32.0, ..default() },
+            TextColor(Color::WHITE),
         ));
         
-        header.spawn(NodeBundle {
-            style: Style {
-                flex_direction: FlexDirection::Row,
-                column_gap: Val::Px(30.0),
-                ..default()
-            },
+        header.spawn(Node {
+            flex_direction: FlexDirection::Row,
+            column_gap: Val::Px(30.0),
             ..default()
         }).with_children(|info| {
-            info.spawn(TextBundle::from_section(
-                format!("Day {}", global_data.current_day),
-                TextStyle { font_size: 18.0, color: Color::WHITE, ..default() }
+            info.spawn((
+                Text::new(format!("Day {}", global_data.current_day)),
+                TextFont { font_size: 18.0, ..default() },
+                TextColor(Color::WHITE),
             ));
-            info.spawn(TextBundle::from_section(
-                format!("Credits: {}", global_data.credits),
-                TextStyle { font_size: 18.0, color: Color::srgb(0.8, 0.8, 0.2), ..default() }
+            info.spawn((
+                Text::new(format!("Credits: {}", global_data.credits)),
+                TextFont { font_size: 18.0, ..default() },
+                TextColor(Color::srgb(0.8, 0.8, 0.2)),
             ));
         });
     });
 }
 
 fn create_tab_bar(parent: &mut ChildSpawnerCommands, active_tab: HubTab) {
-    parent.spawn(NodeBundle {
-        style: Style {
+    parent.spawn((
+        Node {
             width: Val::Percent(100.0),
             height: Val::Px(50.0),
-            flex_shrink: 0.0, // Don't allow shrinking
+            flex_shrink: 0.0,
             flex_direction: FlexDirection::Row,
             ..default()
         },
-        background_color: Color::srgb(0.08, 0.08, 0.15).into(),
-        ..default()
-    }).with_children(|tabs| {
+        BackgroundColor(Color::srgb(0.08, 0.08, 0.15)),
+    )).with_children(|tabs| {
         let tab_configs = [
             (HubTab::GlobalMap, "GLOBAL MAP"),
             (HubTab::Research, "RESEARCH"),
@@ -277,20 +271,20 @@ fn create_tab_bar(parent: &mut ChildSpawnerCommands, active_tab: HubTab) {
             };
             let text_color = if is_active { Color::WHITE } else { Color::srgb(0.7, 0.7, 0.7) };
             
-            tabs.spawn(NodeBundle {
-                style: Style {
+            tabs.spawn((
+                Node {
                     width: Val::Percent(20.0),
                     height: Val::Percent(100.0),
                     justify_content: JustifyContent::Center,
                     align_items: AlignItems::Center,
                     ..default()
                 },
-                background_color: bg_color.into(),
-                ..default()
-            }).with_children(|tab_button| {
-                tab_button.spawn(TextBundle::from_section(
-                    title,
-                    TextStyle { font_size: 14.0, color: text_color, ..default() }
+                BackgroundColor(bg_color),
+            )).with_children(|tab_button| {
+                tab_button.spawn((
+                    Text::new(title),
+                    TextFont { font_size: 14.0, ..default() },
+                    TextColor(text_color),
                 ));
             });
         }
@@ -298,19 +292,18 @@ fn create_tab_bar(parent: &mut ChildSpawnerCommands, active_tab: HubTab) {
 }
 
 fn create_footer(parent: &mut ChildSpawnerCommands, active_tab: HubTab) {
-    parent.spawn(NodeBundle {
-        style: Style {
+    parent.spawn((
+        Node {
             width: Val::Percent(100.0),
             height: Val::Px(60.0),
-            flex_shrink: 0.0, // Don't allow shrinking
+            flex_shrink: 0.0,
             justify_content: JustifyContent::Center,
             align_items: AlignItems::Center,
             padding: UiRect::all(Val::Px(10.0)),
             ..default()
         },
-        background_color: Color::srgb(0.08, 0.08, 0.15).into(),
-        ..default()
-    }).with_children(|footer| {
+        BackgroundColor(Color::srgb(0.08, 0.08, 0.15)),
+    )).with_children(|footer| {
         let controls = match active_tab {
             HubTab::GlobalMap => "UP/DOWN: Select | W: Wait Day | ENTER: Mission | Q/E: Switch Tabs",
             HubTab::Research => "Navigation: Arrow Keys | Purchase: ENTER | Q/E: Switch Tabs",
@@ -319,10 +312,10 @@ fn create_footer(parent: &mut ChildSpawnerCommands, active_tab: HubTab) {
             HubTab::Missions => "Launch: ENTER | Q/E: Switch Tabs | ESC: Quit",
         };
         
-        footer.spawn(TextBundle::from_section(
-            controls,
-            TextStyle { font_size: 14.0, color: Color::srgb(0.7, 0.7, 0.7), ..default() }
+        footer.spawn((
+            Text::new(controls),
+            TextFont { font_size: 14.0, ..default() },
+            TextColor(Color::srgb(0.7, 0.7, 0.7)),
         ));
     });
 }
-

@@ -301,7 +301,7 @@ pub fn execute_extended_goap_action(
         "take_cover" => {
             // Find nearest cover point and move there
             let cover_position = find_nearest_cover(enemy_transform.translation.truncate());
-            action_events.send(ActionEvent {
+            action_events.write(ActionEvent {
                 entity: enemy_entity,
                 action: Action::MoveTo(cover_position),
             });
@@ -318,7 +318,7 @@ pub fn execute_extended_goap_action(
         
         "call_backup" => {
             // Trigger backup spawning or alert other enemies
-            audio_events.send(AudioEvent {
+            audio_events.write(AudioEvent {
                 sound: AudioType::Alert,
                 volume: 1.0,
             });
@@ -328,7 +328,7 @@ pub fn execute_extended_goap_action(
         "flank_target" => {
             // Calculate flanking position and move there
             let flank_position = calculate_flanking_position(enemy_transform.translation.truncate());
-            action_events.send(ActionEvent {
+            action_events.write(ActionEvent {
                 entity: enemy_entity,
                 action: Action::MoveTo(flank_position),
             });

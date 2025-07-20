@@ -1,4 +1,4 @@
-// src/systems/ui/hub/missions.rs - Enhanced with detailed mission briefing
+// src/systems/ui/hub/missions.rs - Updated for Bevy 0.16
 use bevy::prelude::*;
 use crate::core::*;
 
@@ -24,63 +24,58 @@ pub fn handle_input(
 pub fn create_content(parent: &mut ChildSpawnerCommands, global_data: &GlobalData, hub_state: &super::HubState) {
     let briefing = generate_mission_briefing(global_data, hub_state.selected_region);
     
-    parent.spawn(NodeBundle {
-        style: Style {
-            width: Val::Percent(100.0),
-            flex_grow: 1.0,
-            padding: UiRect::all(Val::Px(20.0)),
-            flex_direction: FlexDirection::Column,
-            row_gap: Val::Px(15.0),
-            overflow: Overflow {
-                x: OverflowAxis::Visible,
-                y: OverflowAxis::Scroll,
-            },
-            ..default()
+    parent.spawn(Node {
+        width: Val::Percent(100.0),
+        flex_grow: 1.0,
+        padding: UiRect::all(Val::Px(20.0)),
+        flex_direction: FlexDirection::Column,
+        row_gap: Val::Px(15.0),
+        overflow: Overflow {
+            x: OverflowAxis::Visible,
+            y: OverflowAxis::Scroll,
         },
         ..default()
     }).with_children(|content| {
         let region = &global_data.regions[hub_state.selected_region];
         
         // Header
-        content.spawn(NodeBundle {
-            style: Style {
-                flex_direction: FlexDirection::Row,
-                justify_content: JustifyContent::SpaceBetween,
-                align_items: AlignItems::Center,
-                ..default()
-            },
+        content.spawn(Node {
+            flex_direction: FlexDirection::Row,
+            justify_content: JustifyContent::SpaceBetween,
+            align_items: AlignItems::Center,
             ..default()
         }).with_children(|header| {
-            header.spawn(TextBundle::from_section(
-                format!("MISSION BRIEFING: {}", region.name),
-                TextStyle { font_size: 24.0, color: Color::srgb(0.8, 0.2, 0.2), ..default() }
+            header.spawn((
+                Text::new(format!("MISSION BRIEFING: {}", region.name)),
+                TextFont { font_size: 24.0, ..default() },
+                TextColor(Color::srgb(0.8, 0.2, 0.2)),
             ));
             
-            header.spawn(TextBundle::from_section(
-                format!("THREAT LEVEL: {}", region.threat_level),
-                TextStyle { font_size: 18.0, color: briefing.risks.casualty_risk.color(), ..default() }
+            header.spawn((
+                Text::new(format!("THREAT LEVEL: {}", region.threat_level)),
+                TextFont { font_size: 18.0, ..default() },
+                TextColor(briefing.risks.casualty_risk.color()),
             ));
         });
         
         // Alert status and environmental info
-        content.spawn(NodeBundle {
-            style: Style {
-                flex_direction: FlexDirection::Row,
-                column_gap: Val::Px(30.0),
-                ..default()
-            },
+        content.spawn(Node {
+            flex_direction: FlexDirection::Row,
+            column_gap: Val::Px(30.0),
             ..default()
         }).with_children(|info_row| {
-            info_row.spawn(TextBundle::from_section(
-                format!("Alert Status: {:?}", region.alert_level),
-                TextStyle { font_size: 16.0, color: alert_color(region.alert_level), ..default() }
+            info_row.spawn((
+                Text::new(format!("Alert Status: {:?}", region.alert_level)),
+                TextFont { font_size: 16.0, ..default() },
+                TextColor(alert_color(region.alert_level)),
             ));
             
-            info_row.spawn(TextBundle::from_section(
-                format!("Time: {:?} | Visibility: {:.0}%", 
+            info_row.spawn((
+                Text::new(format!("Time: {:?} | Visibility: {:.0}%", 
                         briefing.environment.time_of_day, 
-                        briefing.environment.visibility * 100.0),
-                TextStyle { font_size: 16.0, color: Color::WHITE, ..default() }
+                        briefing.environment.visibility * 100.0)),
+                TextFont { font_size: 16.0, ..default() },
+                TextColor(Color::WHITE),
             ));
         });
         
@@ -105,19 +100,19 @@ pub fn create_content(parent: &mut ChildSpawnerCommands, global_data: &GlobalDat
 }
 
 fn create_objectives_section(parent: &mut ChildSpawnerCommands, objectives: &[MissionObjective]) {
-    parent.spawn(NodeBundle {
-        style: Style {
+    parent.spawn((
+        Node {
             flex_direction: FlexDirection::Column,
             padding: UiRect::all(Val::Px(15.0)),
             row_gap: Val::Px(8.0),
             ..default()
         },
-        background_color: Color::srgba(0.2, 0.1, 0.1, 0.3).into(),
-        ..default()
-    }).with_children(|section| {
-        section.spawn(TextBundle::from_section(
-            "MISSION OBJECTIVES",
-            TextStyle { font_size: 18.0, color: Color::srgb(0.8, 0.2, 0.2), ..default() }
+        BackgroundColor(Color::srgba(0.2, 0.1, 0.1, 0.3)),
+    )).with_children(|section| {
+        section.spawn((
+            Text::new("MISSION OBJECTIVES"),
+            TextFont { font_size: 18.0, ..default() },
+            TextColor(Color::srgb(0.8, 0.2, 0.2)),
         ));
         
         for objective in objectives {
@@ -130,57 +125,59 @@ fn create_objectives_section(parent: &mut ChildSpawnerCommands, objectives: &[Mi
             
             let difficulty_stars = "★".repeat(objective.difficulty as usize);
             
-            section.spawn(TextBundle::from_section(
-                format!("{} {} {}", prefix, objective.name, difficulty_stars),
-                TextStyle { font_size: 16.0, color, ..default() }
+            section.spawn((
+                Text::new(format!("{} {} {}", prefix, objective.name, difficulty_stars)),
+                TextFont { font_size: 16.0, ..default() },
+                TextColor(color),
             ));
             
-            section.spawn(TextBundle::from_section(
-                format!("  {}", objective.description),
-                TextStyle { font_size: 14.0, color: Color::srgb(0.8, 0.8, 0.8), ..default() }
+            section.spawn((
+                Text::new(format!("  {}", objective.description)),
+                TextFont { font_size: 14.0, ..default() },
+                TextColor(Color::srgb(0.8, 0.8, 0.8)),
             ));
         }
     });
 }
 
 fn create_intelligence_section(parent: &mut ChildSpawnerCommands, resistance: &ResistanceProfile, environment: &EnvironmentData) {
-    parent.spawn(NodeBundle {
-        style: Style {
+    parent.spawn((
+        Node {
             flex_direction: FlexDirection::Column,
             padding: UiRect::all(Val::Px(15.0)),
             row_gap: Val::Px(8.0),
             ..default()
         },
-        background_color: Color::srgba(0.1, 0.1, 0.2, 0.3).into(),
-        ..default()
-    }).with_children(|section| {
-        section.spawn(TextBundle::from_section(
-            "INTELLIGENCE ASSESSMENT",
-            TextStyle { font_size: 18.0, color: Color::srgb(0.2, 0.5, 0.8), ..default() }
+        BackgroundColor(Color::srgba(0.1, 0.1, 0.2, 0.3)),
+    )).with_children(|section| {
+        section.spawn((
+            Text::new("INTELLIGENCE ASSESSMENT"),
+            TextFont { font_size: 18.0, ..default() },
+            TextColor(Color::srgb(0.2, 0.5, 0.8)),
         ));
         
         // Resistance details
-        section.spawn(NodeBundle {
-            style: Style {
-                flex_direction: FlexDirection::Row,
-                column_gap: Val::Px(20.0),
-                ..default()
-            },
+        section.spawn(Node {
+            flex_direction: FlexDirection::Row,
+            column_gap: Val::Px(20.0),
             ..default()
         }).with_children(|intel_row| {
-            intel_row.spawn(TextBundle::from_section(
-                format!("Enemy Forces: {} units", resistance.enemy_count),
-                TextStyle { font_size: 14.0, color: Color::WHITE, ..default() }
+            intel_row.spawn((
+                Text::new(format!("Enemy Forces: {} units", resistance.enemy_count)),
+                TextFont { font_size: 14.0, ..default() },
+                TextColor(Color::WHITE),
             ));
             
-            intel_row.spawn(TextBundle::from_section(
-                format!("Security Level: {}/5", resistance.security_level),
-                TextStyle { font_size: 14.0, color: Color::WHITE, ..default() }
+            intel_row.spawn((
+                Text::new(format!("Security Level: {}/5", resistance.security_level)),
+                TextFont { font_size: 14.0, ..default() },
+                TextColor(Color::WHITE),
             ));
             
-            intel_row.spawn(TextBundle::from_section(
-                format!("Alert Sensitivity: {:.0}%", resistance.alert_sensitivity * 100.0),
-                TextStyle { font_size: 14.0, color: Color::WHITE, ..default() }
+            intel_row.spawn((
+                Text::new(format!("Alert Sensitivity: {:.0}%", resistance.alert_sensitivity * 100.0)),
+                TextFont { font_size: 14.0, ..default() },
+                TextColor(Color::WHITE),
             ));
         });
         
@@ -189,14 +186,15 @@ fn create_intelligence_section(parent: &mut ChildSpawnerCommands, resistance: &R
             .map(|e| format!("{:?}", e))
             .collect::<Vec<_>>()
             .join(", ");
-        section.spawn(TextBundle::from_section(
-            format!("Expected Opposition: {}", enemy_types),
-            TextStyle { font_size: 14.0, color: Color::srgb(0.8, 0.6, 0.6), ..default() }
+        section.spawn((
+            Text::new(format!("Expected Opposition: {}", enemy_types)),
+            TextFont { font_size: 14.0, ..default() },
+            TextColor(Color::srgb(0.8, 0.6, 0.6)),
         ));
         
         // Environment details
-        section.spawn(TextBundle::from_section(
-            format!("Terrain: {:?} | Cover Density: {:.0}% | Civilians: {}", 
+        section.spawn((
+            Text::new(format!("Terrain: {:?} | Cover Density: {:.0}% | Civilians: {}", 
                     environment.terrain, 
                     environment.cover_density * 100.0, 
                     match environment.civilian_presence {
@@ -204,63 +202,63 @@ fn create_intelligence_section(parent: &mut ChildSpawnerCommands, resistance: &R
                         1..=2 => "Light",
                         3..=4 => "Moderate", 
                         _ => "Heavy"
-                    }),
-            TextStyle { font_size: 14.0, color: Color::srgb(0.6, 0.8, 0.6), ..default() }
+                    })),
+            TextFont { font_size: 14.0, ..default() },
+            TextColor(Color::srgb(0.6, 0.8, 0.6)),
         ));
     });
 }
 
 fn create_risk_assessment_section(parent: &mut ChildSpawnerCommands, risks: &RiskAssessment, global_data: &GlobalData) {
-    parent.spawn(NodeBundle {
-        style: Style {
+    parent.spawn((
+        Node {
             flex_direction: FlexDirection::Column,
             padding: UiRect::all(Val::Px(15.0)),
             row_gap: Val::Px(8.0),
             ..default()
         },
-        background_color: Color::srgba(0.2, 0.2, 0.1, 0.3).into(),
-        ..default()
-    }).with_children(|section| {
-        section.spawn(TextBundle::from_section(
-            "RISK ASSESSMENT",
-            TextStyle { font_size: 18.0, color: Color::srgb(0.8, 0.8, 0.2), ..default() }
+        BackgroundColor(Color::srgba(0.2, 0.2, 0.1, 0.3)),
+    )).with_children(|section| {
+        section.spawn((
+            Text::new("RISK ASSESSMENT"),
+            TextFont { font_size: 18.0, ..default() },
+            TextColor(Color::srgb(0.8, 0.8, 0.2)),
         ));
         
         // Risk matrix
-        section.spawn(NodeBundle {
-            style: Style {
-                flex_direction: FlexDirection::Row,
-                column_gap: Val::Px(25.0),
-                ..default()
-            },
+        section.spawn(Node {
+            flex_direction: FlexDirection::Row,
+            column_gap: Val::Px(25.0),
             ..default()
         }).with_children(|risk_row| {
-            risk_row.spawn(TextBundle::from_section(
-                format!("Casualty Risk: {}", risks.casualty_risk.text()),
-                TextStyle { font_size: 14.0, color: risks.casualty_risk.color(), ..default() }
+            risk_row.spawn((
+                Text::new(format!("Casualty Risk: {}", risks.casualty_risk.text())),
+                TextFont { font_size: 14.0, ..default() },
+                TextColor(risks.casualty_risk.color()),
             ));
             
-            risk_row.spawn(TextBundle::from_section(
-                format!("Detection Risk: {}", risks.detection_risk.text()),
-                TextStyle { font_size: 14.0, color: risks.detection_risk.color(), ..default() }
+            risk_row.spawn((
+                Text::new(format!("Detection Risk: {}", risks.detection_risk.text())),
+                TextFont { font_size: 14.0, ..default() },
+                TextColor(risks.detection_risk.color()),
             ));
             
-            risk_row.spawn(TextBundle::from_section(
-                format!("Equipment Loss: {}", risks.equipment_loss_risk.text()),
-                TextStyle { font_size: 14.0, color: risks.equipment_loss_risk.color(), ..default() }
+            risk_row.spawn((
+                Text::new(format!("Equipment Loss: {}", risks.equipment_loss_risk.text())),
+                TextFont { font_size: 14.0, ..default() },
+                TextColor(risks.equipment_loss_risk.color()),
             ));
         });
         
         // Mission analysis
-        section.spawn(TextBundle::from_section(
-            format!("Mission Failure Probability: {:.0}%", risks.mission_failure_chance * 100.0),
-            TextStyle { font_size: 14.0, color: 
-                if risks.mission_failure_chance > 0.5 { 
-                    Color::srgb(0.8, 0.2, 0.2) 
-                } else { 
-                    Color::WHITE 
-                }
-            , ..default() }
+        section.spawn((
+            Text::new(format!("Mission Failure Probability: {:.0}%", risks.mission_failure_chance * 100.0)),
+            TextFont { font_size: 14.0, ..default() },
+            TextColor(if risks.mission_failure_chance > 0.5 { 
+                Color::srgb(0.8, 0.2, 0.2) 
+            } else { 
+                Color::WHITE 
+            }),
         ));
         
         // Agent readiness assessment
@@ -271,47 +269,51 @@ fn create_risk_assessment_section(parent: &mut ChildSpawnerCommands, risks: &Ris
             Color::srgb(0.8, 0.5, 0.2)
         };
         
-        section.spawn(TextBundle::from_section(
-            format!("Recommended Agent Level: {} (Squad Average: {:.1})", 
-                    risks.recommended_agent_level, avg_agent_level),
-            TextStyle { font_size: 14.0, color: readiness_color, ..default() }
+        section.spawn((
+            Text::new(format!("Recommended Agent Level: {} (Squad Average: {:.1})", 
+                    risks.recommended_agent_level, avg_agent_level)),
+            TextFont { font_size: 14.0, ..default() },
+            TextColor(readiness_color),
         ));
     });
 }
 
 fn create_equipment_recommendations_section(parent: &mut ChildSpawnerCommands, risks: &RiskAssessment, global_data: &GlobalData) {
-    parent.spawn(NodeBundle {
-        style: Style {
+    parent.spawn((
+        Node {
             flex_direction: FlexDirection::Column,
             padding: UiRect::all(Val::Px(15.0)),
             row_gap: Val::Px(8.0),
             ..default()
         },
-        background_color: Color::srgba(0.1, 0.2, 0.1, 0.3).into(),
-        ..default()
-    }).with_children(|section| {
-        section.spawn(TextBundle::from_section(
-            "EQUIPMENT RECOMMENDATIONS",
-            TextStyle { font_size: 18.0, color: Color::srgb(0.2, 0.8, 0.2), ..default() }
+        BackgroundColor(Color::srgba(0.1, 0.2, 0.1, 0.3)),
+    )).with_children(|section| {
+        section.spawn((
+            Text::new("EQUIPMENT RECOMMENDATIONS"),
+            TextFont { font_size: 18.0, ..default() },
+            TextColor(Color::srgb(0.2, 0.8, 0.2)),
         ));
         
         // Recommended loadout
-        section.spawn(TextBundle::from_section(
-            "Recommended Equipment:",
-            TextStyle { font_size: 16.0, color: Color::WHITE, ..default() }
+        section.spawn((
+            Text::new("Recommended Equipment:"),
+            TextFont { font_size: 16.0, ..default() },
+            TextColor(Color::WHITE),
         ));
         
         for item in &risks.recommended_loadout {
-            section.spawn(TextBundle::from_section(
-                format!("• {}", item),
-                TextStyle { font_size: 14.0, color: Color::srgb(0.8, 0.8, 0.8), ..default() }
+            section.spawn((
+                Text::new(format!("• {}", item)),
+                TextFont { font_size: 14.0, ..default() },
+                TextColor(Color::srgb(0.8, 0.8, 0.8)),
             ));
         }
         
         // Attachment recommendations based on mission type
-        section.spawn(TextBundle::from_section(
-            "\nSuggested Weapon Modifications:",
-            TextStyle { font_size: 16.0, color: Color::WHITE, ..default() }
+        section.spawn((
+            Text::new("\nSuggested Weapon Modifications:"),
+            TextFont { font_size: 16.0, ..default() },
+            TextColor(Color::WHITE),
         ));
         
         let attachment_suggestions = match risks.detection_risk {
@@ -332,36 +334,38 @@ fn create_equipment_recommendations_section(parent: &mut ChildSpawnerCommands, r
         };
         
         for suggestion in attachment_suggestions {
-            section.spawn(TextBundle::from_section(
-                format!("• {}", suggestion),
-                TextStyle { font_size: 14.0, color: Color::srgb(0.6, 0.8, 0.6), ..default() }
+            section.spawn((
+                Text::new(format!("• {}", suggestion)),
+                TextFont { font_size: 14.0, ..default() },
+                TextColor(Color::srgb(0.6, 0.8, 0.6)),
             ));
         }
     });
 }
 
 fn create_deployment_section(parent: &mut ChildSpawnerCommands, global_data: &GlobalData) {
-    parent.spawn(NodeBundle {
-        style: Style {
+    parent.spawn((
+        Node {
             flex_direction: FlexDirection::Column,
             padding: UiRect::all(Val::Px(15.0)),
             row_gap: Val::Px(8.0),
             ..default()
         },
-        background_color: Color::srgba(0.2, 0.1, 0.2, 0.3).into(),
-        ..default()
-    }).with_children(|section| {
-        section.spawn(TextBundle::from_section(
-            "SQUAD DEPLOYMENT STATUS",
-            TextStyle { font_size: 18.0, color: Color::srgb(0.8, 0.2, 0.8), ..default() }
+        BackgroundColor(Color::srgba(0.2, 0.1, 0.2, 0.3)),
+    )).with_children(|section| {
+        section.spawn((
+            Text::new("SQUAD DEPLOYMENT STATUS"),
+            TextFont { font_size: 18.0, ..default() },
+            TextColor(Color::srgb(0.8, 0.2, 0.8)),
         ));
         
         let ready_agents = (0..3).filter(|&i| global_data.agent_recovery[i] <= global_data.current_day).count();
         
         if ready_agents > 0 {
-            section.spawn(TextBundle::from_section(
-                format!("Deployment Ready: {} agents available", ready_agents),
-                TextStyle { font_size: 16.0, color: Color::srgb(0.2, 0.8, 0.2), ..default() }
+            section.spawn((
+                Text::new(format!("Deployment Ready: {} agents available", ready_agents)),
+                TextFont { font_size: 16.0, ..default() },
+                TextColor(Color::srgb(0.2, 0.8, 0.2)),
             ));
             
             // Show ready agents with their loadouts
@@ -374,82 +378,87 @@ fn create_deployment_section(parent: &mut ChildSpawnerCommands, global_data: &Gl
                         "No Weapon".to_string()
                     };
                     
-                    section.spawn(TextBundle::from_section(
-                        format!("Agent {}: Lv{} | {} | {} tools", 
+                    section.spawn((
+                        Text::new(format!("Agent {}: Lv{} | {} | {} tools", 
                                 i + 1, 
                                 global_data.agent_levels[i],
                                 weapon_name,
-                                loadout.tools.len()),
-                        TextStyle { font_size: 14.0, color: Color::WHITE, ..default() }
+                                loadout.tools.len())),
+                        TextFont { font_size: 14.0, ..default() },
+                        TextColor(Color::WHITE),
                     ));
                 }
             }
             
-            section.spawn(TextBundle::from_section(
-                "\nPress ENTER to launch mission",
-                TextStyle { font_size: 16.0, color: Color::srgb(0.8, 0.8, 0.2), ..default() }
+            section.spawn((
+                Text::new("\nPress ENTER to launch mission"),
+                TextFont { font_size: 16.0, ..default() },
+                TextColor(Color::srgb(0.8, 0.8, 0.2)),
             ));
         } else {
-            section.spawn(TextBundle::from_section(
-                "No agents available - all recovering from previous missions",
-                TextStyle { font_size: 16.0, color: Color::srgb(0.8, 0.2, 0.2), ..default() }
+            section.spawn((
+                Text::new("No agents available - all recovering from previous missions"),
+                TextFont { font_size: 16.0, ..default() },
+                TextColor(Color::srgb(0.8, 0.2, 0.2)),
             ));
             
-            section.spawn(TextBundle::from_section(
-                "Use 'W' on Global Map to advance time or wait for recovery",
-                TextStyle { font_size: 14.0, color: Color::srgb(0.6, 0.6, 0.6), ..default() }
+            section.spawn((
+                Text::new("Use 'W' on Global Map to advance time or wait for recovery"),
+                TextFont { font_size: 14.0, ..default() },
+                TextColor(Color::srgb(0.6, 0.6, 0.6)),
             ));
         }
     });
 }
 
 fn create_rewards_section(parent: &mut ChildSpawnerCommands, rewards: &MissionRewards, region: &Region) {
-    parent.spawn(NodeBundle {
-        style: Style {
+    parent.spawn((
+        Node {
             flex_direction: FlexDirection::Column,
             padding: UiRect::all(Val::Px(15.0)),
             row_gap: Val::Px(8.0),
             ..default()
         },
-        background_color: Color::srgba(0.1, 0.1, 0.1, 0.3).into(),
-        ..default()
-    }).with_children(|section| {
-        section.spawn(TextBundle::from_section(
-            "MISSION REWARDS",
-            TextStyle { font_size: 18.0, color: Color::srgb(0.8, 0.8, 0.2), ..default() }
+        BackgroundColor(Color::srgba(0.1, 0.1, 0.1, 0.3)),
+    )).with_children(|section| {
+        section.spawn((
+            Text::new("MISSION REWARDS"),
+            TextFont { font_size: 18.0, ..default() },
+            TextColor(Color::srgb(0.8, 0.8, 0.2)),
         ));
         
         let difficulty_bonus = region.mission_difficulty_modifier();
         let total_credits = (rewards.base_credits as f32 * difficulty_bonus) as u32;
         
-        section.spawn(NodeBundle {
-            style: Style {
-                flex_direction: FlexDirection::Row,
-                column_gap: Val::Px(20.0),
-                ..default()
-            },
+        section.spawn(Node {
+            flex_direction: FlexDirection::Row,
+            column_gap: Val::Px(20.0),
             ..default()
         }).with_children(|rewards_row| {
-            rewards_row.spawn(TextBundle::from_section(
-                format!("Base Credits: {}", total_credits),
-                TextStyle { font_size: 14.0, color: Color::srgb(0.8, 0.8, 0.2), ..default() }
+            rewards_row.spawn((
+                Text::new(format!("Base Credits: {}", total_credits)),
+                TextFont { font_size: 14.0, ..default() },
+                TextColor(Color::srgb(0.8, 0.8, 0.2)),
             ));
             
-            rewards_row.spawn(TextBundle::from_section(
-                format!("Bonus Potential: +{}", rewards.bonus_credits),
-                TextStyle { font_size: 14.0, color: Color::srgb(0.6, 0.8, 0.6), ..default() }
+            rewards_row.spawn((
+                Text::new(format!("Bonus Potential: +{}", rewards.bonus_credits)),
+                TextFont { font_size: 14.0, ..default() },
+                TextColor(Color::srgb(0.6, 0.8, 0.6)),
             ));
             
-            rewards_row.spawn(TextBundle::from_section(
-                format!("Equipment Drop: {:.0}%", rewards.equipment_chance * 100.0),
-                TextStyle { font_size: 14.0, color: Color::srgb(0.6, 0.6, 0.8), ..default() }
+            rewards_row.spawn((
+                Text::new(format!("Equipment Drop: {:.0}%", rewards.equipment_chance * 100.0)),
+                TextFont { font_size: 14.0, ..default() },
+                TextColor(Color::srgb(0.6, 0.6, 0.8)),
             ));
         });
         
-        section.spawn(TextBundle::from_section(
-            format!("Experience Modifier: {:.1}x | Intel Value: {}/5", 
-                    rewards.experience_modifier, rewards.intel_value),
-            TextStyle { font_size: 14.0, color: Color::WHITE, ..default() }
+        section.spawn((
+            Text::new(format!("Experience Modifier: {:.1}x | Intel Value: {}/5", 
+                    rewards.experience_modifier, rewards.intel_value)),
+            TextFont { font_size: 14.0, ..default() },
+            TextColor(Color::WHITE),
         ));
     });
 }

@@ -172,7 +172,7 @@ fn execute_attack(
             
             // Play gunshot with noise modifier
             let volume = (0.7 * noise_level).clamp(0.1, 1.0);
-            audio_events.send(AudioEvent {
+            audio_events.write(AudioEvent {
                 sound: AudioType::Gunshot,
                 volume,
             });
@@ -183,7 +183,7 @@ fn execute_attack(
             }
         }
         
-        combat_events.send(CombatEvent {
+        combat_events.write(CombatEvent {
             attacker,
             target,
             damage: if hit { damage } else { 0.0 },
@@ -228,7 +228,11 @@ fn draw_health_bar(gizmos: &mut Gizmos, position: Vec2, current: f32, max: f32) 
     let health_ratio = current / max;
     
     // Background
-    gizmos.rect_2d(bar_pos, 0.0, Vec2::new(bar_width, bar_height), Color::srgb(0.3, 0.3, 0.3));
+    gizmos.rect_2d(
+        bar_pos, 
+        Vec2::new(bar_width, bar_height), 
+        Color::srgb(0.3, 0.3, 0.3)
+    );
     
     // Health fill
     let health_color = if health_ratio > 0.6 {
@@ -242,7 +246,6 @@ fn draw_health_bar(gizmos: &mut Gizmos, position: Vec2, current: f32, max: f32) 
     let fill_width = bar_width * health_ratio;
     gizmos.rect_2d(
         bar_pos - Vec2::new((bar_width - fill_width) / 2.0, 0.0),
-        0.0,
         Vec2::new(fill_width, bar_height),
         health_color,
     );

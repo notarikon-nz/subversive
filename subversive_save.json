@@ -1,6 +1,6 @@
 {
-  "credits": 8000,
-  "current_day": 1,
+  "credits": 6500,
+  "current_day": 2,
   "agent_levels": [
     1,
     1,
@@ -12,16 +12,16 @@
     0
   ],
   "agent_recovery": [
-    0,
-    0,
-    0
+    5,
+    5,
+    5
   ],
   "regions": [
     {
       "name": "Neo-Tokyo Central",
       "threat_level": 1,
-      "alert_level": 0,
-      "alert_decay_timer": 0
+      "alert_level": 2,
+      "alert_decay_timer": 9
     },
     {
       "name": "Corporate District",
@@ -49,32 +49,8 @@
           ],
           "attachments": {
             "Magazine": null,
-            "Stock": null,
-            "Sight": null,
-            "Barrel": null
-          }
-        }
-      ],
-      "equipped_weapon_idx": 0,
-      "tools": [
-        "Scanner"
-      ],
-      "cybernetics": []
-    },
-    {
-      "weapon_configs": [
-        {
-          "base_weapon": "Rifle",
-          "supported_slots": [
-            "Sight",
-            "Barrel",
-            "Magazine",
-            "Stock"
-          ],
-          "attachments": {
             "Barrel": null,
             "Sight": null,
-            "Magazine": null,
             "Stock": null
           }
         }
@@ -96,10 +72,34 @@
             "Stock"
           ],
           "attachments": {
-            "Sight": null,
-            "Barrel": null,
             "Stock": null,
-            "Magazine": null
+            "Magazine": null,
+            "Barrel": null,
+            "Sight": null
+          }
+        }
+      ],
+      "equipped_weapon_idx": 0,
+      "tools": [
+        "Scanner"
+      ],
+      "cybernetics": []
+    },
+    {
+      "weapon_configs": [
+        {
+          "base_weapon": "Rifle",
+          "supported_slots": [
+            "Sight",
+            "Barrel",
+            "Magazine",
+            "Stock"
+          ],
+          "attachments": {
+            "Stock": null,
+            "Magazine": null,
+            "Barrel": null,
+            "Sight": null
           }
         }
       ],
@@ -112,8 +112,9 @@
   ],
   "research_progress": {
     "completed": [
+      "suppression_tech",
       "basic_optics"
     ],
-    "credits_invested": 1000
+    "credits_invested": 2500
   }
 }

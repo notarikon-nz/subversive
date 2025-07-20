@@ -21,6 +21,20 @@ pub use missions::*;
 
 pub use crate::systems::ui::hub::{HubState, HubTab};
 
+// === INPUT ===
+// Updated for leafwing-input-manager 0.17.1 + Bevy 0.16
+#[derive(Actionlike, PartialEq, Eq, Hash, Clone, Copy, Debug, Reflect)]
+#[reflect(Hash, PartialEq)]  // Updated reflection traits
+pub enum PlayerAction {
+    Pause,
+    Select,
+    Move,
+    Neurovector,
+    Combat,
+    Interact,
+    Inventory,
+}
+
 // === STATES ===
 #[derive(States, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum GameState {
@@ -117,18 +131,6 @@ pub enum AlertLevel {
     Yellow,
     Orange,
     Red,
-}
-
-// === INPUT ===
-#[derive(Actionlike, PartialEq, Eq, Hash, Clone, Copy, Debug, Reflect)]
-pub enum PlayerAction {
-    Pause,
-    Select,
-    Move,
-    Neurovector,
-    Combat,
-    Interact,
-    Inventory,
 }
 
 // === CORE COMPONENTS ===
@@ -516,9 +518,9 @@ pub fn get_world_mouse_position(
 ) -> Option<Vec2> {
     let window = windows.get_single().ok()?;
     let (camera, camera_transform) = cameras.get_single().ok()?;
+    let cursor_pos = window.cursor_position()?;
     
-    window.cursor_position()
-        .and_then(|cursor| camera.viewport_to_world_2d(camera_transform, cursor))
+    camera.viewport_to_world_2d(camera_transform, cursor_pos).ok()
 }
 
 // === GOAP FEATURES ===

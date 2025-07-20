@@ -1,4 +1,4 @@
-// src/systems/ui/hub/manufacture.rs - Complex manufacture tab separated out
+// src/systems/ui/hub/manufacture.rs - Updated for Bevy 0.16
 use bevy::prelude::*;
 use crate::core::*;
 
@@ -74,49 +74,54 @@ pub fn create_content(
     unlocked: &UnlockedAttachments,
 ) {
     parent.spawn(Node {
-            width: Val::Percent(100.0),
-            flex_grow: 1.0,
-            padding: UiRect::all(Val::Px(20.0)),
-            flex_direction: FlexDirection::Column,
-            row_gap: Val::Px(15.0),
-            ..default()
+        width: Val::Percent(100.0),
+        flex_grow: 1.0,
+        padding: UiRect::all(Val::Px(20.0)),
+        flex_direction: FlexDirection::Column,
+        row_gap: Val::Px(15.0),
+        ..default()
     }).with_children(|content| {
-        content.spawn(TextBundle::from_section(
-            "WEAPON MANUFACTURE",
-            TextStyle { font_size: 24.0, color: Color::srgb(0.8, 0.6, 0.2), ..default() }
+        content.spawn((
+            Text::new("WEAPON MANUFACTURE"),
+            TextFont { font_size: 24.0, ..default() },
+            TextColor(Color::srgb(0.8, 0.6, 0.2)),
         ));
         
         // Agent selection display
         content.spawn(Node {
-                flex_direction: FlexDirection::Row,
-                column_gap: Val::Px(20.0),
-                margin: UiRect::top(Val::Px(10.0)),
-                ..default()
+            flex_direction: FlexDirection::Row,
+            column_gap: Val::Px(20.0),
+            margin: UiRect::top(Val::Px(10.0)),
+            ..default()
         }).with_children(|agents| {
             for i in 0..3 {
                 let is_selected = i == manufacture_state.selected_agent_idx;
                 let color = if is_selected { Color::srgb(0.2, 0.8, 0.2) } else { Color::srgb(0.6, 0.6, 0.6) };
                 let prefix = if is_selected { "> " } else { "  " };
                 
-                agents.spawn(TextBundle::from_section(
-                    format!("{}Agent {} (Lv{})", prefix, i + 1, global_data.agent_levels[i]),
-                    TextStyle { font_size: 16.0, color, ..default() }
+                agents.spawn((
+                    Text::new(format!("{}Agent {} (Lv{})", prefix, i + 1, global_data.agent_levels[i])),
+                    TextFont { font_size: 16.0, ..default() },
+                    TextColor(color),
                 ));
             }
         });
         
         // Weapon slots display
-        content.spawn(Node {
+        content.spawn((
+            Node {
                 flex_direction: FlexDirection::Column,
                 margin: UiRect::top(Val::Px(20.0)),
                 padding: UiRect::all(Val::Px(10.0)),
                 row_gap: Val::Px(8.0),
-                background_color: Color::srgba(0.2, 0.2, 0.3, 0.3).into(),
                 ..default()
-        }).with_children(|weapon_panel| {
-            weapon_panel.spawn(TextBundle::from_section(
-                "CURRENT WEAPON: Rifle", // TODO: Get from agent inventory
-                TextStyle { font_size: 18.0, color: Color::WHITE, ..default() }
+            },
+            BackgroundColor(Color::srgba(0.2, 0.2, 0.3, 0.3)),
+        )).with_children(|weapon_panel| {
+            weapon_panel.spawn((
+                Text::new("CURRENT WEAPON: Rifle"),
+                TextFont { font_size: 18.0, ..default() },
+                TextColor(Color::WHITE),
             ));
             
             let slots = vec![
@@ -132,26 +137,30 @@ pub fn create_content(
                 let color = if is_selected { Color::srgb(0.8, 0.8, 0.2) } else { Color::WHITE };
                 let prefix = if is_selected { "> " } else { "  " };
                 
-                weapon_panel.spawn(TextBundle::from_section(
-                    format!("{}{}: None equipped", prefix, slot_name),
-                    TextStyle { font_size: 14.0, color, ..default() }
+                weapon_panel.spawn((
+                    Text::new(format!("{}{}: None equipped", prefix, slot_name)),
+                    TextFont { font_size: 14.0, ..default() },
+                    TextColor(color),
                 ));
             }
         });
         
         // Available attachments for selected slot
         if let Some(selected_slot) = &manufacture_state.selected_slot {
-            content.spawn(Node {
+            content.spawn((
+                Node {
                     flex_direction: FlexDirection::Column,
                     margin: UiRect::top(Val::Px(20.0)),
                     padding: UiRect::all(Val::Px(10.0)),
                     row_gap: Val::Px(5.0),
-                    background_color: Color::srgba(0.3, 0.2, 0.2, 0.3).into(),
                     ..default()
-            }).with_children(|attachments_panel| {
-                attachments_panel.spawn(TextBundle::from_section(
-                    format!("AVAILABLE {:?} ATTACHMENTS:", selected_slot),
-                    TextStyle { font_size: 16.0, color: Color::srgb(0.8, 0.6, 0.2), ..default() }
+                },
+                BackgroundColor(Color::srgba(0.3, 0.2, 0.2, 0.3)),
+            )).with_children(|attachments_panel| {
+                attachments_panel.spawn((
+                    Text::new(format!("AVAILABLE {:?} ATTACHMENTS:", selected_slot)),
+                    TextFont { font_size: 16.0, ..default() },
+                    TextColor(Color::srgb(0.8, 0.6, 0.2)),
                 ));
                 
                 let available_attachments = attachment_db.get_by_slot(selected_slot);
@@ -168,42 +177,46 @@ pub fn create_content(
                             AttachmentRarity::Epic => Color::srgb(1.0, 0.6, 1.0),
                         };
                         let color = if is_selected { 
-                            Color::srgb(1.0, 1.0, 0.2) // Bright yellow when selected
+                            Color::srgb(1.0, 1.0, 0.2)
                         } else { 
                             base_color 
                         };
                         let prefix = if is_selected { "> " } else { "  " };
                         
-                        attachments_panel.spawn(TextBundle::from_section(
-                            format!("{}• {} (Acc{:+} Rng{:+} Noise{:+})", 
+                        attachments_panel.spawn((
+                            Text::new(format!("{}• {} (Acc{:+} Rng{:+} Noise{:+})", 
                                     prefix,
                                     attachment.name,
                                     attachment.stats.accuracy,
                                     attachment.stats.range,
-                                    attachment.stats.noise),
-                            TextStyle { font_size: 12.0, color, ..default() }
+                                    attachment.stats.noise)),
+                            TextFont { font_size: 12.0, ..default() },
+                            TextColor(color),
                         ));
                     }
                 }
                 
                 if !found_any {
-                    attachments_panel.spawn(TextBundle::from_section(
-                        "No unlocked attachments for this slot",
-                        TextStyle { font_size: 12.0, color: Color::srgb(0.6, 0.6, 0.6), ..default() }
+                    attachments_panel.spawn((
+                        Text::new("No unlocked attachments for this slot"),
+                        TextFont { font_size: 12.0, ..default() },
+                        TextColor(Color::srgb(0.6, 0.6, 0.6)),
                     ));
                 }
             });
         }
         
         // Controls help
-        content.spawn(TextBundle::from_section(
-            "\n1-3: Select Agent | ↑↓: Navigate Slots | ←→: Select Attachment | ENTER: Attach/Detach",
-            TextStyle { font_size: 12.0, color: Color::srgb(0.7, 0.7, 0.7), ..default() }
+        content.spawn((
+            Text::new("\n1-3: Select Agent | ↑↓: Navigate Slots | ←→: Select Attachment | ENTER: Attach/Detach"),
+            TextFont { font_size: 12.0, ..default() },
+            TextColor(Color::srgb(0.7, 0.7, 0.7)),
         ));
         
-        content.spawn(TextBundle::from_section(
-            format!("Credits: {}", global_data.credits),
-            TextStyle { font_size: 14.0, color: Color::srgb(0.8, 0.8, 0.2), ..default() }
+        content.spawn((
+            Text::new(format!("Credits: {}", global_data.credits)),
+            TextFont { font_size: 14.0, ..default() },
+            TextColor(Color::srgb(0.8, 0.8, 0.2)),
         ));
     });
 }
@@ -285,25 +298,18 @@ fn execute_attachment_action(
     let mut config_changed = false;
     
     if let Some(current_name) = current_attachment_name {
-        // DETACH
         weapon_config.detach(selected_slot);
-        
-        let refund = 0; // TODO: Calculate actual refund
+        let refund = 0;
         global_data.credits += refund;
-        
         info!("Detached {} from {:?} slot", current_name, selected_slot);
         manufacture_state.selected_attachments.remove(selected_slot);
         config_changed = true;
-        
     } else if let Some(attachment_id) = manufacture_state.selected_attachments.get(selected_slot) {
-        // ATTACH
         if let Some(attachment) = attachment_db.get(attachment_id) {
-            let cost = 0; // TODO: Calculate actual cost
-            
+            let cost = 0;
             if global_data.credits >= cost {
                 weapon_config.attach(attachment.clone());
                 global_data.credits -= cost;
-                
                 info!("Attached {} to {:?} slot", attachment.name, selected_slot);
                 config_changed = true;
             } else {
@@ -312,7 +318,6 @@ fn execute_attachment_action(
         }
     }
     
-    // Save configuration to GlobalData if changed
     if config_changed {
         let loadout = AgentLoadout {
             weapon_configs: inventory.weapons.clone(),
@@ -323,7 +328,6 @@ fn execute_attachment_action(
         
         global_data.save_agent_loadout(manufacture_state.selected_agent_idx, loadout);
         
-        // Update equipped weapon in current inventory
         if let Some(weapon_config) = inventory.weapons.get(0) {
             inventory.equipped_weapon = Some(weapon_config.clone());
         }

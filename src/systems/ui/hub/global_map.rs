@@ -1,3 +1,4 @@
+// src/systems/ui/hub/global_map.rs - Updated for Bevy 0.16
 use bevy::prelude::*;
 use crate::core::*;
 use super::HubTab;
@@ -40,23 +41,18 @@ pub fn handle_input(
 }
 
 pub fn create_content(parent: &mut ChildSpawnerCommands, global_data: &GlobalData, hub_state: &super::HubState) {
-    parent.spawn((
-        Node {
-            width: Val::Percent(100.0),
-            flex_grow: 1.0,
-            padding: UiRect::all(Val::Px(20.0)),
-            flex_direction: FlexDirection::Column,
-            row_gap: Val::Px(15.0),
-            ..default()
-        },
-    )).with_children(|content| {
+    parent.spawn(Node {
+        width: Val::Percent(100.0),
+        flex_grow: 1.0,
+        padding: UiRect::all(Val::Px(20.0)),
+        flex_direction: FlexDirection::Column,
+        row_gap: Val::Px(15.0),
+        ..default()
+    }).with_children(|content| {
         // Agent status
         content.spawn((
             Text::new("AGENT STATUS:"),
-            TextFont {
-                font_size: 20.0,
-                ..default()
-            },
+            TextFont { font_size: 20.0, ..default() },
             TextColor(Color::WHITE),
         ));
         
@@ -76,10 +72,7 @@ pub fn create_content(parent: &mut ChildSpawnerCommands, global_data: &GlobalDat
             
             content.spawn((
                 Text::new(status),
-                TextFont {
-                    font_size: 16.0,
-                    ..default()
-                },
+                TextFont { font_size: 16.0, ..default() },
                 TextColor(color),
             ));
         }
@@ -87,10 +80,7 @@ pub fn create_content(parent: &mut ChildSpawnerCommands, global_data: &GlobalDat
         // World regions
         content.spawn((
             Text::new("\nWORLD REGIONS:"),
-            TextFont {
-                font_size: 20.0,
-                ..default()
-            },
+            TextFont { font_size: 20.0, ..default() },
             TextColor(Color::WHITE),
         ));
         
@@ -102,10 +92,7 @@ pub fn create_content(parent: &mut ChildSpawnerCommands, global_data: &GlobalDat
             content.spawn((
                 Text::new(format!("{}{} (Threat: {}, Alert: {:?})", 
                         prefix, region.name, region.threat_level, region.alert_level)),
-                TextFont {
-                    font_size: 18.0,
-                    ..default()
-                },
+                TextFont { font_size: 18.0, ..default() },
                 TextColor(color),
             ));
         }

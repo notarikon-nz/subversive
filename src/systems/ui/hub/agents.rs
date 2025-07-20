@@ -1,3 +1,4 @@
+// src/systems/ui/hub/agents.rs - Updated for Bevy 0.16
 use bevy::prelude::*;
 use crate::core::*;
 use super::HubTab;
@@ -7,23 +8,18 @@ pub fn handle_input(input: &ButtonInput<KeyCode>, hub_state: &mut super::HubStat
         hub_state.active_tab = HubTab::Manufacture;
         return true;
     }
-    // TODO: Implement agent management input
-    // - Arrow keys to select agents
-    // - Enter to modify equipment
-    // - Save/Load squad presets
     false
 }
 
 pub fn create_content(parent: &mut ChildSpawnerCommands, global_data: &GlobalData) {
     parent.spawn(Node {
-            width: Val::Percent(100.0),
-            flex_grow: 1.0,
-            padding: UiRect::all(Val::Px(20.0)),
-            flex_direction: FlexDirection::Column,
-            row_gap: Val::Px(15.0),
-            ..default()
+        width: Val::Percent(100.0),
+        flex_grow: 1.0,
+        padding: UiRect::all(Val::Px(20.0)),
+        flex_direction: FlexDirection::Column,
+        row_gap: Val::Px(15.0),
+        ..default()
     }).with_children(|content| {
-
         content.spawn((
             Text::new("AGENT MANAGEMENT"),
             TextFont { font_size: 24.0, ..default() },

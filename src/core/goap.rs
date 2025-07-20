@@ -454,7 +454,7 @@ pub fn goap_ai_system(
 
     for (enemy_entity, enemy_transform, mut ai_state, mut goap_agent, mut vision, patrol) in enemy_query.iter_mut() {
         // Update planning cooldown
-        goap_agent.planning_cooldown -= time.delta_seconds();
+        goap_agent.planning_cooldown -= time.delta_secs();
         
         // Update world state based on current situation
         update_world_state_from_perception(
@@ -620,7 +620,7 @@ fn execute_goap_action(
         ActionType::Patrol => {
             if let Some(target) = patrol.current_target() {
                 ai_state.mode = crate::systems::ai::AIMode::Patrol;
-                action_events.send(ActionEvent {
+                action_events.write(ActionEvent {
                     entity: enemy_entity,
                     action: Action::MoveTo(target),
                 });
@@ -633,7 +633,7 @@ fn execute_goap_action(
         },
         
         ActionType::MoveTo { target } => {
-            action_events.send(ActionEvent {
+            action_events.write(ActionEvent {
                 entity: enemy_entity,
                 action: Action::MoveTo(*target),
             });
@@ -660,7 +660,7 @@ fn execute_goap_action(
                     
                     // Check if we're in attack range
                     if distance <= 150.0 {
-                        action_events.send(ActionEvent {
+                        action_events.write(ActionEvent {
                             entity: enemy_entity,
                             action: Action::Attack(agent_entity),
                         });
@@ -668,7 +668,7 @@ fn execute_goap_action(
                               enemy_entity.index(), agent_entity.index(), distance);
                     } else {
                         // Too far, move closer
-                        action_events.send(ActionEvent {
+                        action_events.write(ActionEvent {
                             entity: enemy_entity,
                             action: Action::MoveTo(agent_transform.translation.truncate()),
                         });
@@ -683,7 +683,7 @@ fn execute_goap_action(
                 if let Some(last_pos) = ai_state.last_known_target {
                     let distance_to_last_known = enemy_transform.translation.truncate().distance(last_pos);
                     
-                    action_events.send(ActionEvent {
+                    action_events.write(ActionEvent {
                         entity: enemy_entity,
                         action: Action::MoveTo(last_pos),
                     });
@@ -707,7 +707,7 @@ fn execute_goap_action(
             ai_state.mode = crate::systems::ai::AIMode::Investigate { 
                 location: investigation_target 
             };
-            action_events.send(ActionEvent {
+            action_events.write(ActionEvent {
                 entity: enemy_entity,
                 action: Action::MoveTo(investigation_target),
             });
@@ -727,7 +727,7 @@ fn execute_goap_action(
             
             if let Some((cover_entity, cover_pos)) = find_nearest_cover(enemy_transform.translation.truncate(), cover_query) {
                 // Move to cover position
-                action_events.send(ActionEvent {
+                action_events.write(ActionEvent {
                     entity: enemy_entity,
                     action: Action::MoveTo(cover_pos),
                 });
@@ -744,13 +744,13 @@ fn execute_goap_action(
             info!("GOAP: Enemy {} calling for help!", enemy_entity.index());
             
             // Play alert sound
-            audio_events.send(AudioEvent {
+            audio_events.write(AudioEvent {
                 sound: AudioType::Alert,
                 volume: 1.0,
             });
             
             // Send alert event to notify nearby enemies
-            alert_events.send(AlertEvent {
+            alert_events.write(AlertEvent {
                 alerter: enemy_entity,
                 position: enemy_transform.translation.truncate(),
                 alert_type: AlertType::CallForHelp,
@@ -846,16 +846,32 @@ pub fn goap_debug_system(
         
         // Show key world states as small colored squares
         if *goap_agent.world_state.get(&WorldKey::HasTarget).unwrap_or(&false) {
-            gizmos.rect_2d(pos + Vec2::new(-20.0, y_offset), 0.0, Vec2::splat(indicator_size), Color::srgb(1.0, 0.0, 0.0));
+            gizmos.rect_2d(
+                pos + Vec2::new(-20.0, y_offset), 
+                Vec2::splat(indicator_size), 
+                Color::srgb(1.0, 0.0, 0.0)
+            );
         }
         if *goap_agent.world_state.get(&WorldKey::TargetVisible).unwrap_or(&false) {
-            gizmos.rect_2d(pos + Vec2::new(-15.0, y_offset), 0.0, Vec2::splat(indicator_size), Color::srgb(1.0, 0.5, 0.0));
+            gizmos.rect_2d(
+                pos + Vec2::new(-15.0, y_offset), 
+                Vec2::splat(indicator_size), 
+                Color::srgb(1.0, 0.5, 0.0)
+            );
         }
         if *goap_agent.world_state.get(&WorldKey::IsAlert).unwrap_or(&false) {
-            gizmos.rect_2d(pos + Vec2::new(-10.0, y_offset), 0.0, Vec2::splat(indicator_size), Color::srgb(1.0, 1.0, 0.0));
+            gizmos.rect_2d(
+                pos + Vec2::new(-10.0, y_offset), 
+                Vec2::splat(indicator_size), 
+                Color::srgb(1.0, 1.0, 0.0)
+            );
         }
         if *goap_agent.world_state.get(&WorldKey::HeardSound).unwrap_or(&false) {
-            gizmos.rect_2d(pos + Vec2::new(-5.0, y_offset), 0.0, Vec2::splat(indicator_size), Color::srgb(0.0, 1.0, 1.0));
+            gizmos.rect_2d(
+                pos + Vec2::new(-5.0, y_offset), 
+                Vec2::splat(indicator_size), 
+                Color::srgb(0.0, 1.0, 1.0)
+            );
         }
     }
 }

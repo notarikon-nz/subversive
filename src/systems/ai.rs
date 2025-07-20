@@ -91,8 +91,8 @@ pub fn legacy_enemy_ai_system(
     if game_mode.paused { return; }
 
     for (enemy_entity, enemy_transform, mut ai_state, mut vision, mut patrol) in enemy_query.iter_mut() {
-        ai_state.alert_cooldown -= time.delta_seconds();
-        ai_state.investigation_timer -= time.delta_seconds();
+        ai_state.alert_cooldown -= time.delta_secs();
+        ai_state.investigation_timer -= time.delta_secs();
 
         // Update vision direction based on movement/patrol
         update_vision_direction(&mut vision, &ai_state, &patrol, enemy_transform);
@@ -112,7 +112,7 @@ pub fn legacy_enemy_ai_system(
                     ai_state.mode = AIMode::Combat { target: agent_entity };
                     
                     // Alert sound
-                    audio_events.send(AudioEvent {
+                    audio_events.write(AudioEvent {
                         sound: AudioType::Alert,
                         volume: 0.8,
                     });
@@ -133,13 +133,13 @@ pub fn legacy_enemy_ai_system(
                         
                         if distance <= 150.0 {
                             // In range - attack
-                            action_events.send(ActionEvent {
+                            action_events.write(ActionEvent {
                                 entity: enemy_entity,
                                 action: Action::Attack(spotted_agent),
                             });
                         } else {
                             // Too far - move closer
-                            action_events.send(ActionEvent {
+                            action_events.write(ActionEvent {
                                 entity: enemy_entity,
                                 action: Action::MoveTo(agent_transform.translation.truncate()),
                             });
@@ -152,7 +152,7 @@ pub fn legacy_enemy_ai_system(
                         ai_state.investigation_timer = 5.0;
                         
                         // Start moving to investigate
-                        action_events.send(ActionEvent {
+                        action_events.write(ActionEvent {
                             entity: enemy_entity,
                             action: Action::MoveTo(last_pos),
                         });

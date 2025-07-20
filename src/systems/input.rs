@@ -55,7 +55,7 @@ pub fn handle_input(
     // Fixed E key for interaction
     if keyboard.just_pressed(KeyCode::KeyE) {
         if let Some(&agent) = selection.selected.first() {
-            action_events.send(ActionEvent {
+            action_events.write(ActionEvent {
                 entity: agent,
                 action: Action::InteractWith(agent),
             });
@@ -69,7 +69,7 @@ pub fn handle_input(
     if mouse.just_pressed(MouseButton::Right) {
         if let Some(world_pos) = get_world_mouse_position(&windows, &cameras) {
             for &entity in &selection.selected {
-                action_events.send(ActionEvent {
+                action_events.write(ActionEvent {
                     entity,
                     action: Action::MoveTo(world_pos),
                 });
