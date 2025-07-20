@@ -67,22 +67,19 @@ pub fn handle_input(
 }
 
 pub fn create_content(
-    parent: &mut ChildBuilder, 
+    parent: &mut ChildSpawnerCommands, 
     global_data: &GlobalData,
     manufacture_state: &ManufactureState,
     attachment_db: &AttachmentDatabase,
     unlocked: &UnlockedAttachments,
 ) {
-    parent.spawn(NodeBundle {
-        style: Style {
+    parent.spawn(Node {
             width: Val::Percent(100.0),
             flex_grow: 1.0,
             padding: UiRect::all(Val::Px(20.0)),
             flex_direction: FlexDirection::Column,
             row_gap: Val::Px(15.0),
             ..default()
-        },
-        ..default()
     }).with_children(|content| {
         content.spawn(TextBundle::from_section(
             "WEAPON MANUFACTURE",
@@ -90,14 +87,11 @@ pub fn create_content(
         ));
         
         // Agent selection display
-        content.spawn(NodeBundle {
-            style: Style {
+        content.spawn(Node {
                 flex_direction: FlexDirection::Row,
                 column_gap: Val::Px(20.0),
                 margin: UiRect::top(Val::Px(10.0)),
                 ..default()
-            },
-            ..default()
         }).with_children(|agents| {
             for i in 0..3 {
                 let is_selected = i == manufacture_state.selected_agent_idx;
@@ -112,16 +106,13 @@ pub fn create_content(
         });
         
         // Weapon slots display
-        content.spawn(NodeBundle {
-            style: Style {
+        content.spawn(Node {
                 flex_direction: FlexDirection::Column,
                 margin: UiRect::top(Val::Px(20.0)),
                 padding: UiRect::all(Val::Px(10.0)),
                 row_gap: Val::Px(8.0),
+                background_color: Color::srgba(0.2, 0.2, 0.3, 0.3).into(),
                 ..default()
-            },
-            background_color: Color::srgba(0.2, 0.2, 0.3, 0.3).into(),
-            ..default()
         }).with_children(|weapon_panel| {
             weapon_panel.spawn(TextBundle::from_section(
                 "CURRENT WEAPON: Rifle", // TODO: Get from agent inventory
@@ -150,16 +141,13 @@ pub fn create_content(
         
         // Available attachments for selected slot
         if let Some(selected_slot) = &manufacture_state.selected_slot {
-            content.spawn(NodeBundle {
-                style: Style {
+            content.spawn(Node {
                     flex_direction: FlexDirection::Column,
                     margin: UiRect::top(Val::Px(20.0)),
                     padding: UiRect::all(Val::Px(10.0)),
                     row_gap: Val::Px(5.0),
+                    background_color: Color::srgba(0.3, 0.2, 0.2, 0.3).into(),
                     ..default()
-                },
-                background_color: Color::srgba(0.3, 0.2, 0.2, 0.3).into(),
-                ..default()
             }).with_children(|attachments_panel| {
                 attachments_panel.spawn(TextBundle::from_section(
                     format!("AVAILABLE {:?} ATTACHMENTS:", selected_slot),

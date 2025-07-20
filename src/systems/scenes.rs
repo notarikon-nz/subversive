@@ -110,8 +110,8 @@ pub fn spawn_from_scene(commands: &mut Commands, scene: &SceneData, global_data:
 }
 
 fn spawn_agent(commands: &mut Commands, position: Vec2, level: u8, agent_idx: usize, global_data: &GlobalData, sprites: &GameSprites) {
-    let mut sprite_bundle = crate::core::sprites::create_agent_sprite(sprites);
-    sprite_bundle.transform = Transform::from_translation(position.extend(1.0));
+    let (sprite, mut transform) = crate::core::sprites::create_agent_sprite(sprites);
+    transform.translation = position.extend(1.0);
     
     // Load agent's saved configuration
     let loadout = global_data.get_agent_loadout(agent_idx);
@@ -146,7 +146,8 @@ fn spawn_agent(commands: &mut Commands, position: Vec2, level: u8, agent_idx: us
           inventory.tools.len());
     
     commands.spawn((
-        sprite_bundle,
+        sprite,
+        transform,
         Agent { experience: 0, level },
         Health(100.0),
         MovementSpeed(150.0),
@@ -164,11 +165,12 @@ fn spawn_agent(commands: &mut Commands, position: Vec2, level: u8, agent_idx: us
 
 
 fn spawn_civilian(commands: &mut Commands, position: Vec2, sprites: &GameSprites) {
-    let mut sprite_bundle = crate::core::sprites::create_civilian_sprite(sprites);
-    sprite_bundle.transform = Transform::from_translation(position.extend(1.0));
+    let (sprite, mut transform) = crate::core::sprites::create_civilian_sprite(sprites);
+    transform.translation = position.extend(1.0);
     
     commands.spawn((
-        sprite_bundle,
+        sprite,
+        transform,
         Civilian,
         Health(50.0),
         MovementSpeed(100.0),
@@ -185,12 +187,13 @@ fn spawn_enemy_with_patrol(commands: &mut Commands, position: Vec2, patrol_point
     let region = &global_data.regions[global_data.selected_region];
     let difficulty = region.mission_difficulty_modifier();
     
-    let mut sprite_bundle = crate::core::sprites::create_enemy_sprite(sprites);
-    sprite_bundle.transform = Transform::from_translation(position.extend(1.0));
+    let (sprite, mut transform) = crate::core::sprites::create_enemy_sprite(sprites);
+    transform.translation = position.extend(1.0);
     
     // Spawn with both AI systems - GOAP is primary, legacy as fallback
     commands.spawn((
-        sprite_bundle,
+        sprite,
+        transform,
         Enemy,
         Health(100.0 * difficulty),
         MovementSpeed(120.0 * difficulty),
@@ -207,11 +210,12 @@ fn spawn_enemy_with_patrol(commands: &mut Commands, position: Vec2, patrol_point
 
 
 fn spawn_terminal(commands: &mut Commands, position: Vec2, terminal_type: TerminalType, sprites: &GameSprites) {
-    let mut sprite_bundle = crate::core::sprites::create_terminal_sprite(sprites, &terminal_type);
-    sprite_bundle.transform = Transform::from_translation(position.extend(1.0));
+    let (sprite, mut transform) = crate::core::sprites::create_terminal_sprite(sprites, &terminal_type);
+    transform.translation = position.extend(1.0);
     
     commands.spawn((
-        sprite_bundle,
+        sprite,
+        transform,
         Terminal { terminal_type, range: 30.0, accessed: false },
         Selectable { radius: 15.0 },
     ));
@@ -228,15 +232,12 @@ pub fn spawn_cover_points(commands: &mut Commands) {
     
     for &pos in &cover_positions {
         commands.spawn((
-            SpriteBundle {
-                sprite: Sprite {
+            Sprite {
                     color: Color::srgba(0.4, 0.2, 0.1, 0.7), // Brown, semi-transparent
                     custom_size: Some(Vec2::new(20.0, 40.0)), // Rectangular cover
                     ..default()
                 },
-                transform: Transform::from_translation(pos.extend(0.5)), // Slightly behind other objects
-                ..default()
-            },
+            Transform::from_translation(pos.extend(0.5)), // Slightly behind other objects
             CoverPoint {
                 capacity: 2,
                 current_users: 0,

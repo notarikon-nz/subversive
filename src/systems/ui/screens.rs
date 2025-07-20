@@ -1,4 +1,4 @@
-// src/systems/ui/screens.rs - All the screen UIs, complete and clean
+// src/systems/ui/screens.rs - All the screen UIs updated for Bevy 0.16
 use bevy::prelude::*;
 use crate::core::*;
 
@@ -28,20 +28,18 @@ pub fn fps_system(
 ) {
     if ui_state.fps_visible && fps_query.is_empty() {
         commands.spawn((
-            TextBundle::from_section(
-                "FPS: --",
-                TextStyle {
-                    font_size: 20.0,
-                    color: Color::srgb(0.0, 1.0, 0.0),
-                    ..default()
-                },
-            )
-            .with_style(Style {
+            Text::new("FPS: --"),
+            TextFont {
+                font_size: 20.0,
+                ..default()
+            },
+            TextColor(Color::srgb(0.0, 1.0, 0.0)),
+            Node {
                 position_type: PositionType::Absolute,
                 top: Val::Px(10.0),
                 left: Val::Px(10.0),
                 ..default()
-            }),
+            },
             FpsText,
         ));
     } else if !ui_state.fps_visible && !fps_query.is_empty() {
@@ -51,7 +49,7 @@ pub fn fps_system(
     } else if ui_state.fps_visible && !fps_query.is_empty() {
         let fps = 1.0 / time.delta_seconds();
         if let Ok(mut text) = fps_text_query.get_single_mut() {
-            text.sections[0].value = format!("FPS: {:.0}", fps);
+            **text = format!("FPS: {:.0}", fps);
         }
     }
 }
@@ -94,34 +92,34 @@ pub fn pause_system(
     
     if should_show && !ui_exists {
         commands.spawn((
-            NodeBundle {
-                style: Style {
-                    width: Val::Percent(100.0),
-                    height: Val::Percent(100.0),
-                    justify_content: JustifyContent::Center,
-                    align_items: AlignItems::Center,
-                    flex_direction: FlexDirection::Column,
-                    ..default()
-                },
-                background_color: Color::srgba(0.0, 0.0, 0.0, 0.5).into(),
-                z_index: ZIndex::Global(100),
+            Node {
+                width: Val::Percent(100.0),
+                height: Val::Percent(100.0),
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                flex_direction: FlexDirection::Column,
                 ..default()
             },
+            BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.5)),
+            ZIndex(100),
             PauseScreen,
         )).with_children(|parent| {
-            parent.spawn(TextBundle::from_section(
-                "PAUSED",
-                TextStyle { font_size: 32.0, color: Color::WHITE, ..default() }
+            parent.spawn((
+                Text::new("PAUSED"),
+                TextFont { font_size: 32.0, ..default() },
+                TextColor(Color::WHITE),
             ));
             
-            parent.spawn(TextBundle::from_section(
-                "\nSPACE: Resume Mission\nQ: Abort Mission",
-                TextStyle { font_size: 20.0, color: Color::srgb(0.8, 0.8, 0.8), ..default() }
+            parent.spawn((
+                Text::new("\nSPACE: Resume Mission\nQ: Abort Mission"),
+                TextFont { font_size: 20.0, ..default() },
+                TextColor(Color::srgb(0.8, 0.8, 0.8)),
             ));
             
-            parent.spawn(TextBundle::from_section(
-                "\n(Aborting will count as mission failure)",
-                TextStyle { font_size: 14.0, color: Color::srgb(0.8, 0.3, 0.3), ..default() }
+            parent.spawn((
+                Text::new("\n(Aborting will count as mission failure)"),
+                TextFont { font_size: 14.0, ..default() },
+                TextColor(Color::srgb(0.8, 0.3, 0.3)),
             ));
         });
     } else if !should_show && ui_exists {
@@ -168,53 +166,54 @@ pub fn inventory_system(
 
 fn create_inventory_ui(commands: &mut Commands, inventory: Option<&Inventory>) {
     commands.spawn((
-        NodeBundle {
-            style: Style {
-                width: Val::Px(450.0),  // Slightly wider for attachment info
-                height: Val::Px(550.0),
-                position_type: PositionType::Absolute,
-                left: Val::Px(50.0),
-                top: Val::Px(50.0),
-                flex_direction: FlexDirection::Column,
-                padding: UiRect::all(Val::Px(10.0)),
-                row_gap: Val::Px(10.0),
-                ..default()
-            },
-            background_color: Color::srgba(0.1, 0.1, 0.1, 0.9).into(),
-            z_index: ZIndex::Global(50),
+        Node {
+            width: Val::Px(450.0),  // Slightly wider for attachment info
+            height: Val::Px(550.0),
+            position_type: PositionType::Absolute,
+            left: Val::Px(50.0),
+            top: Val::Px(50.0),
+            flex_direction: FlexDirection::Column,
+            padding: UiRect::all(Val::Px(10.0)),
+            row_gap: Val::Px(10.0),
             ..default()
         },
+        BackgroundColor(Color::srgba(0.1, 0.1, 0.1, 0.9)),
+        ZIndex(50),
         InventoryUI,
     )).with_children(|parent| {
         // Title
-        parent.spawn(TextBundle::from_section(
-            "AGENT INVENTORY",
-            TextStyle { font_size: 24.0, color: Color::WHITE, ..default() }
+        parent.spawn((
+            Text::new("AGENT INVENTORY"),
+            TextFont { font_size: 24.0, ..default() },
+            TextColor(Color::WHITE),
         ));
         
         if let Some(inv) = inventory {
             // Currency
-            parent.spawn(TextBundle::from_section(
-                format!("Credits: {}", inv.currency),
-                TextStyle { font_size: 18.0, color: Color::srgb(0.8, 0.8, 0.2), ..default() }
+            parent.spawn((
+                Text::new(format!("Credits: {}", inv.currency)),
+                TextFont { font_size: 18.0, ..default() },
+                TextColor(Color::srgb(0.8, 0.8, 0.2)),
             ));
             
             // Equipped weapon with attachment stats
             if let Some(weapon_config) = &inv.equipped_weapon {
                 let stats = weapon_config.calculate_total_stats();
                 
-                parent.spawn(TextBundle::from_section(
-                    format!("EQUIPPED: {:?}", weapon_config.base_weapon),
-                    TextStyle { font_size: 16.0, color: Color::srgb(0.9, 0.5, 0.2), ..default() }
+                parent.spawn((
+                    Text::new(format!("EQUIPPED: {:?}", weapon_config.base_weapon)),
+                    TextFont { font_size: 16.0, ..default() },
+                    TextColor(Color::srgb(0.9, 0.5, 0.2)),
                 ));
                 
                 // Show attachment stats if any are non-zero
                 if stats.accuracy != 0 || stats.range != 0 || stats.noise != 0 || 
                    stats.reload_speed != 0 || stats.ammo_capacity != 0 {
-                    parent.spawn(TextBundle::from_section(
-                        format!("Stats: Acc{:+} Rng{:+} Noise{:+} Reload{:+} Ammo{:+}", 
-                                stats.accuracy, stats.range, stats.noise, stats.reload_speed, stats.ammo_capacity),
-                        TextStyle { font_size: 14.0, color: Color::srgb(0.6, 0.8, 0.6), ..default() }
+                    parent.spawn((
+                        Text::new(format!("Stats: Acc{:+} Rng{:+} Noise{:+} Reload{:+} Ammo{:+}", 
+                                stats.accuracy, stats.range, stats.noise, stats.reload_speed, stats.ammo_capacity)),
+                        TextFont { font_size: 14.0, ..default() },
+                        TextColor(Color::srgb(0.6, 0.8, 0.6)),
                     ));
                 }
                 
@@ -224,127 +223,135 @@ fn create_inventory_ui(commands: &mut Commands, inventory: Option<&Inventory>) {
                     .count();
                 
                 if attached_count > 0 {
-                    parent.spawn(TextBundle::from_section(
-                        format!("Attachments: {}/{}", attached_count, weapon_config.supported_slots.len()),
-                        TextStyle { font_size: 14.0, color: Color::srgb(0.7, 0.7, 0.9), ..default() }
+                    parent.spawn((
+                        Text::new(format!("Attachments: {}/{}", attached_count, weapon_config.supported_slots.len())),
+                        TextFont { font_size: 14.0, ..default() },
+                        TextColor(Color::srgb(0.7, 0.7, 0.9)),
                     ));
                     
                     // List attached items
                     for (slot, attachment_opt) in &weapon_config.attachments {
                         if let Some(attachment) = attachment_opt {
-                            parent.spawn(TextBundle::from_section(
-                                format!("  {:?}: {}", slot, attachment.name),
-                                TextStyle { font_size: 12.0, color: Color::srgb(0.8, 0.8, 0.8), ..default() }
+                            parent.spawn((
+                                Text::new(format!("  {:?}: {}", slot, attachment.name)),
+                                TextFont { font_size: 12.0, ..default() },
+                                TextColor(Color::srgb(0.8, 0.8, 0.8)),
                             ));
                         }
                     }
                 } else {
-                    parent.spawn(TextBundle::from_section(
-                        "No attachments equipped",
-                        TextStyle { font_size: 14.0, color: Color::srgb(0.5, 0.5, 0.5), ..default() }
+                    parent.spawn((
+                        Text::new("No attachments equipped"),
+                        TextFont { font_size: 14.0, ..default() },
+                        TextColor(Color::srgb(0.5, 0.5, 0.5)),
                     ));
                 }
                 
             } else {
-                parent.spawn(TextBundle::from_section(
-                    "EQUIPPED WEAPON: None",
-                    TextStyle { font_size: 16.0, color: Color::srgb(0.8, 0.3, 0.3), ..default() }
+                parent.spawn((
+                    Text::new("EQUIPPED WEAPON: None"),
+                    TextFont { font_size: 16.0, ..default() },
+                    TextColor(Color::srgb(0.8, 0.3, 0.3)),
                 ));
             }
             
             // Equipped tools
             if !inv.equipped_tools.is_empty() {
-                parent.spawn(TextBundle::from_section(
-                    format!("EQUIPPED TOOLS: {:?}", inv.equipped_tools),
-                    TextStyle { font_size: 16.0, color: Color::srgb(0.3, 0.8, 0.3), ..default() }
+                parent.spawn((
+                    Text::new(format!("EQUIPPED TOOLS: {:?}", inv.equipped_tools)),
+                    TextFont { font_size: 16.0, ..default() },
+                    TextColor(Color::srgb(0.3, 0.8, 0.3)),
                 ));
             }
             
             // Weapons section - show as configs now
             if !inv.weapons.is_empty() {
-                parent.spawn(NodeBundle {
-                    style: Style {
+                parent.spawn((
+                    Node {
                         flex_direction: FlexDirection::Column,
                         row_gap: Val::Px(2.0),
                         ..default()
                     },
-                    ..default()
-                }).with_children(|weapons| {
-                    weapons.spawn(TextBundle::from_section(
-                        "WEAPONS:",
-                        TextStyle { font_size: 16.0, color: Color::srgb(0.8, 0.3, 0.3), ..default() }
+                )).with_children(|weapons| {
+                    weapons.spawn((
+                        Text::new("WEAPONS:"),
+                        TextFont { font_size: 16.0, ..default() },
+                        TextColor(Color::srgb(0.8, 0.3, 0.3)),
                     ));
                     for weapon_config in &inv.weapons {
                         let attached_count = weapon_config.attachments.values()
                             .filter(|att| att.is_some())
                             .count();
-                        weapons.spawn(TextBundle::from_section(
-                            format!("• {:?} ({}/{})", weapon_config.base_weapon, attached_count, weapon_config.supported_slots.len()),
-                            TextStyle { font_size: 14.0, color: Color::WHITE, ..default() }
+                        weapons.spawn((
+                            Text::new(format!("• {:?} ({}/{})", weapon_config.base_weapon, attached_count, weapon_config.supported_slots.len())),
+                            TextFont { font_size: 14.0, ..default() },
+                            TextColor(Color::WHITE),
                         ));
                     }
                 });
             }
             
-            // Tools section (unchanged)
+            // Tools section (unchanged logic, new syntax)
             if !inv.tools.is_empty() {
-                parent.spawn(NodeBundle {
-                    style: Style {
+                parent.spawn((
+                    Node {
                         flex_direction: FlexDirection::Column,
                         row_gap: Val::Px(2.0),
                         ..default()
                     },
-                    ..default()
-                }).with_children(|tools| {
-                    tools.spawn(TextBundle::from_section(
-                        "TOOLS:",
-                        TextStyle { font_size: 16.0, color: Color::srgb(0.3, 0.8, 0.3), ..default() }
+                )).with_children(|tools| {
+                    tools.spawn((
+                        Text::new("TOOLS:"),
+                        TextFont { font_size: 16.0, ..default() },
+                        TextColor(Color::srgb(0.3, 0.8, 0.3)),
                     ));
                     for tool in &inv.tools {
-                        tools.spawn(TextBundle::from_section(
-                            format!("• {:?}", tool),
-                            TextStyle { font_size: 14.0, color: Color::WHITE, ..default() }
+                        tools.spawn((
+                            Text::new(format!("• {:?}", tool)),
+                            TextFont { font_size: 14.0, ..default() },
+                            TextColor(Color::WHITE),
                         ));
                     }
                 });
             }
             
-            // Cybernetics section (unchanged)
+            // Cybernetics section (unchanged logic, new syntax)
             if !inv.cybernetics.is_empty() {
-                parent.spawn(NodeBundle {
-                    style: Style {
+                parent.spawn((
+                    Node {
                         flex_direction: FlexDirection::Column,
                         row_gap: Val::Px(2.0),
                         ..default()
                     },
-                    ..default()
-                }).with_children(|cyber| {
-                    cyber.spawn(TextBundle::from_section(
-                        "CYBERNETICS:",
-                        TextStyle { font_size: 16.0, color: Color::srgb(0.3, 0.3, 0.8), ..default() }
+                )).with_children(|cyber| {
+                    cyber.spawn((
+                        Text::new("CYBERNETICS:"),
+                        TextFont { font_size: 16.0, ..default() },
+                        TextColor(Color::srgb(0.3, 0.3, 0.8)),
                     ));
                     for cybernetic in &inv.cybernetics {
-                        cyber.spawn(TextBundle::from_section(
-                            format!("• {:?}", cybernetic),
-                            TextStyle { font_size: 14.0, color: Color::WHITE, ..default() }
+                        cyber.spawn((
+                            Text::new(format!("• {:?}", cybernetic)),
+                            TextFont { font_size: 14.0, ..default() },
+                            TextColor(Color::WHITE),
                         ));
                     }
                 });
             }
             
-            // Intel section (unchanged)
+            // Intel section (unchanged logic, new syntax)
             if !inv.intel_documents.is_empty() {
-                parent.spawn(NodeBundle {
-                    style: Style {
+                parent.spawn((
+                    Node {
                         flex_direction: FlexDirection::Column,
                         row_gap: Val::Px(2.0),
                         ..default()
                     },
-                    ..default()
-                }).with_children(|intel| {
-                    intel.spawn(TextBundle::from_section(
-                        "INTEL DOCUMENTS:",
-                        TextStyle { font_size: 16.0, color: Color::srgb(0.8, 0.8, 0.3), ..default() }
+                )).with_children(|intel| {
+                    intel.spawn((
+                        Text::new("INTEL DOCUMENTS:"),
+                        TextFont { font_size: 16.0, ..default() },
+                        TextColor(Color::srgb(0.8, 0.8, 0.3)),
                     ));
                     for (i, document) in inv.intel_documents.iter().enumerate() {
                         let preview = if document.len() > 40 {
@@ -352,24 +359,27 @@ fn create_inventory_ui(commands: &mut Commands, inventory: Option<&Inventory>) {
                         } else {
                             document.clone()
                         };
-                        intel.spawn(TextBundle::from_section(
-                            format!("• Doc {}: {}", i + 1, preview),
-                            TextStyle { font_size: 11.0, color: Color::WHITE, ..default() }
+                        intel.spawn((
+                            Text::new(format!("• Doc {}: {}", i + 1, preview)),
+                            TextFont { font_size: 11.0, ..default() },
+                            TextColor(Color::WHITE),
                         ));
                     }
                 });
             }
         } else {
-            parent.spawn(TextBundle::from_section(
-                "No agent selected",
-                TextStyle { font_size: 16.0, color: Color::srgb(0.8, 0.3, 0.3), ..default() }
+            parent.spawn((
+                Text::new("No agent selected"),
+                TextFont { font_size: 16.0, ..default() },
+                TextColor(Color::srgb(0.8, 0.3, 0.3)),
             ));
         }
         
         // Instructions
-        parent.spawn(TextBundle::from_section(
-            "Press 'I' to close inventory\nGo to Manufacture tab to modify weapons",
-            TextStyle { font_size: 12.0, color: Color::srgb(0.7, 0.7, 0.7), ..default() }
+        parent.spawn((
+            Text::new("Press 'I' to close inventory\nGo to Manufacture tab to modify weapons"),
+            TextFont { font_size: 12.0, ..default() },
+            TextColor(Color::srgb(0.7, 0.7, 0.7)),
         ));
     });
 }
@@ -440,37 +450,37 @@ pub fn global_map_system(
 
 fn create_global_map_ui(commands: &mut Commands, global_data: &GlobalData) {
     commands.spawn((
-        NodeBundle {
-            style: Style {
-                width: Val::Percent(100.0),
-                height: Val::Percent(100.0),
-                flex_direction: FlexDirection::Column,
-                justify_content: JustifyContent::Center,
-                align_items: AlignItems::Center,
-                row_gap: Val::Px(20.0),
-                ..default()
-            },
-            background_color: Color::srgb(0.1, 0.1, 0.2).into(),
+        Node {
+            width: Val::Percent(100.0),
+            height: Val::Percent(100.0),
+            flex_direction: FlexDirection::Column,
+            justify_content: JustifyContent::Center,
+            align_items: AlignItems::Center,
+            row_gap: Val::Px(20.0),
             ..default()
         },
+        BackgroundColor(Color::srgb(0.1, 0.1, 0.2)),
         GlobalMapScreen,
     )).with_children(|parent| {
         // Title and day counter
-        parent.spawn(TextBundle::from_section(
-            format!("SUBVERSIVE - GLOBAL MAP\nDay {}", global_data.current_day),
-            TextStyle { font_size: 36.0, color: Color::WHITE, ..default() }
+        parent.spawn((
+            Text::new(format!("SUBVERSIVE - GLOBAL MAP\nDay {}", global_data.current_day)),
+            TextFont { font_size: 36.0, ..default() },
+            TextColor(Color::WHITE),
         ));
         
         // Credits
-        parent.spawn(TextBundle::from_section(
-            format!("Credits: {}", global_data.credits),
-            TextStyle { font_size: 20.0, color: Color::srgb(0.8, 0.8, 0.2), ..default() }
+        parent.spawn((
+            Text::new(format!("Credits: {}", global_data.credits)),
+            TextFont { font_size: 20.0, ..default() },
+            TextColor(Color::srgb(0.8, 0.8, 0.2)),
         ));
         
         // Agent roster
-        parent.spawn(TextBundle::from_section(
-            "\nAGENT ROSTER:",
-            TextStyle { font_size: 20.0, color: Color::WHITE, ..default() }
+        parent.spawn((
+            Text::new("\nAGENT ROSTER:"),
+            TextFont { font_size: 20.0, ..default() },
+            TextColor(Color::WHITE),
         ));
         
         for i in 0..3 {
@@ -497,16 +507,18 @@ fn create_global_map_ui(commands: &mut Commands, global_data: &GlobalData) {
                 format!("Agent {}: Level {} - READY", i + 1, level)
             };
             
-            parent.spawn(TextBundle::from_section(
-                status_text,
-                TextStyle { font_size: 16.0, color: level_color, ..default() }
+            parent.spawn((
+                Text::new(status_text),
+                TextFont { font_size: 16.0, ..default() },
+                TextColor(level_color),
             ));
         }
         
         // Region selection
-        parent.spawn(TextBundle::from_section(
-            "\nSELECT REGION:",
-            TextStyle { font_size: 24.0, color: Color::WHITE, ..default() }
+        parent.spawn((
+            Text::new("\nSELECT REGION:"),
+            TextFont { font_size: 24.0, ..default() },
+            TextColor(Color::WHITE),
         ));
         
         for (i, region) in global_data.regions.iter().enumerate() {
@@ -514,9 +526,10 @@ fn create_global_map_ui(commands: &mut Commands, global_data: &GlobalData) {
             let color = if is_selected { Color::srgb(0.2, 0.8, 0.2) } else { Color::WHITE };
             let prefix = if is_selected { "> " } else { "  " };
             
-            parent.spawn(TextBundle::from_section(
-                format!("{}{} (Threat: {})", prefix, region.name, region.threat_level),
-                TextStyle { font_size: 18.0, color, ..default() }
+            parent.spawn((
+                Text::new(format!("{}{} (Threat: {})", prefix, region.name, region.threat_level)),
+                TextFont { font_size: 18.0, ..default() },
+                TextColor(color),
             ));
         }
         
@@ -528,14 +541,16 @@ fn create_global_map_ui(commands: &mut Commands, global_data: &GlobalData) {
             "\nUP/DOWN: Select Region\nW: Wait 1 Day\nENTER: Start Mission\nESC: Quit"
         };
         
-        parent.spawn(TextBundle::from_section(
-            controls_text,
-            TextStyle { font_size: 16.0, color: Color::srgb(0.7, 0.7, 0.7), ..default() }
+        parent.spawn((
+            Text::new(controls_text),
+            TextFont { font_size: 16.0, ..default() },
+            TextColor(Color::srgb(0.7, 0.7, 0.7)),
         ));
 
-        parent.spawn(TextBundle::from_section(
-            "\nF5: Save Game",
-            TextStyle { font_size: 14.0, color: Color::srgb(0.5, 0.8, 0.5), ..default() }
+        parent.spawn((
+            Text::new("\nF5: Save Game"),
+            TextFont { font_size: 14.0, ..default() },
+            TextColor(Color::srgb(0.5, 0.8, 0.5)),
         ));        
     });
 }
@@ -580,65 +595,67 @@ fn create_post_mission_ui(
     };
     
     commands.spawn((
-        NodeBundle {
-            style: Style {
-                width: Val::Percent(100.0),
-                height: Val::Percent(100.0),
-                position_type: PositionType::Absolute,
-                justify_content: JustifyContent::Center,
-                align_items: AlignItems::Center,
-                flex_direction: FlexDirection::Column,
-                ..default()
-            },
-            background_color: Color::srgba(0.0, 0.0, 0.0, 0.8).into(),
-            z_index: ZIndex::Global(200),
+        Node {
+            width: Val::Percent(100.0),
+            height: Val::Percent(100.0),
+            position_type: PositionType::Absolute,
+            justify_content: JustifyContent::Center,
+            align_items: AlignItems::Center,
+            flex_direction: FlexDirection::Column,
             ..default()
         },
+        BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.8)),
+        ZIndex(200),
         PostMissionScreen,
     )).with_children(|parent| {
         // Title
-        parent.spawn(TextBundle::from_section(
-            title,
-            TextStyle { font_size: 48.0, color: title_color, ..default() }
+        parent.spawn((
+            Text::new(title),
+            TextFont { font_size: 48.0, ..default() },
+            TextColor(title_color),
         ));
         
         // Stats
-        parent.spawn(TextBundle::from_section(
-            format!(
+        parent.spawn((
+            Text::new(format!(
                 "\nTime: {:.1}s\nEnemies: {}\nTerminals: {}\nCredits: {}\nAlert: {:?}",
                 post_mission.time_taken,
                 post_mission.enemies_killed,
                 post_mission.terminals_accessed,
                 post_mission.credits_earned,
                 post_mission.alert_level
-            ),
-            TextStyle { font_size: 24.0, color: Color::WHITE, ..default() }
+            )),
+            TextFont { font_size: 24.0, ..default() },
+            TextColor(Color::WHITE),
         ));
         
         // Agent progression (only if successful)
         if post_mission.success {
             let exp_gained = 10 + (post_mission.enemies_killed * 5);
-            parent.spawn(TextBundle::from_section(
-                format!("\nEXP GAINED: {}", exp_gained),
-                TextStyle { font_size: 20.0, color: Color::srgb(0.2, 0.8, 0.8), ..default() }
+            parent.spawn((
+                Text::new(format!("\nEXP GAINED: {}", exp_gained)),
+                TextFont { font_size: 20.0, ..default() },
+                TextColor(Color::srgb(0.2, 0.8, 0.8)),
             ));
             
             for i in 0..3 {
-                parent.spawn(TextBundle::from_section(
-                    format!("Agent {}: Lv{} ({}/{})", 
+                parent.spawn((
+                    Text::new(format!("Agent {}: Lv{} ({}/{})", 
                         i + 1, 
                         global_data.agent_levels[i],
                         global_data.agent_experience[i],
                         experience_for_level(global_data.agent_levels[i] + 1)
-                    ),
-                    TextStyle { font_size: 16.0, color: Color::WHITE, ..default() }
+                    )),
+                    TextFont { font_size: 16.0, ..default() },
+                    TextColor(Color::WHITE),
                 ));
             }
         }
         
-        parent.spawn(TextBundle::from_section(
-            "\nR: Return to Map | ESC: Quit",
-            TextStyle { font_size: 16.0, color: Color::srgb(0.7, 0.7, 0.7), ..default() }
+        parent.spawn((
+            Text::new("\nR: Return to Map | ESC: Quit"),
+            TextFont { font_size: 16.0, ..default() },
+            TextColor(Color::srgb(0.7, 0.7, 0.7)),
         ));
     });
 }

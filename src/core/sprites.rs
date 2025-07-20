@@ -35,57 +35,56 @@ pub fn spawn_initial_scene(
 }
 
 // Update spawn functions to use sprites instead of colored rectangles
-pub fn create_agent_sprite(sprites: &GameSprites) -> SpriteBundle {
-    SpriteBundle {
-        texture: sprites.agent.clone(),
-        sprite: Sprite {
+pub fn create_agent_sprite(sprites: &GameSprites) -> (Sprite, Transform) {
+    (
+        Sprite {
+            image: sprites.agent.clone(),
             custom_size: Some(Vec2::new(24.0, 24.0)),
             color: Color::srgb(0.2, 0.8, 0.2), // Fallback color
             ..default()
         },
-        ..default()
-    }
+        Transform::default(),
+    )
 }
 
-pub fn create_civilian_sprite(sprites: &GameSprites) -> SpriteBundle {
-    SpriteBundle {
-        texture: sprites.civilian.clone(),
-        sprite: Sprite {
+pub fn create_civilian_sprite(sprites: &GameSprites) -> (Sprite, Transform) {
+    (
+        Sprite {
+            image: sprites.civilian.clone(),
             custom_size: Some(Vec2::new(18.0, 18.0)),
             color: Color::srgb(0.8, 0.8, 0.2), // Fallback color
             ..default()
         },
-        ..default()
-    }
+        Transform::default(),
+    )
 }
 
-pub fn create_enemy_sprite(sprites: &GameSprites) -> SpriteBundle {
-    SpriteBundle {
-        texture: sprites.enemy.clone(),
-        sprite: Sprite {
+pub fn create_enemy_sprite(sprites: &GameSprites) -> (Sprite, Transform) {
+    (
+        Sprite {
+            image: sprites.enemy.clone(),
             custom_size: Some(Vec2::new(22.0, 22.0)),
             color: Color::srgb(0.8, 0.2, 0.2), // Fallback color
             ..default()
         },
-        ..default()
-    }
+        Transform::default(),
+    )
 }
 
-pub fn create_terminal_sprite(sprites: &GameSprites, terminal_type: &crate::core::TerminalType) -> SpriteBundle {
+pub fn create_terminal_sprite(sprites: &GameSprites, terminal_type: &crate::core::TerminalType) -> (Sprite, Transform) {
     let (texture, fallback_color) = match terminal_type {
         crate::core::TerminalType::Objective => (&sprites.terminal_objective, Color::srgb(0.9, 0.2, 0.2)),
         crate::core::TerminalType::Equipment => (&sprites.terminal_equipment, Color::srgb(0.2, 0.5, 0.9)),
         crate::core::TerminalType::Intel => (&sprites.terminal_intel, Color::srgb(0.2, 0.8, 0.3)),
     };
     
-    SpriteBundle {
-        texture: texture.clone(),
-        sprite: Sprite {
+    (
+        Sprite {
+            image: texture.clone(),
             custom_size: Some(Vec2::new(20.0, 20.0)),
             color: fallback_color, // This will show if texture fails to load
             ..default()
         },
-        ..default()
-    }
+        Transform::default(),
+    )
 }
-

@@ -94,9 +94,12 @@ pub fn hub_system(
     }
 
     // Delegate input handling to appropriate tab
+    // Spaced out for easier debugging
     let mut needs_rebuild = match hub_state.active_tab {
         HubTab::GlobalMap => global_map::handle_input(
-            &input, &mut global_data, &mut hub_state
+            &input, 
+            &mut global_data, 
+            &mut hub_state
         ),
         HubTab::Research => research::handle_input(
             &input, 
@@ -106,11 +109,24 @@ pub fn hub_system(
             &mut unlocked,
             &mut hub_state.selected_research_project
         ),
-        HubTab::Agents => agents::handle_input(&input, &mut hub_state),
-        HubTab::Manufacture => manufacture::handle_input(
-            &input, &mut hub_state, &mut manufacture_state, &mut global_data, agent_query, &attachment_db
+        HubTab::Agents => agents::handle_input(
+            &input, 
+            &mut hub_state
         ),
-        HubTab::Missions => missions::handle_input(&input, &mut commands, &mut next_state, &global_data),
+        HubTab::Manufacture => manufacture::handle_input(
+            &input, 
+            &mut hub_state, 
+            &mut manufacture_state, 
+            &mut global_data, 
+            agent_query, 
+            &attachment_db
+        ),
+        HubTab::Missions => missions::handle_input(
+            &input, 
+            &mut commands, 
+            &mut next_state, 
+            &global_data
+        ),
     };
 
     // Global escape
@@ -149,8 +165,8 @@ fn create_hub_ui(
     global_data: &GlobalData, 
     hub_state: &HubState,
     manufacture_state: &ManufactureState,
-    research_progress: &ResearchProgress,  // ADD
-    research_db: &ResearchDatabase,        // ADD
+    research_progress: &ResearchProgress,
+    research_db: &ResearchDatabase,
     attachment_db: &AttachmentDatabase,
     unlocked: &UnlockedAttachments,
 ) {
@@ -167,10 +183,13 @@ fn create_hub_ui(
         },
         HubScreen,
     )).with_children(|parent| {
+        // Fixed header
         create_header(parent, global_data);
+        
+        // Fixed tab bar
         create_tab_bar(parent, hub_state.active_tab);
         
-        // Delegate content creation to appropriate tab
+        // Content area that scrolls
         match hub_state.active_tab {
             HubTab::GlobalMap => global_map::create_content(parent, global_data, hub_state),
             HubTab::Research => research::create_content(
@@ -185,15 +204,17 @@ fn create_hub_ui(
             HubTab::Missions => missions::create_content(parent, global_data, hub_state),
         }
         
+        // Fixed footer
         create_footer(parent, hub_state.active_tab);
     });
 }
 
-fn create_header(parent: &mut ChildBuilder, global_data: &GlobalData) {
+fn create_header(parent: &mut ChildSpawnerCommands, global_data: &GlobalData) {
     parent.spawn(NodeBundle {
         style: Style {
             width: Val::Percent(100.0),
             height: Val::Px(80.0),
+            flex_shrink: 0.0, // Don't allow shrinking
             justify_content: JustifyContent::SpaceBetween,
             align_items: AlignItems::Center,
             padding: UiRect::all(Val::Px(20.0)),
@@ -227,11 +248,12 @@ fn create_header(parent: &mut ChildBuilder, global_data: &GlobalData) {
     });
 }
 
-fn create_tab_bar(parent: &mut ChildBuilder, active_tab: HubTab) {
+fn create_tab_bar(parent: &mut ChildSpawnerCommands, active_tab: HubTab) {
     parent.spawn(NodeBundle {
         style: Style {
             width: Val::Percent(100.0),
             height: Val::Px(50.0),
+            flex_shrink: 0.0, // Don't allow shrinking
             flex_direction: FlexDirection::Row,
             ..default()
         },
@@ -275,11 +297,12 @@ fn create_tab_bar(parent: &mut ChildBuilder, active_tab: HubTab) {
     });
 }
 
-fn create_footer(parent: &mut ChildBuilder, active_tab: HubTab) {
+fn create_footer(parent: &mut ChildSpawnerCommands, active_tab: HubTab) {
     parent.spawn(NodeBundle {
         style: Style {
             width: Val::Percent(100.0),
             height: Val::Px(60.0),
+            flex_shrink: 0.0, // Don't allow shrinking
             justify_content: JustifyContent::Center,
             align_items: AlignItems::Center,
             padding: UiRect::all(Val::Px(10.0)),

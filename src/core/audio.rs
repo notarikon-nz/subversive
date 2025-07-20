@@ -1,5 +1,6 @@
+// src/core/audio.rs - Fix for Bevy 0.16
 use bevy::prelude::*;
-use bevy::audio::{Volume};
+use bevy::audio::{Volume, PlaybackSettings};
 use crate::core::*;
 
 #[derive(Resource)]
@@ -61,10 +62,11 @@ pub fn audio_system(
             AudioType::Neurovector => &audio.neurovector,
         };
         
-        commands.spawn(AudioBundle {
-            source: source.clone(),
-            settings: PlaybackSettings::DESPAWN.with_volume(bevy::audio::Volume::new(event.volume)),
-        });
+        // Bevy 0.16 audio spawning - no more AudioBundle
+        commands.spawn((
+            AudioPlayer::new(source.clone()),
+            PlaybackSettings::DESPAWN.with_volume(Volume::new(event.volume)),
+        ));
     }
 }
 

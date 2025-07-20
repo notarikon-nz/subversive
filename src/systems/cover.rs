@@ -13,15 +13,12 @@ pub fn spawn_cover_points(commands: &mut Commands) {
     
     for &pos in &cover_positions {
         commands.spawn((
-            SpriteBundle {
-                sprite: Sprite {
+            Sprite {
                     color: Color::srgba(0.4, 0.2, 0.1, 0.7), // Brown, semi-transparent
                     custom_size: Some(Vec2::new(20.0, 40.0)), // Rectangular cover
                     ..default()
                 },
-                transform: Transform::from_translation(pos.extend(0.5)), // Slightly behind other objects
-                ..default()
-            },
+            Transform::from_translation(pos.extend(0.5)), // Slightly behind other objects
             CoverPoint {
                 capacity: 2,
                 current_users: 0,

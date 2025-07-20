@@ -39,9 +39,9 @@ pub fn handle_input(
     needs_rebuild
 }
 
-pub fn create_content(parent: &mut ChildBuilder, global_data: &GlobalData, hub_state: &super::HubState) {
-    parent.spawn(NodeBundle {
-        style: Style {
+pub fn create_content(parent: &mut ChildSpawnerCommands, global_data: &GlobalData, hub_state: &super::HubState) {
+    parent.spawn((
+        Node {
             width: Val::Percent(100.0),
             flex_grow: 1.0,
             padding: UiRect::all(Val::Px(20.0)),
@@ -49,12 +49,15 @@ pub fn create_content(parent: &mut ChildBuilder, global_data: &GlobalData, hub_s
             row_gap: Val::Px(15.0),
             ..default()
         },
-        ..default()
-    }).with_children(|content| {
+    )).with_children(|content| {
         // Agent status
-        content.spawn(TextBundle::from_section(
-            "AGENT STATUS:",
-            TextStyle { font_size: 20.0, color: Color::WHITE, ..default() }
+        content.spawn((
+            Text::new("AGENT STATUS:"),
+            TextFont {
+                font_size: 20.0,
+                ..default()
+            },
+            TextColor(Color::WHITE),
         ));
         
         for i in 0..3 {
@@ -71,16 +74,24 @@ pub fn create_content(parent: &mut ChildBuilder, global_data: &GlobalData, hub_s
                 format!("Agent {}: Level {} - READY", i + 1, level)
             };
             
-            content.spawn(TextBundle::from_section(
-                status,
-                TextStyle { font_size: 16.0, color, ..default() }
+            content.spawn((
+                Text::new(status),
+                TextFont {
+                    font_size: 16.0,
+                    ..default()
+                },
+                TextColor(color),
             ));
         }
         
         // World regions
-        content.spawn(TextBundle::from_section(
-            "\nWORLD REGIONS:",
-            TextStyle { font_size: 20.0, color: Color::WHITE, ..default() }
+        content.spawn((
+            Text::new("\nWORLD REGIONS:"),
+            TextFont {
+                font_size: 20.0,
+                ..default()
+            },
+            TextColor(Color::WHITE),
         ));
         
         for (i, region) in global_data.regions.iter().enumerate() {
@@ -88,10 +99,14 @@ pub fn create_content(parent: &mut ChildBuilder, global_data: &GlobalData, hub_s
             let color = if is_selected { Color::srgb(0.2, 0.8, 0.2) } else { Color::WHITE };
             let prefix = if is_selected { "> " } else { "  " };
             
-            content.spawn(TextBundle::from_section(
-                format!("{}{} (Threat: {}, Alert: {:?})", 
-                        prefix, region.name, region.threat_level, region.alert_level),
-                TextStyle { font_size: 18.0, color, ..default() }
+            content.spawn((
+                Text::new(format!("{}{} (Threat: {}, Alert: {:?})", 
+                        prefix, region.name, region.threat_level, region.alert_level)),
+                TextFont {
+                    font_size: 18.0,
+                    ..default()
+                },
+                TextColor(color),
             ));
         }
     });

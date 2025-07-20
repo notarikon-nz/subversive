@@ -1,4 +1,4 @@
-// src/systems/ui/hub/research.rs - Updated with functional research system
+// src/systems/ui/hub/research.rs - Updated for Bevy 0.16
 use bevy::prelude::*;
 use crate::core::*;
 use crate::core::research::*;
@@ -49,14 +49,14 @@ pub fn handle_input(
 }
 
 pub fn create_content(
-    parent: &mut ChildBuilder, 
+    parent: &mut ChildSpawnerCommands, 
     global_data: &GlobalData,
     research_progress: &ResearchProgress,
     research_db: &ResearchDatabase,
     selected_project: usize,
 ) {
-    parent.spawn(NodeBundle {
-        style: Style {
+    parent.spawn((
+        Node {
             width: Val::Percent(100.0),
             flex_grow: 1.0,
             padding: UiRect::all(Val::Px(20.0)),
@@ -64,36 +64,38 @@ pub fn create_content(
             row_gap: Val::Px(15.0),
             ..default()
         },
-        ..default()
-    }).with_children(|content| {
+    )).with_children(|content| {
         // Header
-        content.spawn(TextBundle::from_section(
-            "RESEARCH & DEVELOPMENT",
-            TextStyle { font_size: 24.0, color: Color::srgb(0.8, 0.8, 0.2), ..default() }
+        content.spawn((
+            Text::new("RESEARCH & DEVELOPMENT"),
+            TextFont { font_size: 24.0, ..default() },
+            TextColor(Color::srgb(0.8, 0.8, 0.2)),
         ));
         
         // Credits and progress info
-        content.spawn(NodeBundle {
-            style: Style {
+        content.spawn((
+            Node {
                 flex_direction: FlexDirection::Row,
                 column_gap: Val::Px(30.0),
                 ..default()
             },
-            ..default()
-        }).with_children(|info| {
-            info.spawn(TextBundle::from_section(
-                format!("Available Credits: {}", global_data.credits),
-                TextStyle { font_size: 16.0, color: Color::WHITE, ..default() }
+        )).with_children(|info| {
+            info.spawn((
+                Text::new(format!("Available Credits: {}", global_data.credits)),
+                TextFont { font_size: 16.0, ..default() },
+                TextColor(Color::WHITE),
             ));
             
-            info.spawn(TextBundle::from_section(
-                format!("Research Investment: {}", research_progress.credits_invested),
-                TextStyle { font_size: 16.0, color: Color::srgb(0.6, 0.8, 0.6), ..default() }
+            info.spawn((
+                Text::new(format!("Research Investment: {}", research_progress.credits_invested)),
+                TextFont { font_size: 16.0, ..default() },
+                TextColor(Color::srgb(0.6, 0.8, 0.6)),
             ));
             
-            info.spawn(TextBundle::from_section(
-                format!("Projects Completed: {}", research_progress.completed.len()),
-                TextStyle { font_size: 16.0, color: Color::srgb(0.8, 0.6, 0.2), ..default() }
+            info.spawn((
+                Text::new(format!("Projects Completed: {}", research_progress.completed.len())),
+                TextFont { font_size: 16.0, ..default() },
+                TextColor(Color::srgb(0.8, 0.6, 0.2)),
             ));
         });
         
@@ -101,22 +103,22 @@ pub fn create_content(
         let available_projects = research_db.get_available_projects(research_progress);
         
         if !available_projects.is_empty() {
-            content.spawn(TextBundle::from_section(
-                "\nAVAILABLE RESEARCH:",
-                TextStyle { font_size: 18.0, color: Color::WHITE, ..default() }
+            content.spawn((
+                Text::new("\nAVAILABLE RESEARCH:"),
+                TextFont { font_size: 18.0, ..default() },
+                TextColor(Color::WHITE),
             ));
             
             // Show available projects with selection
-            content.spawn(NodeBundle {
-                style: Style {
+            content.spawn((
+                Node {
                     flex_direction: FlexDirection::Column,
                     row_gap: Val::Px(8.0),
                     padding: UiRect::all(Val::Px(10.0)),
                     ..default()
                 },
-                background_color: Color::srgba(0.1, 0.1, 0.2, 0.5).into(),
-                ..default()
-            }).with_children(|projects_panel| {
+                BackgroundColor(Color::srgba(0.1, 0.1, 0.2, 0.5)),
+            )).with_children(|projects_panel| {
                 for (i, project) in available_projects.iter().enumerate() {
                     let is_selected = i == selected_project;
                     let can_afford = global_data.credits >= project.cost;
@@ -145,40 +147,41 @@ pub fn create_content(
                         ResearchCategory::Intelligence => Color::srgb(0.8, 0.8, 0.3),
                     };
                     
-                    projects_panel.spawn(NodeBundle {
-                        style: Style {
+                    projects_panel.spawn((
+                        Node {
                             flex_direction: FlexDirection::Column,
                             padding: UiRect::all(Val::Px(8.0)),
                             row_gap: Val::Px(4.0),
                             ..default()
                         },
-                        background_color: bg_color.into(),
-                        ..default()
-                    }).with_children(|project_info| {
+                        BackgroundColor(bg_color),
+                    )).with_children(|project_info| {
                         // Project name and cost
-                        project_info.spawn(NodeBundle {
-                            style: Style {
+                        project_info.spawn((
+                            Node {
                                 flex_direction: FlexDirection::Row,
                                 justify_content: JustifyContent::SpaceBetween,
                                 ..default()
                             },
-                            ..default()
-                        }).with_children(|title_row| {
-                            title_row.spawn(TextBundle::from_section(
-                                format!("{}{}", prefix, project.name),
-                                TextStyle { font_size: 16.0, color: text_color, ..default() }
+                        )).with_children(|title_row| {
+                            title_row.spawn((
+                                Text::new(format!("{}{}", prefix, project.name)),
+                                TextFont { font_size: 16.0, ..default() },
+                                TextColor(text_color),
                             ));
                             
-                            title_row.spawn(TextBundle::from_section(
-                                format!("{} credits", project.cost),
-                                TextStyle { font_size: 16.0, color: category_color, ..default() }
+                            title_row.spawn((
+                                Text::new(format!("{} credits", project.cost)),
+                                TextFont { font_size: 16.0, ..default() },
+                                TextColor(category_color),
                             ));
                         });
                         
                         // Description
-                        project_info.spawn(TextBundle::from_section(
-                            format!("   {}", project.description),
-                            TextStyle { font_size: 14.0, color: Color::srgb(0.8, 0.8, 0.8), ..default() }
+                        project_info.spawn((
+                            Text::new(format!("   {}", project.description)),
+                            TextFont { font_size: 14.0, ..default() },
+                            TextColor(Color::srgb(0.8, 0.8, 0.8)),
                         ));
                         
                         // Benefits preview
@@ -196,9 +199,10 @@ pub fn create_content(
                                 .collect::<Vec<_>>()
                                 .join("\n   • ");
                             
-                            project_info.spawn(TextBundle::from_section(
-                                format!("   Benefits:\n   • {}", benefits_text),
-                                TextStyle { font_size: 12.0, color: Color::srgb(0.6, 0.8, 0.6), ..default() }
+                            project_info.spawn((
+                                Text::new(format!("   Benefits:\n   • {}", benefits_text)),
+                                TextFont { font_size: 12.0, ..default() },
+                                TextColor(Color::srgb(0.6, 0.8, 0.6)),
                             ));
                         }
                     });
@@ -206,24 +210,27 @@ pub fn create_content(
             });
             
             // Controls
-            content.spawn(TextBundle::from_section(
-                "\n↑↓: Navigate | ENTER: Purchase Research",
-                TextStyle { font_size: 14.0, color: Color::srgb(0.7, 0.7, 0.7), ..default() }
+            content.spawn((
+                Text::new("\n↑↓: Navigate | ENTER: Purchase Research"),
+                TextFont { font_size: 14.0, ..default() },
+                TextColor(Color::srgb(0.7, 0.7, 0.7)),
             ));
             
         } else {
-            content.spawn(TextBundle::from_section(
-                "\nNo research projects available.\nComplete missions to earn credits for research.",
-                TextStyle { font_size: 16.0, color: Color::srgb(0.6, 0.6, 0.6), ..default() }
+            content.spawn((
+                Text::new("\nNo research projects available.\nComplete missions to earn credits for research."),
+                TextFont { font_size: 16.0, ..default() },
+                TextColor(Color::srgb(0.6, 0.6, 0.6)),
             ));
         }
         
         // Completed research summary
         let completed_projects = research_db.get_completed_projects(research_progress);
         if !completed_projects.is_empty() {
-            content.spawn(TextBundle::from_section(
-                "\nCOMPLETED RESEARCH:",
-                TextStyle { font_size: 18.0, color: Color::srgb(0.2, 0.8, 0.2), ..default() }
+            content.spawn((
+                Text::new("\nCOMPLETED RESEARCH:"),
+                TextFont { font_size: 18.0, ..default() },
+                TextColor(Color::srgb(0.2, 0.8, 0.2)),
             ));
             
             for project in completed_projects.iter().take(5) { // Show last 5 completed
@@ -234,16 +241,18 @@ pub fn create_content(
                     ResearchCategory::Intelligence => Color::srgb(0.8, 0.8, 0.3),
                 };
                 
-                content.spawn(TextBundle::from_section(
-                    format!("✓ {} ({:?})", project.name, project.category),
-                    TextStyle { font_size: 14.0, color: category_color, ..default() }
+                content.spawn((
+                    Text::new(format!("✓ {} ({:?})", project.name, project.category)),
+                    TextFont { font_size: 14.0, ..default() },
+                    TextColor(category_color),
                 ));
             }
             
             if completed_projects.len() > 5 {
-                content.spawn(TextBundle::from_section(
-                    format!("... and {} more", completed_projects.len() - 5),
-                    TextStyle { font_size: 12.0, color: Color::srgb(0.6, 0.6, 0.6), ..default() }
+                content.spawn((
+                    Text::new(format!("... and {} more", completed_projects.len() - 5)),
+                    TextFont { font_size: 12.0, ..default() },
+                    TextColor(Color::srgb(0.6, 0.6, 0.6)),
                 ));
             }
         }

@@ -31,6 +31,7 @@ fn main() {
         .init_resource::<MissionData>()
         .init_resource::<InventoryState>()
         .init_resource::<PostMissionResults>()
+        .init_resource::<MissionState>()
         .insert_resource(global_data)                    // Insert loaded global data
         .insert_resource(research_progress)              // Insert loaded research progress
         .insert_resource(ResearchDatabase::load())

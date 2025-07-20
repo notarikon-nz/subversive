@@ -3,3 +3,4 @@
 quicksave.json
 subversive_save.json
 .gitignore
+Cargo.lock

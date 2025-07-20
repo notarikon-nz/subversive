@@ -9,6 +9,7 @@ pub mod sprites;
 pub mod goap; 
 pub mod research;
 pub mod attachments;
+pub mod missions;
 
 pub use events::*;
 pub use audio::*;
@@ -16,6 +17,7 @@ pub use sprites::*;
 pub use goap::*;
 pub use research::*;
 pub use attachments::*;
+pub use missions::*;
 
 pub use crate::systems::ui::hub::{HubState, HubTab};
 
@@ -560,3 +562,626 @@ impl Default for AgentLoadout {
         }
     }
 }
+
+// === MISSION STUFF ===
+// Mission data structures - move from UI to core
+#[derive(Clone)]
+pub struct MissionBriefing {
+    pub region_id: usize,
+    pub objectives: Vec<MissionObjective>,
+    pub resistance: ResistanceProfile,
+    pub environment: EnvironmentData,
+    pub rewards: MissionRewards,
+    pub risks: RiskAssessment,
+}
+
+#[derive(Clone)]
+pub struct MissionObjective {
+    pub name: String,
+    pub description: String,
+    pub objective_type: ObjectiveType,
+    pub required: bool,
+    pub difficulty: u8, // 1-5
+}
+
+#[derive(Clone)]
+pub enum ObjectiveType {
+    Eliminate,
+    Extract,
+    Hack,
+    Infiltrate,
+    Survive,
+}
+
+#[derive(Clone)]
+pub struct ResistanceProfile {
+    pub enemy_count: u8,
+    pub patrol_density: f32,
+    pub security_level: u8, // 1-5
+    pub enemy_types: Vec<EnemyType>,
+    pub alert_sensitivity: f32,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum EnemyType {
+    Guard,
+    Patrol,
+    Elite,
+    Cyborg,
+}
+
+#[derive(Clone)]
+pub struct EnvironmentData {
+    pub terrain: TerrainType,
+    pub visibility: f32, // 0.0-1.0
+    pub cover_density: f32,
+    pub civilian_presence: u8,
+    pub time_of_day: TimeOfDay,
+}
+
+#[derive(Debug, Clone)]
+pub enum TerrainType {
+    Urban,
+    Corporate,
+    Industrial,
+    Underground,
+}
+
+#[derive(Debug, Clone)]
+pub enum TimeOfDay {
+    Day,
+    Dusk,
+    Night,
+    Dawn,
+}
+
+#[derive(Clone)]
+pub struct MissionRewards {
+    pub base_credits: u32,
+    pub bonus_credits: u32,
+    pub equipment_chance: f32,
+    pub intel_value: u8,
+    pub experience_modifier: f32,
+}
+
+#[derive(Clone)]
+pub struct RiskAssessment {
+    pub casualty_risk: RiskLevel,
+    pub detection_risk: RiskLevel,
+    pub equipment_loss_risk: RiskLevel,
+    pub mission_failure_chance: f32,
+    pub recommended_agent_level: u8,
+    pub recommended_loadout: Vec<String>,
+}
+
+#[derive(Clone)]
+pub enum RiskLevel {
+    Low,
+    Medium,
+    High,
+    Extreme,
+}
+
+impl RiskLevel {
+    pub fn color(&self) -> Color {
+        match self {
+            RiskLevel::Low => Color::srgb(0.2, 0.8, 0.2),
+            RiskLevel::Medium => Color::srgb(0.8, 0.8, 0.2),
+            RiskLevel::High => Color::srgb(0.8, 0.5, 0.2),
+            RiskLevel::Extreme => Color::srgb(0.8, 0.2, 0.2),
+        }
+    }
+    
+    pub fn text(&self) -> &'static str {
+        match self {
+            RiskLevel::Low => "LOW",
+            RiskLevel::Medium => "MEDIUM", 
+            RiskLevel::High => "HIGH",
+            RiskLevel::Extreme => "EXTREME",
+        }
+    }
+}
+
+// Mission state resource
+#[derive(Resource, Default)]
+pub struct MissionState {
+    pub current_briefing: Option<MissionBriefing>,
+    pub selected_objective: usize,
+    pub deployment_confirmed: bool,
+}
+
+// Enhanced mission completion tracking
+#[derive(Component)]
+pub struct MissionTracker {
+    pub objectives: Vec<ObjectiveStatus>,
+    pub bonus_criteria_met: Vec<bool>,
+    pub stealth_rating: f32, // 0.0 = detected, 1.0 = perfect stealth
+    pub efficiency_rating: f32, // Based on time and method
+}
+
+#[derive(Clone)]
+pub struct ObjectiveStatus {
+    pub completed: bool,
+    pub method: Option<CompletionMethod>,
+    pub time_taken: f32,
+}
+
+#[derive(Clone)]
+pub enum CompletionMethod {
+    Stealth,
+    Combat,
+    Hacking,
+    Diplomacy,
+}
+
+// Mission modifier system for dynamic difficulty
+#[derive(Component)]
+pub struct MissionModifiers {
+    pub reinforcements_called: bool,
+    pub alarm_triggered: bool,
+    pub civilian_casualties: u8,
+    pub equipment_recovered: Vec<String>,
+    pub intel_gathered: Vec<String>,
+}
+
+// Integration with existing systems
+impl MissionBriefing {
+    // Convert briefing into actual mission parameters
+    pub fn apply_to_mission_data(&self, mission_data: &mut MissionData, global_data: &GlobalData) {
+        // Set time limit based on mission complexity
+        let base_time = 300.0; // 5 minutes base
+        let complexity_modifier = self.objectives.len() as f32 * 60.0;
+        let difficulty_modifier = self.risks.mission_failure_chance * 120.0;
+        
+        mission_data.time_limit = base_time + complexity_modifier + difficulty_modifier;
+        
+        // Set total objectives
+        mission_data.total_objectives = self.objectives.iter()
+            .filter(|obj| obj.required)
+            .count() as u32;
+        
+        // Adjust alert level based on region status
+        mission_data.alert_level = global_data.regions[self.region_id].alert_level;
+        
+        info!("Mission configured: {} objectives, {:.0}s time limit", 
+              mission_data.total_objectives, mission_data.time_limit);
+    }
+    
+    // Generate scene modifications based on briefing
+    pub fn modify_scene_spawn(&self, commands: &mut Commands, base_scene: &crate::systems::scenes::SceneData) {
+        // Adjust enemy count based on resistance profile
+        let enemy_multiplier = match self.resistance.security_level {
+            1..=2 => 1.0,
+            3..=4 => 1.5,
+            5 => 2.0,
+            _ => 1.0,
+        };
+        
+        // Spawn additional enemies for higher threat levels
+        if enemy_multiplier > 1.0 {
+            let additional_enemies = ((base_scene.enemies.len() as f32) * (enemy_multiplier - 1.0)) as usize;
+            for i in 0..additional_enemies {
+                let patrol_points = vec![
+                    [100.0 + (i as f32 * 50.0), -50.0],
+                    [150.0 + (i as f32 * 50.0), -50.0],
+                ];
+                
+                // These would be spawned using the existing scene system
+                info!("Would spawn additional enemy {} with patrol {:?}", i, patrol_points);
+            }
+        }
+        
+        // Adjust civilian presence
+        if self.environment.civilian_presence == 0 {
+            // Remove all civilians for underground missions
+            info!("Mission briefing: No civilians in underground environment");
+        }
+        
+        // Environmental modifications
+        match self.environment.time_of_day {
+            TimeOfDay::Night => {
+                // Reduce enemy vision range
+                info!("Night mission: Reduced enemy vision");
+            },
+            TimeOfDay::Day => {
+                // Increase detection sensitivity
+                info!("Day mission: Increased detection risk");
+            },
+            _ => {}
+        }
+    }
+}
+
+// Mission completion evaluation system
+pub fn evaluate_mission_completion(
+    mission_data: &MissionData,
+    briefing: &MissionBriefing,
+    tracker: &MissionTracker,
+) -> MissionPerformance {
+    let mut performance = MissionPerformance::default();
+    
+    // Base success check
+    performance.success = mission_data.objectives_completed >= mission_data.total_objectives;
+    
+    // Calculate performance ratings
+    performance.stealth_rating = tracker.stealth_rating;
+    performance.efficiency_rating = calculate_efficiency_rating(mission_data, briefing);
+    performance.objective_completion = tracker.objectives.iter()
+        .filter(|obj| obj.completed)
+        .count() as f32 / briefing.objectives.len() as f32;
+    
+    // Bonus calculations
+    performance.stealth_bonus = if tracker.stealth_rating > 0.8 { 500 } else { 0 };
+    performance.speed_bonus = if mission_data.timer < briefing.rewards.base_credits as f32 * 0.5 { 300 } else { 0 };
+    performance.civilian_penalty = tracker.efficiency_rating * -200.0; // Negative for casualties
+    
+    // Research progression bonuses
+    if let Some(research_bonus) = calculate_research_bonus(briefing, tracker) {
+        performance.research_progress = Some(research_bonus);
+    }
+    
+    performance
+}
+
+#[derive(Default)]
+pub struct MissionPerformance {
+    pub success: bool,
+    pub stealth_rating: f32,
+    pub efficiency_rating: f32,
+    pub objective_completion: f32,
+    pub stealth_bonus: u32,
+    pub speed_bonus: u32,
+    pub civilian_penalty: f32,
+    pub research_progress: Option<String>,
+    pub final_credits: u32,
+}
+
+fn calculate_efficiency_rating(mission_data: &MissionData, briefing: &MissionBriefing) -> f32 {
+    let time_efficiency = 1.0 - (mission_data.timer / briefing.rewards.base_credits as f32);
+    let combat_efficiency = 1.0 - (mission_data.enemies_killed as f32 / briefing.resistance.enemy_count as f32);
+    
+    (time_efficiency + combat_efficiency) / 2.0
+}
+
+fn calculate_research_bonus(briefing: &MissionBriefing, tracker: &MissionTracker) -> Option<String> {
+    // Grant research progress based on mission performance
+    if tracker.stealth_rating > 0.9 {
+        Some("infiltration_tech".to_string())
+    } else if tracker.objectives.iter().any(|obj| matches!(obj.method, Some(CompletionMethod::Hacking))) {
+        Some("cyber_warfare".to_string())
+    } else if briefing.resistance.enemy_types.contains(&EnemyType::Cyborg) {
+        Some("cybernetic_analysis".to_string())
+    } else {
+        None
+    }
+}
+
+// Mission difficulty scaling system
+pub fn calculate_dynamic_difficulty(
+    global_data: &GlobalData, 
+    region_idx: usize,
+    days_since_last_mission: u32
+) -> f32 {
+    let base_difficulty = global_data.regions[region_idx].mission_difficulty_modifier();
+    
+    // Scale with agent experience
+    let avg_agent_level = global_data.agent_levels.iter().sum::<u8>() as f32 / 3.0;
+    let experience_scaling = 1.0 + (avg_agent_level - 1.0) * 0.1;
+    
+    // Alert level scaling
+    let alert_scaling = match global_data.regions[region_idx].alert_level {
+        AlertLevel::Green => 1.0,
+        AlertLevel::Yellow => 1.2,
+        AlertLevel::Orange => 1.4,
+        AlertLevel::Red => 1.8,
+    };
+    
+    // Time pressure - missions get harder if delayed
+    let time_pressure = 1.0 + (days_since_last_mission as f32 * 0.05);
+    
+    (base_difficulty * experience_scaling * alert_scaling * time_pressure).min(3.0)
+}
+
+// Equipment recommendation engine
+pub fn generate_equipment_recommendations(
+    briefing: &MissionBriefing,
+    global_data: &GlobalData,
+    research_progress: &ResearchProgress,
+) -> Vec<EquipmentRecommendation> {
+    let mut recommendations = Vec::new();
+    
+    // Weapon recommendations based on expected resistance
+    match briefing.resistance.security_level {
+        1..=2 => {
+            recommendations.push(EquipmentRecommendation {
+                item_type: RecommendationType::Weapon,
+                name: "Suppressed Pistol".to_string(),
+                reason: "Low security allows for stealthy approach".to_string(),
+                priority: Priority::Medium,
+            });
+        },
+        3..=4 => {
+            recommendations.push(EquipmentRecommendation {
+                item_type: RecommendationType::Weapon,
+                name: "Assault Rifle".to_string(),
+                reason: "Moderate resistance expected".to_string(),
+                priority: Priority::High,
+            });
+        },
+        5 => {
+            recommendations.push(EquipmentRecommendation {
+                item_type: RecommendationType::Weapon,
+                name: "Heavy Weapons".to_string(),
+                reason: "Extreme resistance - maximum firepower needed".to_string(),
+                priority: Priority::Critical,
+            });
+        },
+        _ => {}
+    }
+    
+    // Environment-based recommendations
+    match briefing.environment.terrain {
+        TerrainType::Underground => {
+            recommendations.push(EquipmentRecommendation {
+                item_type: RecommendationType::Tool,
+                name: "Scanner".to_string(),
+                reason: "Limited visibility in underground environment".to_string(),
+                priority: Priority::High,
+            });
+        },
+        TerrainType::Corporate => {
+            recommendations.push(EquipmentRecommendation {
+                item_type: RecommendationType::Tool,
+                name: "Hacker".to_string(),
+                reason: "Corporate security systems require hacking".to_string(),
+                priority: Priority::High,
+            });
+        },
+        _ => {}
+    }
+    
+    // Research-based recommendations
+    if research_progress.completed.contains("suppression_tech") {
+        recommendations.push(EquipmentRecommendation {
+            item_type: RecommendationType::Attachment,
+            name: "Sound Suppressor".to_string(),
+            reason: "Research unlocked - reduces detection risk".to_string(),
+            priority: Priority::Medium,
+        });
+    }
+    
+    recommendations
+}
+
+#[derive(Clone)]
+pub struct EquipmentRecommendation {
+    pub item_type: RecommendationType,
+    pub name: String,
+    pub reason: String,
+    pub priority: Priority,
+}
+
+#[derive(Clone)]
+pub enum RecommendationType {
+    Weapon,
+    Tool,
+    Attachment,
+    Cybernetic,
+}
+
+#[derive(Clone)]
+pub enum Priority {
+    Low,
+    Medium,
+    High,
+    Critical,
+}
+
+impl Priority {
+    pub fn color(&self) -> Color {
+        match self {
+            Priority::Low => Color::srgb(0.6, 0.6, 0.6),
+            Priority::Medium => Color::srgb(0.8, 0.8, 0.2),
+            Priority::High => Color::srgb(0.8, 0.5, 0.2),
+            Priority::Critical => Color::srgb(0.8, 0.2, 0.2),
+        }
+    }
+}
+
+// Mission briefing caching system for performance
+#[derive(Resource, Default)]
+pub struct MissionBriefingCache {
+    cached_briefings: std::collections::HashMap<(usize, u32), MissionBriefing>, // (region, day) -> briefing
+}
+
+impl MissionBriefingCache {
+    pub fn get_or_generate(&mut self, global_data: &GlobalData, region_idx: usize) -> &MissionBriefing {
+        let cache_key = (region_idx, global_data.current_day);
+        
+        if !self.cached_briefings.contains_key(&cache_key) {
+            let briefing = generate_mission_briefing(global_data, region_idx);
+            self.cached_briefings.insert(cache_key, briefing);
+        }
+        
+        &self.cached_briefings[&cache_key]
+    }
+    
+    pub fn clear_old_briefings(&mut self, current_day: u32) {
+        // Remove briefings older than 3 days
+        self.cached_briefings.retain(|(_, day), _| current_day - day <= 3);
+    }
+}
+
+
+
+
+// Mission briefing generation function - move to core
+pub fn generate_mission_briefing(global_data: &GlobalData, region_idx: usize) -> MissionBriefing {
+    let region = &global_data.regions[region_idx];
+    let difficulty_mod = region.mission_difficulty_modifier();
+    
+    // Generate objectives based on region
+    let objectives = match region_idx {
+        0 => vec![
+            MissionObjective {
+                name: "Access Corporate Terminal".to_string(),
+                description: "Infiltrate the secured data terminal and extract financial records".to_string(),
+                objective_type: ObjectiveType::Hack,
+                required: true,
+                difficulty: 2,
+            },
+            MissionObjective {
+                name: "Minimize Casualties".to_string(),
+                description: "Complete mission with minimal enemy engagement".to_string(),
+                objective_type: ObjectiveType::Infiltrate,
+                required: false,
+                difficulty: 3,
+            },
+        ],
+        1 => vec![
+            MissionObjective {
+                name: "Eliminate Security Chief".to_string(),
+                description: "Neutralize the target and secure their access codes".to_string(),
+                objective_type: ObjectiveType::Eliminate,
+                required: true,
+                difficulty: 4,
+            },
+            MissionObjective {
+                name: "Extract Intel Documents".to_string(),
+                description: "Recover classified research data from secure servers".to_string(),
+                objective_type: ObjectiveType::Extract,
+                required: true,
+                difficulty: 3,
+            },
+        ],
+        2 => vec![
+            MissionObjective {
+                name: "Survive the Underground".to_string(),
+                description: "Navigate hostile territory and reach extraction point".to_string(),
+                objective_type: ObjectiveType::Survive,
+                required: true,
+                difficulty: 5,
+            },
+            MissionObjective {
+                name: "Destroy Research Equipment".to_string(),
+                description: "Sabotage experimental neurovector prototypes".to_string(),
+                objective_type: ObjectiveType::Eliminate,
+                required: false,
+                difficulty: 4,
+            },
+        ],
+        _ => vec![],
+    };
+    
+    // Generate resistance profile
+    let resistance = ResistanceProfile {
+        enemy_count: (3.0 + (region.threat_level as f32 * 2.0 * difficulty_mod)) as u8,
+        patrol_density: 0.3 + (region.threat_level as f32 * 0.2),
+        security_level: region.threat_level.min(5),
+        enemy_types: match region.threat_level {
+            1 => vec![EnemyType::Guard, EnemyType::Patrol],
+            2 => vec![EnemyType::Guard, EnemyType::Patrol, EnemyType::Elite],
+            3 => vec![EnemyType::Patrol, EnemyType::Elite, EnemyType::Cyborg],
+            _ => vec![EnemyType::Elite, EnemyType::Cyborg],
+        },
+        alert_sensitivity: match region.alert_level {
+            AlertLevel::Green => 0.3,
+            AlertLevel::Yellow => 0.5,
+            AlertLevel::Orange => 0.7,
+            AlertLevel::Red => 0.9,
+        },
+    };
+    
+    // Generate environment
+    let environment = EnvironmentData {
+        terrain: match region_idx {
+            0 => TerrainType::Urban,
+            1 => TerrainType::Corporate,
+            2 => TerrainType::Underground,
+            _ => TerrainType::Industrial,
+        },
+        visibility: match region_idx {
+            2 => 0.4, // Underground has poor visibility
+            _ => 0.8,
+        },
+        cover_density: match region_idx {
+            0 => 0.6, // Urban has good cover
+            1 => 0.3, // Corporate is more open
+            2 => 0.7, // Underground has lots of cover
+            _ => 0.5,
+        },
+        civilian_presence: match region_idx {
+            0 => 4, // High civilian presence in urban
+            1 => 2, // Some in corporate
+            2 => 0, // None underground
+            _ => 1,
+        },
+        time_of_day: TimeOfDay::Night, // Most missions are at night
+    };
+    
+    // Calculate risks
+    let avg_agent_level = global_data.agent_levels.iter().sum::<u8>() as f32 / 3.0;
+    let level_gap = (region.threat_level as f32) - avg_agent_level;
+    
+    let casualty_risk = match level_gap {
+        x if x <= -1.0 => RiskLevel::Low,
+        x if x <= 0.5 => RiskLevel::Medium,
+        x if x <= 1.5 => RiskLevel::High,
+        _ => RiskLevel::Extreme,
+    };
+    
+    let detection_risk = match (resistance.alert_sensitivity, environment.cover_density) {
+        (s, c) if s > 0.7 && c < 0.4 => RiskLevel::Extreme,
+        (s, c) if s > 0.5 || c < 0.5 => RiskLevel::High,
+        (s, _) if s > 0.3 => RiskLevel::Medium,
+        _ => RiskLevel::Low,
+    };
+    
+    let equipment_loss_risk = match difficulty_mod {
+        x if x >= 2.0 => RiskLevel::High,
+        x if x >= 1.5 => RiskLevel::Medium,
+        _ => RiskLevel::Low,
+    };
+    
+    let recommended_loadout = match detection_risk {
+        RiskLevel::High | RiskLevel::Extreme => vec![
+            "Suppressed Weapons".to_string(),
+            "Scanner Tool".to_string(),
+            "Stealth Cybernetics".to_string(),
+        ],
+        _ => vec![
+            "Combat Rifle".to_string(),
+            "Medkit".to_string(),
+            "Hacker Tool".to_string(),
+        ],
+    };
+    
+    let risks = RiskAssessment {
+        casualty_risk,
+        detection_risk,
+        equipment_loss_risk,
+        mission_failure_chance: (level_gap * 0.2 + difficulty_mod * 0.1).clamp(0.05, 0.8),
+        recommended_agent_level: region.threat_level + 1,
+        recommended_loadout,
+    };
+    
+    // Generate rewards
+    let rewards = MissionRewards {
+        base_credits: 1000 + (region.threat_level as u32 * 500),
+        bonus_credits: 500,
+        equipment_chance: 0.2 + (region.threat_level as f32 * 0.1),
+        intel_value: region.threat_level.min(5),
+        experience_modifier: difficulty_mod,
+    };
+    
+    MissionBriefing {
+        region_id: region_idx,
+        objectives,
+        resistance,
+        environment,
+        rewards,
+        risks,
+    }
+}
+
+

@@ -152,15 +152,12 @@ fn update_selection_box(
     
     if width > 5.0 || height > 5.0 { // Only show box if drag is significant
         commands.spawn((
-            SpriteBundle {
-                sprite: Sprite {
-                    color: Color::srgba(0.2, 0.8, 0.2, 0.3),
-                    custom_size: Some(Vec2::new(width, height)),
-                    ..default()
-                },
-                transform: Transform::from_translation(center.extend(10.0)), // High Z for visibility
+            Sprite {
+                color: Color::srgba(0.2, 0.8, 0.2, 0.3),
+                custom_size: Some(Vec2::new(width, height)),
                 ..default()
             },
+            Transform::from_translation(center.extend(10.0)), // High Z for visibility
             SelectionBox {
                 start: drag_state.start_pos,
                 end: drag_state.current_pos,
