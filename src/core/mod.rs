@@ -10,6 +10,7 @@ pub mod goap;
 pub mod research;
 pub mod attachments;
 pub mod agent_upgrades;
+pub mod fonts;
 
 pub use events::*;
 pub use audio::*;
@@ -18,6 +19,7 @@ pub use goap::*;
 pub use research::*;
 pub use attachments::*;
 pub use agent_upgrades::*;
+pub use fonts::*;
 
 pub use crate::systems::ui::hub::{HubState};
 
@@ -517,8 +519,8 @@ pub fn get_world_mouse_position(
     windows: &Query<&Window>,
     cameras: &Query<(&Camera, &GlobalTransform)>,
 ) -> Option<Vec2> {
-    let window = windows.get_single().ok()?;
-    let (camera, camera_transform) = cameras.get_single().ok()?;
+    let window = windows.single().ok()?;
+    let (camera, camera_transform) = cameras.single().ok()?;
     let cursor_pos = window.cursor_position()?;
     
     camera.viewport_to_world_2d(camera_transform, cursor_pos).ok()
@@ -1331,19 +1333,12 @@ impl WeaponState {
 */
 pub trait SafeDespawn {
     fn safe_despawn(&mut self, entity: Entity);
-    fn safe_despawn_recursive(&mut self, entity: Entity);
 }
 
 impl SafeDespawn for Commands<'_, '_> {
     fn safe_despawn(&mut self, entity: Entity) {
         if let Ok(mut entity_commands) = self.get_entity(entity) {
             entity_commands.despawn();
-        }
-    }
-    
-    fn safe_despawn_recursive(&mut self, entity: Entity) {
-        if let Ok(mut entity_commands) = self.get_entity(entity) {
-            entity_commands.despawn_recursive();
         }
     }
 }

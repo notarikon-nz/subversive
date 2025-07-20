@@ -1,7 +1,6 @@
 // src/systems/ui/hub/mod.rs - Updated with agent state integration
 use bevy::prelude::*;
 use crate::core::*;
-use crate::core::agent_upgrades::*;
 
 // Re-export all tab modules
 pub mod global_map;
@@ -10,11 +9,7 @@ pub mod agents;
 pub mod manufacture;
 pub mod missions;
 
-pub use global_map::*;
-pub use research::*;
 pub use agents::*;
-pub use manufacture::*;
-pub use missions::*;
 
 #[derive(Component)]
 pub struct HubScreen;
@@ -91,6 +86,7 @@ pub fn hub_system(
     screen_query: Query<Entity, With<HubScreen>>,
     attachment_db: Res<AttachmentDatabase>,
     agent_query: Query<&mut Inventory, With<Agent>>,
+    fonts: Option<Res<GameFonts>>,  // ADD THIS
 ) {
     // Global tab switching with Q/E
     let mut tab_changed = false;
@@ -106,7 +102,20 @@ pub fn hub_system(
     }
     
     if tab_changed {
-        rebuild_hub(&mut commands, &screen_query, &global_data, &hub_state, &manufacture_state, &agent_state, &research_progress, &research_db, &attachment_db, &unlocked, &cybernetics_db);
+        let fonts_ref = fonts.as_ref().map(|f| f.as_ref());
+        rebuild_hub(
+            &mut commands, 
+            &screen_query, 
+            &global_data, 
+            &hub_state, 
+            &manufacture_state, 
+            &agent_state, 
+            &research_progress, 
+            &research_db, 
+            &attachment_db, 
+            &unlocked, 
+            &cybernetics_db, 
+            fonts_ref);
     }
 
     // Delegate input handling to appropriate tab
@@ -152,9 +161,12 @@ pub fn hub_system(
         std::process::exit(0);
     }
 
-    // Create/rebuild UI if needed
     if screen_query.is_empty() || needs_rebuild {
-        rebuild_hub(&mut commands, &screen_query, &global_data, &hub_state, &manufacture_state, &agent_state, &research_progress, &research_db, &attachment_db, &unlocked, &cybernetics_db);
+        let fonts_ref = fonts.as_ref().map(|f| f.as_ref());
+        rebuild_hub(&mut commands, &screen_query, &global_data, &hub_state, 
+                   &manufacture_state, &agent_state, &research_progress, 
+                   &research_db, &attachment_db, &unlocked, &cybernetics_db,
+                   fonts_ref);  
     }
 }
 
@@ -170,12 +182,13 @@ fn rebuild_hub(
     attachment_db: &AttachmentDatabase,
     unlocked: &UnlockedAttachments,
     cybernetics_db: &CyberneticsDatabase,
+    fonts: Option<&GameFonts>,
 ) {
     for entity in screen_query.iter() {
-        commands.safe_despawn_recursive(entity);
+        commands.safe_despawn(entity);
     }
     create_hub_ui(commands, global_data, hub_state, manufacture_state, agent_state,
-        research_progress, research_db, attachment_db, unlocked, cybernetics_db);
+        research_progress, research_db, attachment_db, unlocked, cybernetics_db, fonts);
 }
 
 fn create_hub_ui(
@@ -189,6 +202,7 @@ fn create_hub_ui(
     attachment_db: &AttachmentDatabase,
     unlocked: &UnlockedAttachments,
     cybernetics_db: &CyberneticsDatabase,
+    fonts: Option<&GameFonts>, 
 ) {
     commands.spawn((
         Node {
@@ -200,13 +214,9 @@ fn create_hub_ui(
         BackgroundColor(Color::srgb(0.1, 0.1, 0.2)),
         HubScreen,
     )).with_children(|parent| {
-        // Fixed header
-        create_header(parent, global_data);
+        create_header(parent, global_data, fonts);
+        create_tab_bar(parent, hub_state.active_tab, fonts);
         
-        // Fixed tab bar
-        create_tab_bar(parent, hub_state.active_tab);
-        
-        // Content area that scrolls
         match hub_state.active_tab {
             HubTab::GlobalMap => global_map::create_content(parent, global_data, hub_state),
             HubTab::Research => research::create_content(
@@ -220,18 +230,22 @@ fn create_hub_ui(
                 parent, 
                 global_data, 
                 agent_state,
-                &cybernetics_db.cybernetics
+                &cybernetics_db.cybernetics,
+                // fonts  // You can add this parameter later
             ),
             HubTab::Manufacture => manufacture::create_content(parent, global_data, manufacture_state, attachment_db, unlocked),
             HubTab::Missions => missions::create_content(parent, global_data, hub_state),
         }
         
-        // Fixed footer
-        create_footer(parent, hub_state.active_tab);
+        create_footer(parent, hub_state.active_tab, fonts); 
     });
 }
 
-fn create_header(parent: &mut ChildSpawnerCommands, global_data: &GlobalData) {
+fn create_header(
+    parent: &mut ChildSpawnerCommands, 
+    global_data: &GlobalData,
+    fonts: Option<&GameFonts>,  
+) {
     parent.spawn((
         Node {
             width: Val::Percent(100.0),
@@ -244,32 +258,68 @@ fn create_header(parent: &mut ChildSpawnerCommands, global_data: &GlobalData) {
         },
         BackgroundColor(Color::srgb(0.15, 0.15, 0.25)),
     )).with_children(|header| {
-        header.spawn((
-            Text::new("SUBVERSIVE"),
-            TextFont { font_size: 32.0, ..default() },
-            TextColor(Color::WHITE),
-        ));
+        // Title with custom font
+        if let Some(fonts) = fonts {
+            let (text, font, color) = create_text_with_font(
+                "SUBVERSIVE",
+                fonts.main_font.clone(), 
+                32.0,
+                Color::WHITE,
+            );
+            header.spawn((text, font, color));
+        } else {
+            // Fallback
+            header.spawn((
+                Text::new("SUBVERSIVE"),
+                TextFont { font_size: 32.0, ..default() },
+                TextColor(Color::WHITE),
+            ));
+        }
         
         header.spawn(Node {
             flex_direction: FlexDirection::Row,
             column_gap: Val::Px(30.0),
             ..default()
         }).with_children(|info| {
-            info.spawn((
-                Text::new(format!("Day {}", global_data.current_day)),
-                TextFont { font_size: 18.0, ..default() },
-                TextColor(Color::WHITE),
-            ));
-            info.spawn((
-                Text::new(format!("Credits: {}", global_data.credits)),
-                TextFont { font_size: 18.0, ..default() },
-                TextColor(Color::srgb(0.8, 0.8, 0.2)),
-            ));
+            // Day counter with custom font
+            if let Some(fonts) = fonts {
+                let (day_text, day_font, day_color) = create_text_with_font(
+                    &format!("Day {}", global_data.current_day),
+                    fonts.ui_font.clone(),
+                    18.0,
+                    Color::WHITE,
+                );
+                info.spawn((day_text, day_font, day_color));
+                
+                let (credits_text, credits_font, credits_color) = create_text_with_font(
+                    &format!("Credits: {}", global_data.credits),
+                    fonts.ui_font.clone(),
+                    18.0,
+                    Color::srgb(0.8, 0.8, 0.2),
+                );
+                info.spawn((credits_text, credits_font, credits_color));
+            } else {
+                // Fallback
+                info.spawn((
+                    Text::new(format!("Day {}", global_data.current_day)),
+                    TextFont { font_size: 18.0, ..default() },
+                    TextColor(Color::WHITE),
+                ));
+                info.spawn((
+                    Text::new(format!("Credits: {}", global_data.credits)),
+                    TextFont { font_size: 18.0, ..default() },
+                    TextColor(Color::srgb(0.8, 0.8, 0.2)),
+                ));
+            }
         });
     });
 }
 
-fn create_tab_bar(parent: &mut ChildSpawnerCommands, active_tab: HubTab) {
+fn create_tab_bar(
+    parent: &mut ChildSpawnerCommands, 
+    active_tab: HubTab,
+    fonts: Option<&GameFonts>,
+) {
     parent.spawn((
         Node {
             width: Val::Percent(100.0),
@@ -295,7 +345,11 @@ fn create_tab_bar(parent: &mut ChildSpawnerCommands, active_tab: HubTab) {
             } else {
                 Color::srgb(0.12, 0.12, 0.2)
             };
-            let text_color = if is_active { Color::WHITE } else { Color::srgb(0.7, 0.7, 0.7) };
+            let text_color = if is_active { 
+                Color::WHITE 
+            } else { 
+                Color::srgb(0.7, 0.7, 0.7) 
+            };
             
             tabs.spawn((
                 Node {
@@ -307,17 +361,31 @@ fn create_tab_bar(parent: &mut ChildSpawnerCommands, active_tab: HubTab) {
                 },
                 BackgroundColor(bg_color),
             )).with_children(|tab_button| {
-                tab_button.spawn((
-                    Text::new(title),
-                    TextFont { font_size: 14.0, ..default() },
-                    TextColor(text_color),
-                ));
+                if let Some(fonts) = fonts {
+                    let (text, font, color) = create_text_with_font(
+                        title,
+                        fonts.ui_font.clone(),  
+                        14.0,
+                        text_color,
+                    );
+                    tab_button.spawn((text, font, color));
+                } else {
+                    tab_button.spawn((
+                        Text::new(title),
+                        TextFont { font_size: 14.0, ..default() },
+                        TextColor(text_color),
+                    ));
+                }
             });
         }
     });
 }
 
-fn create_footer(parent: &mut ChildSpawnerCommands, active_tab: HubTab) {
+fn create_footer(
+    parent: &mut ChildSpawnerCommands, 
+    active_tab: HubTab,
+    fonts: Option<&GameFonts>
+) {
     parent.spawn((
         Node {
             width: Val::Percent(100.0),

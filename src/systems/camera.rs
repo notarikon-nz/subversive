@@ -7,7 +7,7 @@ pub fn movement(
     mut camera_query: Query<&mut Transform, With<Camera>>,
     time: Res<Time>,
 ) {
-    let Ok(mut transform) = camera_query.get_single_mut() else { return; };
+    let Ok(mut transform) = camera_query.single_mut() else { return; };
 
     let mut direction = Vec3::ZERO;
 

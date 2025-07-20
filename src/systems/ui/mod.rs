@@ -28,11 +28,11 @@ pub fn cleanup_mission_ui(
     
     // Safe despawn UI windows
     for entity in inventory_ui_query.iter() {
-        commands.safe_despawn_recursive(entity);
+        commands.safe_despawn(entity);
     }
     
     for entity in pause_ui_query.iter() {
-        commands.safe_despawn_recursive(entity);
+        commands.safe_despawn(entity);
     }
 }
 
@@ -47,10 +47,10 @@ pub fn cleanup_global_map_ui(
     
     // Safe despawn lingering UI
     for entity in inventory_ui_query.iter() {
-        commands.safe_despawn_recursive(entity);
+        commands.safe_despawn(entity);
     }
     
     for entity in post_mission_ui_query.iter() {
-        commands.safe_despawn_recursive(entity);
+        commands.safe_despawn(entity);
     }
 }

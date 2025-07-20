@@ -63,11 +63,13 @@ fn main() {
         .add_event::<AlertEvent>()
 
         .add_systems(Startup, (
+            fonts::load_fonts,
             setup_camera_and_input,
             audio::setup_audio,
             sprites::load_sprites,
             setup_attachments,
             apply_loaded_research_benefits,
+            fonts::check_fonts_loaded
         ))
 
         .add_systems(Update, (

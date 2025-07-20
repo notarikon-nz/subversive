@@ -101,7 +101,7 @@ pub fn cleanup_health_bars_system(
         // Remove health bar components
         for child in children.iter() {
             if health_bar_query.contains(child) {
-                commands.entity(child).despawn_recursive();
+                commands.entity(child).despawn();
             }
         }
         commands.entity(entity).remove::<HealthBar>();

@@ -39,7 +39,7 @@ pub fn enhanced_neurovector_system(
     }
 
     if let Some(TargetingMode::Neurovector { agent }) = &game_mode.targeting {
-        let Ok(action_state) = input.get_single() else { return; };
+        let Ok(action_state) = input.single() else { return; };
         
         if action_state.just_pressed(&PlayerAction::Select) {
             if let Some(targets) = find_neurovector_targets(*agent, &neurovector_query, &target_query, &windows, &cameras) {

@@ -57,7 +57,7 @@ fn handle_combat_targeting(
     windows: &Query<&Window>,
     cameras: &Query<(&Camera, &GlobalTransform)>,
 ) {
-    let Ok(action_state) = input.get_single() else { return; };
+    let Ok(action_state) = input.single() else { return; };
     let Ok((agent_transform, inventory)) = agent_query.get(agent) else { return; };
     
     let agent_pos = agent_transform.translation.truncate();
@@ -202,13 +202,13 @@ fn execute_attack(
     
     // Send events
     if hit && final_damage > 0.0 {
-        audio_events.send(AudioEvent { 
+        audio_events.write(AudioEvent { 
             sound: AudioType::Gunshot, 
             volume: (0.7 * noise).clamp(0.1, 1.0) 
         });
     }
     
-    combat_events.send(CombatEvent { attacker, target, damage: final_damage, hit });
+    combat_events.write(CombatEvent { attacker, target, damage: final_damage, hit });
 }
 
 fn get_attack_stats(

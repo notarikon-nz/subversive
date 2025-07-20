@@ -70,7 +70,7 @@ pub fn restart_system(
     // FIXED: Use Result instead of Option
     for entity in entities.iter() {
         if let Ok(entity_commands) = commands.get_entity(entity) {
-            commands.safe_despawn_recursive(entity);
+            commands.safe_despawn(entity);
         }
     }
     
@@ -156,7 +156,7 @@ pub fn post_mission_system(
     if input.just_pressed(KeyCode::KeyR) {
         // Clear all post-mission UI
         for entity in ui_query.iter() {
-            commands.safe_despawn_recursive(entity);
+            commands.safe_despawn(entity);
         }
         
         // Reset flags

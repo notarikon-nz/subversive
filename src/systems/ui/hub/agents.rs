@@ -1,7 +1,6 @@
 // src/systems/ui/hub/agents.rs - Updated with cybernetics and performance tracking
 use bevy::prelude::*;
 use crate::core::*;
-use crate::core::agent_upgrades::*;
 use super::HubTab;
 
 // Agent management state - moved here to avoid conflicts
