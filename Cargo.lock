@@ -878,6 +878,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_mod_imgui"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8ba0251fc1820cabc3963060da0a42c317ef5da95578be223226d01734012f56"
+dependencies = [
+ "bevy",
+ "bytemuck",
+ "imgui",
+ "log",
+ "smallvec",
+ "wgpu",
+]
+
+[[package]]
 name = "bevy_pbr"
 version = "0.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1562,6 +1576,12 @@ name = "cfg_aliases"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "613afe47fcd5fac7ccf1db93babcb082c5994d996f20b8b159f2ad1658eb5724"
+
+[[package]]
+name = "chlorine"
+version = "1.0.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c00d31b1d19317b4777ec879192d3745bd97d05262b4b19cb1dda284b9d22f19"
 
 [[package]]
 name = "clang-sys"
@@ -2505,6 +2525,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "imgui"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8addafa5cecf0515812226e806913814e02ce38d10215778082af5174abe5669"
+dependencies = [
+ "bitflags 1.3.2",
+ "cfg-if",
+ "imgui-sys",
+ "mint",
+ "parking_lot",
+]
+
+[[package]]
+name = "imgui-sys"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ead193f9f4b60398e8b8f4ab1483e2321640d87aeebdaa3e5f44c55633ccd804"
+dependencies = [
+ "cc",
+ "cfg-if",
+ "chlorine",
+ "mint",
+]
+
+[[package]]
 name = "immutable-chunkmap"
 version = "2.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2856,6 +2901,12 @@ dependencies = [
  "adler2",
  "simd-adler32",
 ]
+
+[[package]]
+name = "mint"
+version = "0.5.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e53debba6bda7a793e5f99b8dacf19e626084f525f7829104ba9898f367d85ff"
 
 [[package]]
 name = "naga"
@@ -4165,6 +4216,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
+name = "steamworks"
+version = "0.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "efa5de820b63330e5df107e9f1afde6205aeb74ab1488fc93ff5b9f256dd776d"
+dependencies = [
+ "bitflags 2.9.1",
+ "paste",
+ "steamworks-sys",
+ "thiserror 2.0.12",
+]
+
+[[package]]
+name = "steamworks-sys"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9e8ebb529945aa36439c2e94d613d38509da09677f2aa0c7f4b3a9cd9057d529"
+
+[[package]]
 name = "strum"
 version = "0.26.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4192,11 +4261,14 @@ version = "0.1.0"
 dependencies = [
  "bevy",
  "bevy_light_2d",
+ "bevy_mod_imgui",
  "bevy_rapier2d",
+ "imgui",
  "leafwing-input-manager",
  "rand",
  "serde",
  "serde_json",
+ "steamworks",
 ]
 
 [[package]]

@@ -1,5 +1,6 @@
 // src/systems/testing_spawn.rs - On-demand enemy spawning for GOAP testing
 use bevy::prelude::*;
+use bevy_mod_imgui::prelude::*;
 use bevy_rapier2d::prelude::*;
 use crate::core::*;
 use crate::core::factions::Faction;
@@ -11,6 +12,11 @@ pub struct DebugSelected;
 
 #[derive(Component)]
 pub struct DebugInfoText;
+
+#[derive(Resource)]
+pub struct ImguiState {
+    pub demo_window_open: bool,
+}
 
 pub fn testing_spawn_system(
     mut commands: Commands,
@@ -39,19 +45,16 @@ pub fn testing_spawn_system(
     if input.just_pressed(KeyCode::KeyT) {
         let spawn_pos = camera_pos + Vec2::new(100.0, 50.0);
         spawn_test_enemy(&mut commands, spawn_pos, Faction::Corporate, &sprites, &global_data);
-        info!("Spawned Corporate enemy at {:?}", spawn_pos);
     }
     
     if input.just_pressed(KeyCode::KeyY) {
         let spawn_pos = camera_pos + Vec2::new(-100.0, 50.0);
         spawn_test_enemy(&mut commands, spawn_pos, Faction::Syndicate, &sprites, &global_data);
-        info!("Spawned Syndicate enemy at {:?}", spawn_pos);
     }
     
     if input.just_pressed(KeyCode::KeyU) {
         let spawn_pos = camera_pos + Vec2::new(0.0, 100.0);
         spawn_test_enemy(&mut commands, spawn_pos, Faction::Police, &sprites, &global_data);
-        info!("Spawned Police at {:?}", spawn_pos);
     }
     
     // NEW: Enemy selection for debug with right-click
@@ -76,7 +79,6 @@ pub fn testing_spawn_system(
             
             if let Some(enemy) = closest_enemy {
                 commands.entity(enemy).insert(DebugSelected);
-                info!("Selected enemy {:?} for debug", enemy);
             }
         }
     }
@@ -86,7 +88,6 @@ pub fn testing_spawn_system(
         for entity in selected_query.iter() {
             commands.entity(entity).remove::<DebugSelected>();
         }
-        info!("Cleared enemy selection");
     }
 }
 // Enhanced debug display system - shows GOAP info on screen
@@ -201,6 +202,26 @@ pub fn goap_debug_display_system(
             DebugInfoText,
         ));
     }
+}
+
+pub fn imgui_example_ui(mut context: NonSendMut<ImguiContext>, mut state: ResMut<ImguiState>) {
+    let ui = context.ui();
+    let window = ui.window("GOAP Debug Help");
+    window
+        .size([300.0,100.0], imgui::Condition::FirstUseEver)
+        .position([0.0, 0.0], imgui::Condition::FirstUseEver)
+        .build(|| {
+            // ui.text(format!("Frame time: {:.2}ms", time.delta_seconds() * 1000.0));
+            ui.text("Shift+Click: Select Enemy");
+            ui.text("X: Clear Selection");
+            ui.text("T/Y/U: Spawn enemies");
+            ui.separator();
+            let mouse_pos = ui.io().mouse_pos;
+            ui.text(format!("Mouse Position: ({:.1},{:.1})", mouse_pos[0], mouse_pos[1]));
+            ui.separator();
+            // ui.text(format!("Faction: {}", if *show_factions { "ON" } else { "OFF" }));
+            // ui.text(format!("Cover: {}", if *show_cover { "ON" } else { "OFF" }));
+        });
 }
 
 // Visual indicator for selected enemy
@@ -366,43 +387,6 @@ pub fn cover_debug_system(
     }
 }
 
-// GOAP testing info display
-pub fn goap_testing_info_system(
-    input: Res<ButtonInput<KeyCode>>,
-    mut show_info: Local<bool>,
-    mut last_help_time: Local<f32>,
-    time: Res<Time>,
-) {
-    *last_help_time += time.delta_secs();
-    
-    if input.just_pressed(KeyCode::KeyH) {
-        *show_info = !*show_info;
-        *last_help_time = 0.0;
-        
-        if *show_info {
-            info!("=== GOAP TESTING CONTROLS ===");
-            info!("T: Corporate Enemy (Red) | Y: Syndicate Enemy (Purple) | U: Police (Blue)");
-            info!("C: Cover Point | V: Vehicle Cover | K: Cover Debug");
-            info!("F4: GOAP Debug | H: Toggle this help");
-            info!("");
-            info!("EXPECTED BEHAVIOR:");
-            info!("- Corporate vs Syndicate will fight each other");
-            info!("- Police fight everyone");
-            info!("- All factions fight player agents");
-            info!("- Enemies use cover when outnumbered");
-            info!("- GOAP shows decision-making process");
-        } else {
-            info!("GOAP testing help hidden. Press H to show again.");
-        }
-    }
-    
-    // Show periodic reminders
-    if *show_info && *last_help_time > 30.0 {
-        info!("Testing active - Press H to hide help, F4 for GOAP debug, K for cover debug");
-        *last_help_time = 0.0;
-    }
-}
-
 // Enhanced faction visualization
 pub fn faction_visualization_system(
     mut gizmos: Gizmos,
@@ -529,42 +513,6 @@ pub fn combat_state_system(
     }
 }
 
-pub fn simple_entity_count_system(
-    agent_query: Query<&Transform, With<Agent>>,
-    enemy_query: Query<(&Transform, &Faction), With<Enemy>>,
-    civilian_query: Query<&Transform, With<Civilian>>,
-    input: Res<ButtonInput<KeyCode>>,
-    mut last_print: Local<f32>,
-    time: Res<Time>,
-) {
-    *last_print += time.delta_secs();
-    
-    // Print counts every 5 seconds or when F2 is pressed
-    if input.just_pressed(KeyCode::F2) || *last_print > 5.0 {
-        let agent_count = agent_query.iter().count();
-        let enemy_count = enemy_query.iter().count();
-        let civilian_count = civilian_query.iter().count();
-        
-        info!("=== ENTITY COUNT DEBUG ===");
-        info!("Agents: {} | Enemies: {} | Civilians: {}", agent_count, enemy_count, civilian_count);
-        
-        // Show positions of first few entities
-        for (i, transform) in agent_query.iter().take(3).enumerate() {
-            info!("Agent {}: {:?}", i, transform.translation.truncate());
-        }
-        
-        for (i, (transform, faction)) in enemy_query.iter().take(3).enumerate() {
-            info!("Enemy {} ({:?}): {:?}", i, faction, transform.translation.truncate());
-        }
-        
-        for (i, transform) in civilian_query.iter().take(3).enumerate() {
-            info!("Civilian {}: {:?}", i, transform.translation.truncate());
-        }
-        
-        *last_print = 0.0;
-    }
-}
-
 pub fn simple_visual_debug_system(
     mut gizmos: Gizmos,
     agent_query: Query<&Transform, With<Agent>>,
@@ -573,17 +521,6 @@ pub fn simple_visual_debug_system(
     input: Res<ButtonInput<KeyCode>>,
     show_debug: Local<bool>,
 ) {
-    /*
-    if input.just_pressed(KeyCode::F2) {
-        *show_debug = !*show_debug;
-        info!("Visual debug: {}", if *show_debug { "ON" } else { "OFF" });
-    }
-    
-    if !*show_debug {
-        return;
-    }*/
-    
-    // Draw bright colored circles at entity positions
     for transform in agent_query.iter() {
         let pos = transform.translation.truncate();
         gizmos.circle_2d(pos, 20.0, Color::srgb(0.0, 1.0, 0.0)); // Green for agents

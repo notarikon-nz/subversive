@@ -318,4 +318,3 @@ fn create_results_ui(
 
 #[derive(Component)]
 pub struct PostMissionUI;
-

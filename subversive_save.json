@@ -1,5 +1,5 @@
 {
-  "credits": 4150,
+  "credits": 1650,
   "current_day": 15,
   "agent_levels": [
     1,
@@ -48,8 +48,8 @@
             "Stock"
           ],
           "attachments": {
-            "Sight": null,
             "Magazine": null,
+            "Sight": null,
             "Barrel": null,
             "Stock": null
           },
@@ -111,9 +111,9 @@
           ],
           "attachments": {
             "Stock": null,
-            "Sight": null,
             "Magazine": null,
-            "Barrel": null
+            "Barrel": null,
+            "Sight": null
           },
           "behavior": {
             "preferred_range": 150.0,
@@ -132,7 +132,10 @@
     }
   ],
   "research_progress": {
-    "completed": [],
-    "credits_invested": 0
+    "completed": [
+      "basic_optics",
+      "suppression_tech"
+    ],
+    "credits_invested": 2500
   }
 }

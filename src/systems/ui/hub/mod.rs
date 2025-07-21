@@ -354,22 +354,32 @@ fn create_tab_bar(
             (HubTab::Missions, "MISSIONS"),
         ];
         
+        // Q
+        tabs.spawn((
+            Node {
+                width: Val::Percent(5.0),
+                height: Val::Percent(100.0),
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                ..default()
+            },
+            BackgroundColor(Color::srgb(0.12, 0.12, 0.2)),
+        )).with_children(|tab_button| {
+            tab_button.spawn((
+                Text::new("Q"),
+                TextFont { font_size: 14.0, ..default() },
+                TextColor(Color::WHITE),
+            ));
+        });
+
+        // MAIN TABS
         for (tab, title) in tab_configs {
             let is_active = tab == active_tab;
-            let bg_color = if is_active {
-                Color::srgb(0.2, 0.6, 0.8)
-            } else {
-                Color::srgb(0.12, 0.12, 0.2)
-            };
-            let text_color = if is_active { 
-                Color::WHITE 
-            } else { 
-                Color::srgb(0.7, 0.7, 0.7) 
-            };
-            
+            let bg_color = if is_active { Color::srgb(0.2, 0.6, 0.8) } else { Color::srgb(0.12, 0.12, 0.2) };
+            let text_color = if is_active { Color::WHITE } else { Color::srgb(0.7, 0.7, 0.7) };
             tabs.spawn((
                 Node {
-                    width: Val::Percent(20.0),
+                    width: Val::Percent(18.0),
                     height: Val::Percent(100.0),
                     justify_content: JustifyContent::Center,
                     align_items: AlignItems::Center,
@@ -394,6 +404,23 @@ fn create_tab_bar(
                 }
             });
         }
+        // E
+        tabs.spawn((
+            Node {
+                width: Val::Percent(5.0),
+                height: Val::Percent(100.0),
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                ..default()
+            },
+            BackgroundColor(Color::srgb(0.12, 0.12, 0.2)),
+        )).with_children(|tab_button| {
+            tab_button.spawn((
+                Text::new("E"),
+                TextFont { font_size: 14.0, ..default() },
+                TextColor(Color::WHITE),
+            ));
+        });        
     });
 }
 

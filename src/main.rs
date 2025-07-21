@@ -1,9 +1,14 @@
 // src/main.rs - Updated with new module structure
 use bevy::prelude::*;
+use bevy_mod_imgui::prelude::*;
+
+// https://github.com/Noxime/steamworks-rs/tree/master
+
 use bevy_rapier2d::prelude::*;
 use bevy_light_2d::prelude::*;
 use leafwing_input_manager::prelude::*;
 use systems::ui::hub::{AgentManagementState, CyberneticsDatabase};
+use testing_spawn::*;
 
 mod core;
 mod systems;
@@ -32,6 +37,7 @@ fn main() {
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.0))
         .add_plugins(InputManagerPlugin::<PlayerAction>::default())
         .add_plugins(Light2dPlugin) // bevy_light_2d
+        .add_plugins(bevy_mod_imgui::ImguiPlugin::default())
 
         // .add_plugins(bevy::diagnostic::LogDiagnosticsPlugin::default())
         // .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin::default())
@@ -58,6 +64,10 @@ fn main() {
         .insert_resource(CyberneticsDatabase::load())
         .insert_resource(TraitsDatabase::load())
         .insert_resource(AttachmentDatabase::load())
+
+        .insert_resource(ImguiState {
+            demo_window_open: true,
+        })
 
         .init_resource::<UIState>()
         .init_resource::<PostMissionProcessed>()
@@ -93,7 +103,8 @@ fn main() {
             preload_common_scenes,
         ))
 
-        .add_systems(Update, (
+        .add_systems(Update, 
+        (
             systems::input::handle_input,
             ui::screens::fps_system,
             pool::cleanup_inactive_entities,
@@ -175,6 +186,9 @@ fn main() {
             enhanced_neurovector::enhanced_neurovector_system,
             enhanced_neurovector::controlled_civilian_behavior_system,
             enhanced_neurovector::controlled_civilian_visual_system,
+
+            // imgui_example_ui,
+
         ).run_if(in_state(GameState::Mission)))
         .add_systems(Update, (
             vehicles::vehicle_explosion_system,
@@ -191,10 +205,9 @@ fn main() {
             // TEMP
             testing_spawn::goap_debug_display_system,
             testing_spawn::debug_selection_visual_system,
-            testing_spawn::goap_testing_info_system,
-            testing_spawn::simple_entity_count_system,
             testing_spawn::simple_visual_debug_system,
             testing_spawn::patrol_debug_system,
+            testing_spawn::faction_visualization_system,
 
         ).run_if(in_state(GameState::Mission)))
 
@@ -216,6 +229,7 @@ fn main() {
             police_escalation::police_cleanup_system,
             police_escalation::police_deescalation_system,
             police_escalation::police_debug_system,
+            // police_escalation::render_threat_level,
         ).run_if(in_state(GameState::Mission)))
 
         .add_systems(Update, (

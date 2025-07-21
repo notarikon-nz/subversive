@@ -101,6 +101,31 @@ impl Default for PoliceEscalation {
     }
 }
 
+// Show Threat Level
+// Should eventually be a sprite indicator
+pub fn render_threat_level(
+    mut commands: Commands,
+    ui_state: Res<UIState>,
+    police_escalation: Res<PoliceEscalation>,
+) {
+    // BAD - we don't want to keep creating (and destroying)
+    let threat_text = format!("{:?}", police_escalation.current_level as u32);
+    commands.spawn((
+        Text::new(threat_text),
+        TextFont {
+            font_size: 16.0,
+            ..default()
+        },
+        TextColor(Color::WHITE),
+        Node {
+            position_type: PositionType::Absolute,
+            top: Val::Px(10.0),
+            right: Val::Px(10.0),
+            ..default()
+        },
+    ));
+}
+
 impl PoliceEscalation {
     pub fn add_incident(&mut self, pos: Vec2, severity: f32, incident_type: IncidentType) {
         self.last_incident_pos = Some(pos);
