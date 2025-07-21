@@ -6,6 +6,7 @@ use crate::core::*;
 use crate::systems::panic_spread::*;
 use crate::systems::ai::*;
 use crate::systems::vehicles::spawn_vehicle;
+use crate::core::factions::Faction;
 
 // === SCENE DATA STRUCTURES ===
 #[derive(Clone, Serialize, Deserialize)]
@@ -189,14 +190,18 @@ fn spawn_agent(
         WeaponState::default()
     };    
     
-    commands.spawn((
+    let agent = commands.spawn_empty()
+    .insert((
         sprite,
         Transform::from_translation(position.extend(1.0)),
         Agent { experience: 0, level },
+        Faction::Player,
         Health(100.0),
         MovementSpeed(150.0),
         Controllable,
         Selectable { radius: 15.0 },
+    ))
+    .insert((    
         Vision::new(150.0, 60.0),
         NeurovectorCapability::default(),
         inventory,
@@ -263,11 +268,27 @@ fn spawn_enemy_with_patrol(
     let (sprite, _) = create_enemy_sprite(sprites);
     let difficulty = global_data.regions[global_data.selected_region].mission_difficulty_modifier();
     
-    let base_weapon = match rand::random::<f32>() {
-        x if x < 0.6 => WeaponType::Rifle,
-        x if x < 0.8 => WeaponType::Pistol,
-        x if x < 0.9 => WeaponType::Minigun,
-        _ => WeaponType::Flamethrower,
+    // TESTING
+    // Randomly assign faction for testing
+    let faction = match rand::random::<f32>() {
+        x if x < 0.4 => Faction::Corporate,
+        x if x < 0.8 => Faction::Syndicate,
+        _ => Faction::Police,
+    };    
+
+    // Vary weapon by faction
+    let base_weapon = match faction {
+        Faction::Corporate => match rand::random::<f32>() {
+            x if x < 0.7 => WeaponType::Rifle,
+            _ => WeaponType::Pistol,
+        },
+        Faction::Syndicate => match rand::random::<f32>() {
+            x if x < 0.5 => WeaponType::Minigun,
+            x if x < 0.8 => WeaponType::Flamethrower,
+            _ => WeaponType::Rifle,
+        },
+        Faction::Police => WeaponType::Pistol,
+        _ => WeaponType::Rifle,
     };
     
     let mut inventory = Inventory::default();
@@ -278,6 +299,7 @@ fn spawn_enemy_with_patrol(
         sprite,
         Transform::from_translation(position.extend(1.0)),
         Enemy,
+        faction,
         Health(100.0 * difficulty),
         Morale::new(100.0 * difficulty, 25.0),
         MovementSpeed(120.0 * difficulty),

@@ -21,6 +21,7 @@ pub mod missions;
 pub mod weapons;
 pub mod config;
 pub mod scene_cache; 
+pub mod factions;
 
 // Re-exports for convenience
 pub use events::*;

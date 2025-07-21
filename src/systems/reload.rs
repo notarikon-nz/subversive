@@ -32,6 +32,7 @@ pub fn reload_system(
                 if !weapon_state.is_reloading && weapon_state.current_ammo < weapon_state.max_ammo {
                     weapon_state.start_reload();
                     
+                    // play_sound
                     audio_events.write(AudioEvent {
                         sound: AudioType::Reload,
                         volume: 0.4,

@@ -21,6 +21,7 @@ pub mod formations;
 pub mod enhanced_neurovector;
 pub mod civilian_spawn;
 pub mod health_bars;
+pub mod testing_spawn;
 
 pub use panic_spread::*;
 pub use enhanced_neurovector::*;

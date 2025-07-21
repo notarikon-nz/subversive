@@ -9,10 +9,12 @@ mod core;
 mod systems;
 
 use core::*;
-use core::scene_cache::*;
 use systems::*;
 use pool::*;
 use systems::scenes::*;
+use systems::testing_spawn;
+use core::factions;
+use core::goap::{goap_ai_system};
 
 fn main() {
     let (global_data, research_progress) = load_global_data_or_default();
@@ -112,6 +114,8 @@ fn main() {
             ui::cleanup_global_map_ui,
             setup_mission_scene_optimized,
             health_bars::spawn_health_bar_system,
+            factions::setup_factions_system,
+            factions::faction_color_system,
         ))
 
         .add_systems(Update, (
@@ -176,6 +180,10 @@ fn main() {
             day_night::lighting_system,
             day_night::time_ui_system,
             health_bars::update_health_bars_system,
+            testing_spawn::testing_spawn_system,
+            testing_spawn::cover_debug_system,
+            testing_spawn::goap_testing_info_system,
+
         ).run_if(in_state(GameState::Mission)))
         .add_systems(Update, (
             mission::process_mission_results,  
@@ -216,6 +224,8 @@ pub fn setup_mission_scene_optimized(
             spawn_fallback_mission(&mut commands, &*global_data, &sprites);
         }
     }
+
+    
 }
 
 fn setup_camera_and_input(mut commands: Commands) {

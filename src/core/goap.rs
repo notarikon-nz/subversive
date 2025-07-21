@@ -1,82 +1,43 @@
 // src/core/goap.rs
 use bevy::prelude::*;
 use std::collections::{HashMap, VecDeque};
+use crate::systems::ai::AIMode;
+use crate::core::factions::Faction;
 
-// Macro for easier HashMap creation
-macro_rules! hashmap {
-    ($($key:expr => $value:expr),* $(,)?) => {
-        {
-            let mut map = HashMap::new();
-            $(map.insert($key, $value);)*
-            map
-        }
-    };
+macro_rules! world_state {
+    ( $( $key:expr => $value:expr ),* $(,)? ) => {{
+        let mut map = std::collections::HashMap::new();
+        $(
+            map.insert($key, $value);
+        )*
+        map
+    }};
 }
 
 
-
-// === WORLD STATE ===
+// === CORE TYPES ===
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum WorldKey {
-    // Position states
-    AtPatrolPoint,
-    AtLastKnownPosition,
-    AtTarget,
-    // Knowledge states
-    HasTarget,
-    TargetVisible,
-    HeardSound,
-    // Equipment states
-    HasWeapon,
-    WeaponLoaded,
-    HasMedKit,
-    HasGrenade,
-    // Alert states
-    IsAlert,
-    IsInvestigating,
-    // Cover states
-    InCover,
-    CoverAvailable,
-    UnderFire,
-    // Communication states
-    BackupCalled,
-    NearbyAlliesAvailable,    
-    // Flanking
-    FlankingPosition,
-    TacticalAdvantage,
-    // Search
-    AreaSearched,
-    // Retreat
-    IsRetreating,
-    AtSafeDistance,
-    Outnumbered,
-    IsInjured,
-    // NEW: Advanced tactical states
-    TargetGrouped,
-    SafeThrowDistance,
-    NearAlarmPanel,
-    FacilityAlert,
-    AllEnemiesAlerted,
-    // NEW: Tactical movement states
-    BetterCoverAvailable,
-    InBetterCover,
-    SafetyImproved,
-    AlliesAdvancing,
-    EnemySuppressed,
-    AlliesAdvantage,
-    RetreatPathClear,
-    SafelyWithdrawing,
-    TacticalRetreat,
-    // Parity
-    IsPanicked,
-    HasBetterWeapon,
-    InWeaponRange,
-    TooClose,
-    TooFar,
-    // NEW
-    ControllingArea,
-    SuppressingTarget,
-    AgentsGroupedInRange,    
+    // Position & Movement
+    AtPatrolPoint, AtLastKnownPosition, AtTarget,
+    // Knowledge & Awareness  
+    HasTarget, TargetVisible, HeardSound, IsAlert, IsInvestigating,
+    // Equipment & Resources
+    HasWeapon, WeaponLoaded, HasMedKit, HasGrenade,
+    // Combat & Safety
+    InCover, CoverAvailable, UnderFire, IsInjured, Outnumbered,
+    // Communication & Support
+    BackupCalled, NearbyAlliesAvailable,
+    // Advanced Tactics
+    FlankingPosition, TacticalAdvantage, TargetGrouped, SafeThrowDistance,
+    NearAlarmPanel, FacilityAlert, AllEnemiesAlerted,
+    // Movement & Positioning
+    BetterCoverAvailable, InBetterCover, SafetyImproved, AlliesAdvancing,
+    EnemySuppressed, AlliesAdvantage, RetreatPathClear, SafelyWithdrawing,
+    TacticalRetreat, AreaSearched, IsRetreating, AtSafeDistance,
+    // Weapon Specific
+    IsPanicked, HasBetterWeapon, InWeaponRange, TooClose, TooFar,
+    ControllingArea, SuppressingTarget, AgentsGroupedInRange,
 }
 
 pub type WorldState = HashMap<WorldKey, bool>;
@@ -143,555 +104,91 @@ impl Default for GoapAgent {
             planning_cooldown: 0.0,
         };
         
-        agent.setup_default_actions();
-        agent.setup_default_goals();
+        agent.setup_actions_and_goals();
         agent.setup_initial_world_state();
-       
         agent
     }
 }
 
 impl GoapAgent {
-    fn setup_default_actions(&mut self) {
-        self.available_actions = vec![
-            // === BASIC ACTIONS ===
-            GoapAction {
-                name: "patrol",
-                cost: 1.0,
-                preconditions: hashmap![
-                    WorldKey::IsAlert => false,
-                    WorldKey::HasTarget => false
-                ],
-                effects: hashmap![
-                    WorldKey::AtPatrolPoint => true
-                ],
-                action_type: ActionType::Patrol,
-            },
-            
-            GoapAction {
-                name: "return_to_patrol",
-                cost: 1.5,
-                preconditions: hashmap![
-                    WorldKey::HasTarget => false,
-                    WorldKey::AtPatrolPoint => false
-                ],
-                effects: hashmap![
-                    WorldKey::AtPatrolPoint => true,
-                    WorldKey::IsAlert => false
-                ],
-                action_type: ActionType::Patrol,
-            },
-            
-            GoapAction {
-                name: "calm_down",
-                cost: 0.5,
-                preconditions: hashmap![
-                    WorldKey::HasTarget => false,
-                    WorldKey::TargetVisible => false
-                ],
-                effects: hashmap![
-                    WorldKey::IsAlert => false
-                ],
-                action_type: ActionType::Patrol,
-            },
-            
-            // === INVESTIGATION ACTIONS ===
-            GoapAction {
-                name: "investigate",
-                cost: 2.0,
-                preconditions: hashmap![
-                    WorldKey::HeardSound => true,
-                    WorldKey::IsAlert => false
-                ],
-                effects: hashmap![
-                    WorldKey::AtLastKnownPosition => true,
-                    WorldKey::IsInvestigating => true,
-                    WorldKey::HeardSound => false
-                ],
-                action_type: ActionType::Investigate { location: Vec2::ZERO },
-            },
-            
-            // NEW: Search area systematically
-            GoapAction {
-                name: "search_area",
-                cost: 2.5,
-                preconditions: hashmap![
-                    WorldKey::HeardSound => true,
-                    WorldKey::AtLastKnownPosition => true,
-                    WorldKey::AreaSearched => false
-                ],
-                effects: hashmap![
-                    WorldKey::AreaSearched => true,
-                    WorldKey::IsInvestigating => false,
-                    WorldKey::HeardSound => false
-                ],
-                action_type: ActionType::SearchArea { center: Vec2::ZERO, radius: 50.0 },
-            },
-            
-            // === COMBAT ACTIONS ===
-            GoapAction {
-                name: "attack",
-                cost: 1.0,
-                preconditions: hashmap![
-                    WorldKey::HasTarget => true,
-                    WorldKey::TargetVisible => true,
-                    WorldKey::HasWeapon => true
-                ],
-                effects: hashmap![
-                    WorldKey::HasTarget => false
-                ],
-                action_type: ActionType::Attack { target: Entity::PLACEHOLDER },
-            },
-            
-            GoapAction {
-                name: "move_to_target",
-                cost: 3.0,
-                preconditions: hashmap![
-                    WorldKey::HasTarget => true
-                ],
-                effects: hashmap![
-                    WorldKey::AtTarget => true
-                ],
-                action_type: ActionType::MoveTo { target: Vec2::ZERO },
-            },
-            
-            // NEW: Flank target for tactical advantage
-            GoapAction {
-                name: "flank_target",
-                cost: 3.0,
-                preconditions: hashmap![
-                    WorldKey::HasTarget => true,
-                    WorldKey::TargetVisible => true,
-                    WorldKey::FlankingPosition => false
-                ],
-                effects: hashmap![
-                    WorldKey::FlankingPosition => true,
-                    WorldKey::TacticalAdvantage => true,
-                    WorldKey::AtTarget => true
-                ],
-                action_type: ActionType::FlankTarget { target_pos: Vec2::ZERO, flank_pos: Vec2::ZERO },
-            },
-            
-            // === DEFENSIVE ACTIONS ===
-            GoapAction {
-                name: "take_cover",
-                cost: 2.0,
-                preconditions: hashmap![
-                    WorldKey::HasTarget => true,
-                    WorldKey::InCover => false,
-                    WorldKey::CoverAvailable => true
-                ],
-                effects: hashmap![
-                    WorldKey::InCover => true
-                ],
-                action_type: ActionType::TakeCover,
-            },
-            
-            // NEW: Retreat when outmatched
-            GoapAction {
-                name: "retreat",
-                cost: 1.5,
-                preconditions: hashmap![
-                    WorldKey::IsInjured => true,
-                    WorldKey::Outnumbered => true,
-                    WorldKey::IsRetreating => false
-                ],
-                effects: hashmap![
-                    WorldKey::AtSafeDistance => true,
-                    WorldKey::IsRetreating => true,
-                    WorldKey::IsAlert => false
-                ],
-                action_type: ActionType::Retreat { retreat_point: Vec2::ZERO },
-            },
-            
-            // === SUPPORT ACTIONS ===
-            GoapAction {
-                name: "call_for_help",
-                cost: 1.5,
-                preconditions: hashmap![
-                    WorldKey::HasTarget => true,
-                    WorldKey::BackupCalled => false,
-                    WorldKey::NearbyAlliesAvailable => true
-                ],
-                effects: hashmap![
-                    WorldKey::BackupCalled => true
-                ],
-                action_type: ActionType::CallForHelp,
-            },
-            
-            GoapAction {
-                name: "reload",
-                cost: 2.0,
-                preconditions: hashmap![
-                    WorldKey::HasWeapon => true,
-                    WorldKey::WeaponLoaded => false
-                ],
-                effects: hashmap![
-                    WorldKey::WeaponLoaded => true
-                ],
-                action_type: ActionType::Reload,
-            },
-            
-            // Tactical reload (reload when low on ammo, not empty)
-            GoapAction {
-                name: "tactical_reload",
-                cost: 1.5,
-                preconditions: hashmap![
-                    WorldKey::HasWeapon => true,
-                    WorldKey::WeaponLoaded => true, // Has some ammo but low
-                    WorldKey::HasTarget => false // Safe to reload
-                ],
-                effects: hashmap![
-                    WorldKey::WeaponLoaded => true
-                ],
-                action_type: ActionType::Reload,
-            },
-
-            // === NEW: ADVANCED TACTICAL ACTIONS ===
-            GoapAction {
-                name: "use_medkit",
-                cost: 2.5,
-                preconditions: hashmap![
-                    WorldKey::IsInjured => true,
-                    WorldKey::HasMedKit => true,
-                    WorldKey::InCover => true // Safe to heal
-                ],
-                effects: hashmap![
-                    WorldKey::IsInjured => false,
-                    WorldKey::HasMedKit => false
-                ],
-                action_type: ActionType::UseMedKit,
-            },
-            
-            GoapAction {
-                name: "throw_grenade",
-                cost: 3.0,
-                preconditions: hashmap![
-                    WorldKey::HasGrenade => true,
-                    WorldKey::TargetGrouped => true,
-                    WorldKey::SafeThrowDistance => true
-                ],
-                effects: hashmap![
-                    WorldKey::HasGrenade => false,
-                    WorldKey::TargetGrouped => false // Disrupts enemy formation
-                ],
-                action_type: ActionType::ThrowGrenade { target_pos: Vec2::ZERO },
-            },
-            
-            GoapAction {
-                name: "activate_alarm",
-                cost: 2.0,
-                preconditions: hashmap![
-                    WorldKey::HasTarget => true,
-                    WorldKey::NearAlarmPanel => true,
-                    WorldKey::FacilityAlert => false
-                ],
-                effects: hashmap![
-                    WorldKey::FacilityAlert => true,
-                    WorldKey::AllEnemiesAlerted => true,
-                    WorldKey::BackupCalled => true // Implicit backup call
-                ],
-                action_type: ActionType::ActivateAlarm { panel_pos: Vec2::ZERO },
-            },
-
-            // === NEW: TACTICAL MOVEMENT ACTIONS ===
-            GoapAction {
-                name: "find_better_cover",
-                cost: 2.0,
-                preconditions: hashmap![
-                    WorldKey::InCover => true,
-                    WorldKey::UnderFire => true,
-                    WorldKey::BetterCoverAvailable => true
-                ],
-                effects: hashmap![
-                    WorldKey::InBetterCover => true,
-                    WorldKey::SafetyImproved => true,
-                    WorldKey::UnderFire => false
-                ],
-                action_type: ActionType::FindBetterCover { new_cover_pos: Vec2::ZERO },
-            },
-            
-            GoapAction {
-                name: "suppressing_fire",
-                cost: 1.5,
-                preconditions: hashmap![
-                    WorldKey::HasTarget => true,
-                    WorldKey::HasWeapon => true,
-                    WorldKey::AlliesAdvancing => true
-                ],
-                effects: hashmap![
-                    WorldKey::EnemySuppressed => true,
-                    WorldKey::AlliesAdvantage => true
-                ],
-                action_type: ActionType::SuppressingFire { target_area: Vec2::ZERO },
-            },
-            
-            GoapAction {
-                name: "fighting_withdrawal",
-                cost: 2.5,
-                preconditions: hashmap![
-                    WorldKey::Outnumbered => true,
-                    WorldKey::IsInjured => true,
-                    WorldKey::RetreatPathClear => true
-                ],
-                effects: hashmap![
-                    WorldKey::SafelyWithdrawing => true,
-                    WorldKey::TacticalRetreat => true,
-                    WorldKey::AtSafeDistance => true
-                ],
-                action_type: ActionType::FightingWithdrawal { retreat_path: Vec2::ZERO },
-            },
-
-            GoapAction {
-                name: "pickup_better_weapon",
-                cost: 1.0,
-                preconditions: hashmap![
-                    WorldKey::HasBetterWeapon => true,
-                    WorldKey::IsPanicked => false
-                ],
-                effects: hashmap![
-                    WorldKey::HasBetterWeapon => false
-                ],
-                action_type: ActionType::MoveTo { target: Vec2::ZERO },
-            },
-            
-            GoapAction {
-                name: "panic_flee",
-                cost: 0.5,
-                preconditions: hashmap![
-                    WorldKey::IsPanicked => true
-                ],
-                effects: hashmap![
-                    WorldKey::AtSafeDistance => true
-                ],
-                action_type: ActionType::Retreat { retreat_point: Vec2::ZERO },
-            },
-            
-            GoapAction {
-                name: "maintain_weapon_range",
-                cost: 1.5,
-                preconditions: hashmap![
-                    WorldKey::HasTarget => true,
-                    WorldKey::TooClose => true
-                ],
-                effects: hashmap![
-                    WorldKey::InWeaponRange => true,
-                    WorldKey::TooClose => false
-                ],
-                action_type: ActionType::MaintainDistance,
-            },
-            
-            GoapAction {
-                name: "close_distance",
-                cost: 2.0,
-                preconditions: hashmap![
-                    WorldKey::HasTarget => true,
-                    WorldKey::TooFar => true
-                ],
-                effects: hashmap![
-                    WorldKey::InWeaponRange => true,
-                    WorldKey::TooFar => false
-                ],
-                action_type: ActionType::MoveTo { target: Vec2::ZERO },
-            },
-
-            GoapAction {
-                name: "flamethrower_area_denial",
-                cost: 2.0,
-                preconditions: hashmap![
-                    WorldKey::HasTarget => true,
-                    WorldKey::AgentsGroupedInRange => true,
-                    WorldKey::InWeaponRange => true
-                ],
-                effects: hashmap![
-                    WorldKey::ControllingArea => true,
-                    WorldKey::TacticalAdvantage => true
-                ],
-                action_type: ActionType::Attack { target: Entity::PLACEHOLDER },
-            },
-            
-            GoapAction {
-                name: "minigun_suppression",
-                cost: 1.5,
-                preconditions: hashmap![
-                    WorldKey::HasTarget => true,
-                    WorldKey::InWeaponRange => true,
-                    WorldKey::InCover => true
-                ],
-                effects: hashmap![
-                    WorldKey::SuppressingTarget => true,
-                    WorldKey::EnemySuppressed => true
-                ],
-                action_type: ActionType::Attack { target: Entity::PLACEHOLDER },
-            },
-        ];
-    }
-
-    fn setup_default_goals(&mut self) {
-        self.goals = vec![
-            Goal {
-                name: "survival",
-                priority: 12.0, // Highest - life preservation
-                desired_state: hashmap![
-                    WorldKey::AtSafeDistance => true,
-                    WorldKey::IsInjured => false
-                ],
-            },
-            
-            Goal {
-                name: "eliminate_threat",
-                priority: 10.0, // High - combat effectiveness
-                desired_state: hashmap![
-                    WorldKey::HasTarget => false
-                ],
-            },
-            
-            Goal {
-                name: "area_control",
-                priority: 7.0,
-                desired_state: hashmap![
-                    WorldKey::ControllingArea => true,
-                    WorldKey::SuppressingTarget => true
-                ],
-            },
-
-            Goal {
-                name: "coordinate_defense",
-                priority: 9.0, // High - team tactics
-                desired_state: hashmap![
-                    WorldKey::FacilityAlert => true,
-                    WorldKey::AllEnemiesAlerted => true
-                ],
-            },
-            
-            Goal {
-                name: "tactical_advantage",
-                priority: 8.0, // Medium-high - smart combat
-                desired_state: hashmap![
-                    WorldKey::TacticalAdvantage => true,
-                    WorldKey::FlankingPosition => true
-                ],
-            },
-            
-            Goal {
-                name: "thorough_search",
-                priority: 6.0, // Medium - complete investigation
-                desired_state: hashmap![
-                    WorldKey::AreaSearched => true,
-                    WorldKey::HeardSound => false
-                ],
-            },
-            
-            Goal {
-                name: "investigate_disturbance",
-                priority: 5.0, // Medium-low - basic investigation
-                desired_state: hashmap![
-                    WorldKey::HeardSound => false
-                ],
-            },
-            
-            Goal {
-                name: "patrol_area",
-                priority: 1.0, // Lowest - default behavior
-                desired_state: hashmap![
-                    WorldKey::IsAlert => false
-                ],
-            },
-
-            Goal {
-                name: "panic_survival",
-                priority: 15.0,
-                desired_state: hashmap![
-                    WorldKey::IsPanicked => false,
-                    WorldKey::AtSafeDistance => true
-                ],
-            },
-            
-            Goal {
-                name: "weapon_upgrade",
-                priority: 4.0,
-                desired_state: hashmap![
-                    WorldKey::HasBetterWeapon => false
-                ],
-            },
-
-        ];
+    // === SETUP ===
+    fn setup_actions_and_goals(&mut self) {
+        self.available_actions = create_action_library();
+        self.goals = create_goal_library();
     }
     
     fn setup_initial_world_state(&mut self) {
-        self.world_state.insert(WorldKey::HasWeapon, true);
-        self.world_state.insert(WorldKey::WeaponLoaded, true);
-        self.world_state.insert(WorldKey::IsAlert, false);
-        self.world_state.insert(WorldKey::HasTarget, false);
-        self.world_state.insert(WorldKey::TargetVisible, false);
-        self.world_state.insert(WorldKey::HeardSound, false);
-        self.world_state.insert(WorldKey::AtPatrolPoint, true);
-        self.world_state.insert(WorldKey::AtLastKnownPosition, false);
-        self.world_state.insert(WorldKey::AtTarget, false);
-        self.world_state.insert(WorldKey::IsInvestigating, false);
-        self.world_state.insert(WorldKey::InCover, false);
-        self.world_state.insert(WorldKey::CoverAvailable, false);
-        self.world_state.insert(WorldKey::UnderFire, false);
-        self.world_state.insert(WorldKey::BackupCalled, false);
-        self.world_state.insert(WorldKey::NearbyAlliesAvailable, false);
-        // Tactical states
-        self.world_state.insert(WorldKey::FlankingPosition, false);
-        self.world_state.insert(WorldKey::TacticalAdvantage, false);
-        self.world_state.insert(WorldKey::AreaSearched, false);
-        self.world_state.insert(WorldKey::IsRetreating, false);
-        self.world_state.insert(WorldKey::AtSafeDistance, false);
-        self.world_state.insert(WorldKey::Outnumbered, false);
-        self.world_state.insert(WorldKey::IsInjured, false);
-        // NEW: Advanced tactical states
-        self.world_state.insert(WorldKey::HasMedKit, false); // Will be set based on inventory
-        self.world_state.insert(WorldKey::HasGrenade, false); // Will be set based on inventory
-        self.world_state.insert(WorldKey::TargetGrouped, false);
-        self.world_state.insert(WorldKey::SafeThrowDistance, false);
-        self.world_state.insert(WorldKey::NearAlarmPanel, false);
-        self.world_state.insert(WorldKey::FacilityAlert, false);
-        self.world_state.insert(WorldKey::AllEnemiesAlerted, false);
-        // NEW: Tactical movement states
-        self.world_state.insert(WorldKey::BetterCoverAvailable, false);
-        self.world_state.insert(WorldKey::InBetterCover, false);
-        self.world_state.insert(WorldKey::SafetyImproved, false);
-        self.world_state.insert(WorldKey::AlliesAdvancing, false);
-        self.world_state.insert(WorldKey::EnemySuppressed, false);
-        self.world_state.insert(WorldKey::AlliesAdvantage, false);
-        self.world_state.insert(WorldKey::RetreatPathClear, false);
-        self.world_state.insert(WorldKey::SafelyWithdrawing, false);
-        self.world_state.insert(WorldKey::TacticalRetreat, false);
-        // NEW: Parity states        
-        self.world_state.insert(WorldKey::IsPanicked, false);
-        self.world_state.insert(WorldKey::HasBetterWeapon, false);
-        self.world_state.insert(WorldKey::InWeaponRange, false);
-        self.world_state.insert(WorldKey::TooClose, false);
-        self.world_state.insert(WorldKey::TooFar, false);
-
-        self.world_state.insert(WorldKey::ControllingArea, false);
-        self.world_state.insert(WorldKey::SuppressingTarget, false);
-        self.world_state.insert(WorldKey::AgentsGroupedInRange, false);        
-
-
+        self.world_state = world_state![
+            WorldKey::HasWeapon => true,
+            WorldKey::WeaponLoaded => true,
+            WorldKey::IsAlert => false,
+            WorldKey::HasTarget => false,
+            WorldKey::TargetVisible => false,
+            WorldKey::HeardSound => false,
+            WorldKey::AtPatrolPoint => true,
+            WorldKey::AtLastKnownPosition => false,
+            WorldKey::AtTarget => false,
+            WorldKey::IsInvestigating => false,
+            WorldKey::InCover => false,
+            WorldKey::CoverAvailable => false,
+            WorldKey::UnderFire => false,
+            WorldKey::BackupCalled => false,
+            WorldKey::NearbyAlliesAvailable => false,
+            WorldKey::FlankingPosition => false,
+            WorldKey::TacticalAdvantage => false,
+            WorldKey::AreaSearched => false,
+            WorldKey::IsRetreating => false,
+            WorldKey::AtSafeDistance => false,
+            WorldKey::Outnumbered => false,
+            WorldKey::IsInjured => false,
+            WorldKey::HasMedKit => false,
+            WorldKey::HasGrenade => false,
+            WorldKey::TargetGrouped => false,
+            WorldKey::SafeThrowDistance => false,
+            WorldKey::NearAlarmPanel => false,
+            WorldKey::FacilityAlert => false,
+            WorldKey::AllEnemiesAlerted => false,
+            WorldKey::BetterCoverAvailable => false,
+            WorldKey::InBetterCover => false,
+            WorldKey::SafetyImproved => false,
+            WorldKey::AlliesAdvancing => false,
+            WorldKey::EnemySuppressed => false,
+            WorldKey::AlliesAdvantage => false,
+            WorldKey::RetreatPathClear => false,
+            WorldKey::SafelyWithdrawing => false,
+            WorldKey::TacticalRetreat => false,
+            WorldKey::IsPanicked => false,
+            WorldKey::HasBetterWeapon => false,
+            WorldKey::InWeaponRange => false,
+            WorldKey::TooClose => false,
+            WorldKey::TooFar => false,
+            WorldKey::ControllingArea => false,
+            WorldKey::SuppressingTarget => false,
+            WorldKey::AgentsGroupedInRange => false,
+        ];
     }
     
+    // === STATE MANAGEMENT ===
     pub fn update_world_state(&mut self, key: WorldKey, value: bool) {
         self.world_state.insert(key, value);
     }
-    
+
+    pub fn update_multiple(&mut self, updates: impl IntoIterator<Item = (WorldKey, bool)>) {
+        for (key, value) in updates {
+            self.update_world_state(key, value);
+        }
+    }    
+
+    // === PLANNING ===
     pub fn plan(&mut self) -> bool {
-        // Find the highest priority goal that isn't already satisfied
         let goal = self.goals.iter()
             .filter(|g| !self.is_goal_satisfied(&g.desired_state))
             .max_by(|a, b| a.priority.partial_cmp(&b.priority).unwrap_or(std::cmp::Ordering::Equal));
         
         if let Some(goal) = goal {
-            let _old_goal = self.current_goal.as_ref().map(|g| g.name);
             self.current_goal = Some(goal.clone());
-            
             self.current_plan = self.find_plan(&goal.desired_state);
-            let success = !self.current_plan.is_empty();
-            
-            success
+            !self.current_plan.is_empty()
         } else {
             false
         }
@@ -704,26 +201,19 @@ impl GoapAgent {
     }
     
     fn find_plan(&self, goal_state: &WorldState) -> VecDeque<GoapAction> {
-        // Simple backward chaining planner
         let mut plan = VecDeque::new();
         let mut current_state = self.world_state.clone();
         let mut remaining_goals = goal_state.clone();
-        
-        // Maximum planning depth to prevent infinite loops
         let max_depth = 10;
         let mut depth = 0;
         
         while !remaining_goals.is_empty() && depth < max_depth {
             depth += 1;
             
-            // Find an action that satisfies at least one remaining goal
             if let Some(action) = self.find_satisfying_action(&remaining_goals, &current_state) {
-                // Check if we can execute this action (preconditions met)
                 if self.can_execute_action(&action, &current_state) {
-                    // Apply the action's effects
                     self.apply_effects(&action.effects, &mut current_state);
                     
-                    // Remove satisfied goals
                     for (key, &value) in &action.effects {
                         if remaining_goals.get(key) == Some(&value) {
                             remaining_goals.remove(key);
@@ -732,8 +222,6 @@ impl GoapAgent {
                     
                     plan.push_front(action);
                 } else {
-                    // We need to satisfy the action's preconditions first
-                    // Add them as sub-goals
                     for (&key, &value) in &action.preconditions {
                         if current_state.get(&key) != Some(&value) {
                             remaining_goals.insert(key, value);
@@ -741,22 +229,16 @@ impl GoapAgent {
                     }
                 }
             } else {
-                // No action can satisfy the remaining goals
                 break;
             }
         }
         
-        if remaining_goals.is_empty() {
-            plan
-        } else {
-            VecDeque::new() // Failed to find complete plan
-        }
+        if remaining_goals.is_empty() { plan } else { VecDeque::new() }
     }
     
     fn find_satisfying_action(&self, goals: &WorldState, _current_state: &WorldState) -> Option<GoapAction> {
         self.available_actions.iter()
             .find(|action| {
-                // Check if this action satisfies at least one goal
                 action.effects.iter().any(|(key, &value)| {
                     goals.get(key) == Some(&value)
                 })
@@ -786,6 +268,311 @@ impl GoapAgent {
     }
 }
 
+// === ACTION LIBRARY ===
+fn create_action_library() -> Vec<GoapAction> {
+    vec![
+        // Basic Actions
+        GoapAction {
+            name: "patrol",
+            cost: 1.0,
+            preconditions: world_state![WorldKey::IsAlert => false, WorldKey::HasTarget => false],
+            effects: world_state![WorldKey::AtPatrolPoint => true],
+            action_type: ActionType::Patrol,
+        },
+        GoapAction {
+            name: "return_to_patrol",
+            cost: 1.5,
+            preconditions: world_state![WorldKey::HasTarget => false, WorldKey::AtPatrolPoint => false],
+            effects: world_state![WorldKey::AtPatrolPoint => true, WorldKey::IsAlert => false],
+            action_type: ActionType::Patrol,
+        },
+        GoapAction {
+            name: "calm_down",
+            cost: 0.5,
+            preconditions: world_state![WorldKey::HasTarget => false, WorldKey::TargetVisible => false],
+            effects: world_state![WorldKey::IsAlert => false],
+            action_type: ActionType::Patrol,
+        },
+        
+        // Investigation
+        GoapAction {
+            name: "investigate",
+            cost: 2.0,
+            preconditions: world_state![WorldKey::HeardSound => true, WorldKey::IsAlert => false],
+            effects: world_state![WorldKey::AtLastKnownPosition => true, WorldKey::IsInvestigating => true, WorldKey::HeardSound => false],
+            action_type: ActionType::Investigate { location: Vec2::ZERO },
+        },
+        GoapAction {
+            name: "search_area",
+            cost: 2.5,
+            preconditions: world_state![WorldKey::HeardSound => true, WorldKey::AtLastKnownPosition => true, WorldKey::AreaSearched => false],
+            effects: world_state![WorldKey::AreaSearched => true, WorldKey::IsInvestigating => false, WorldKey::HeardSound => false],
+            action_type: ActionType::SearchArea { center: Vec2::ZERO, radius: 50.0 },
+        },
+        
+        // Combat
+        GoapAction {
+            name: "attack",
+            cost: 1.0,
+            preconditions: world_state![WorldKey::HasTarget => true, WorldKey::TargetVisible => true, WorldKey::HasWeapon => true],
+            effects: world_state![WorldKey::HasTarget => false],
+            action_type: ActionType::Attack { target: Entity::PLACEHOLDER },
+        },
+        GoapAction {
+            name: "move_to_target",
+            cost: 3.0,
+            preconditions: world_state![WorldKey::HasTarget => true],
+            effects: world_state![WorldKey::AtTarget => true],
+            action_type: ActionType::MoveTo { target: Vec2::ZERO },
+        },
+        GoapAction {
+            name: "flank_target",
+            cost: 3.0,
+            preconditions: world_state![WorldKey::HasTarget => true, WorldKey::TargetVisible => true, WorldKey::FlankingPosition => false],
+            effects: world_state![WorldKey::FlankingPosition => true, WorldKey::TacticalAdvantage => true, WorldKey::AtTarget => true],
+            action_type: ActionType::FlankTarget { target_pos: Vec2::ZERO, flank_pos: Vec2::ZERO },
+        },
+        
+        // Defensive
+        GoapAction {
+            name: "take_cover",
+            cost: 2.0,
+            preconditions: world_state![WorldKey::HasTarget => true, WorldKey::InCover => false, WorldKey::CoverAvailable => true],
+            effects: world_state![WorldKey::InCover => true],
+            action_type: ActionType::TakeCover,
+        },
+        GoapAction {
+            name: "retreat",
+            cost: 1.5,
+            preconditions: world_state![WorldKey::IsInjured => true, WorldKey::Outnumbered => true, WorldKey::IsRetreating => false],
+            effects: world_state![WorldKey::AtSafeDistance => true, WorldKey::IsRetreating => true, WorldKey::IsAlert => false],
+            action_type: ActionType::Retreat { retreat_point: Vec2::ZERO },
+        },
+        
+        // Support
+        GoapAction {
+            name: "call_for_help",
+            cost: 1.5,
+            preconditions: world_state![WorldKey::HasTarget => true, WorldKey::BackupCalled => false, WorldKey::NearbyAlliesAvailable => true],
+            effects: world_state![WorldKey::BackupCalled => true],
+            action_type: ActionType::CallForHelp,
+        },
+        GoapAction {
+            name: "reload",
+            cost: 2.0,
+            preconditions: world_state![WorldKey::HasWeapon => true, WorldKey::WeaponLoaded => false],
+            effects: world_state![WorldKey::WeaponLoaded => true],
+            action_type: ActionType::Reload,
+        },
+        GoapAction {
+            name: "tactical_reload",
+            cost: 1.5,
+            preconditions: world_state![WorldKey::HasWeapon => true, WorldKey::WeaponLoaded => true, WorldKey::HasTarget => false],
+            effects: world_state![WorldKey::WeaponLoaded => true],
+            action_type: ActionType::Reload,
+        },
+        
+        // Advanced Tactics
+        GoapAction {
+            name: "use_medkit",
+            cost: 2.5,
+            preconditions: world_state![WorldKey::IsInjured => true, WorldKey::HasMedKit => true, WorldKey::InCover => true],
+            effects: world_state![WorldKey::IsInjured => false, WorldKey::HasMedKit => false],
+            action_type: ActionType::UseMedKit,
+        },
+        GoapAction {
+            name: "throw_grenade",
+            cost: 3.0,
+            preconditions: world_state![WorldKey::HasGrenade => true, WorldKey::TargetGrouped => true, WorldKey::SafeThrowDistance => true],
+            effects: world_state![WorldKey::HasGrenade => false, WorldKey::TargetGrouped => false],
+            action_type: ActionType::ThrowGrenade { target_pos: Vec2::ZERO },
+        },
+        GoapAction {
+            name: "activate_alarm",
+            cost: 2.0,
+            preconditions: world_state![WorldKey::HasTarget => true, WorldKey::NearAlarmPanel => true, WorldKey::FacilityAlert => false],
+            effects: world_state![WorldKey::FacilityAlert => true, WorldKey::AllEnemiesAlerted => true, WorldKey::BackupCalled => true],
+            action_type: ActionType::ActivateAlarm { panel_pos: Vec2::ZERO },
+        },
+        
+        // Tactical Movement
+        GoapAction {
+            name: "find_better_cover",
+            cost: 2.0,
+            preconditions: world_state![WorldKey::InCover => true, WorldKey::UnderFire => true, WorldKey::BetterCoverAvailable => true],
+            effects: world_state![WorldKey::InBetterCover => true, WorldKey::SafetyImproved => true, WorldKey::UnderFire => false],
+            action_type: ActionType::FindBetterCover { new_cover_pos: Vec2::ZERO },
+        },
+        GoapAction {
+            name: "suppressing_fire",
+            cost: 1.5,
+            preconditions: world_state![WorldKey::HasTarget => true, WorldKey::HasWeapon => true, WorldKey::AlliesAdvancing => true],
+            effects: world_state![WorldKey::EnemySuppressed => true, WorldKey::AlliesAdvantage => true],
+            action_type: ActionType::SuppressingFire { target_area: Vec2::ZERO },
+        },
+        GoapAction {
+            name: "fighting_withdrawal",
+            cost: 2.5,
+            preconditions: world_state![WorldKey::Outnumbered => true, WorldKey::IsInjured => true, WorldKey::RetreatPathClear => true],
+            effects: world_state![WorldKey::SafelyWithdrawing => true, WorldKey::TacticalRetreat => true, WorldKey::AtSafeDistance => true],
+            action_type: ActionType::FightingWithdrawal { retreat_path: Vec2::ZERO },
+        },
+        
+        // Weapon-Specific
+        GoapAction {
+            name: "pickup_better_weapon",
+            cost: 1.0,
+            preconditions: world_state![WorldKey::HasBetterWeapon => true, WorldKey::IsPanicked => false],
+            effects: world_state![WorldKey::HasBetterWeapon => false],
+            action_type: ActionType::MoveTo { target: Vec2::ZERO },
+        },
+        GoapAction {
+            name: "panic_flee",
+            cost: 0.5,
+            preconditions: world_state![WorldKey::IsPanicked => true],
+            effects: world_state![WorldKey::AtSafeDistance => true],
+            action_type: ActionType::Retreat { retreat_point: Vec2::ZERO },
+        },
+        GoapAction {
+            name: "maintain_weapon_range",
+            cost: 1.5,
+            preconditions: world_state![WorldKey::HasTarget => true, WorldKey::TooClose => true],
+            effects: world_state![WorldKey::InWeaponRange => true, WorldKey::TooClose => false],
+            action_type: ActionType::MaintainDistance,
+        },
+        GoapAction {
+            name: "close_distance",
+            cost: 2.0,
+            preconditions: world_state![WorldKey::HasTarget => true, WorldKey::TooFar => true],
+            effects: world_state![WorldKey::InWeaponRange => true, WorldKey::TooFar => false],
+            action_type: ActionType::MoveTo { target: Vec2::ZERO },
+        },
+        GoapAction {
+            name: "flamethrower_area_denial",
+            cost: 2.0,
+            preconditions: world_state![WorldKey::HasTarget => true, WorldKey::AgentsGroupedInRange => true, WorldKey::InWeaponRange => true],
+            effects: world_state![WorldKey::ControllingArea => true, WorldKey::TacticalAdvantage => true],
+            action_type: ActionType::Attack { target: Entity::PLACEHOLDER },
+        },
+        GoapAction {
+            name: "minigun_suppression",
+            cost: 1.5,
+            preconditions: world_state![WorldKey::HasTarget => true, WorldKey::InWeaponRange => true, WorldKey::InCover => true],
+            effects: world_state![WorldKey::SuppressingTarget => true, WorldKey::EnemySuppressed => true],
+            action_type: ActionType::Attack { target: Entity::PLACEHOLDER },
+        },
+    ]
+}
+
+// === GOAL LIBRARY ===
+fn create_goal_library() -> Vec<Goal> {
+    vec![
+        Goal {
+            name: "panic_survival",
+            priority: 15.0,
+            desired_state: world_state![WorldKey::IsPanicked => false, WorldKey::AtSafeDistance => true],
+        },
+        Goal {
+            name: "survival",
+            priority: 12.0,
+            desired_state: world_state![WorldKey::AtSafeDistance => true, WorldKey::IsInjured => false],
+        },
+        Goal {
+            name: "eliminate_threat",
+            priority: 10.0,
+            desired_state: world_state![WorldKey::HasTarget => false],
+        },
+        Goal {
+            name: "coordinate_defense",
+            priority: 9.0,
+            desired_state: world_state![WorldKey::FacilityAlert => true, WorldKey::AllEnemiesAlerted => true],
+        },
+        Goal {
+            name: "tactical_advantage",
+            priority: 8.0,
+            desired_state: world_state![WorldKey::TacticalAdvantage => true, WorldKey::FlankingPosition => true],
+        },
+        Goal {
+            name: "area_control",
+            priority: 7.0,
+            desired_state: world_state![WorldKey::ControllingArea => true, WorldKey::SuppressingTarget => true],
+        },
+        Goal {
+            name: "thorough_search",
+            priority: 6.0,
+            desired_state: world_state![WorldKey::AreaSearched => true, WorldKey::HeardSound => false],
+        },
+        Goal {
+            name: "investigate_disturbance",
+            priority: 5.0,
+            desired_state: world_state![WorldKey::HeardSound => false],
+        },
+        Goal {
+            name: "weapon_upgrade",
+            priority: 4.0,
+            desired_state: world_state![WorldKey::HasBetterWeapon => false],
+        },
+        Goal {
+            name: "patrol_area",
+            priority: 1.0,
+            desired_state: world_state![WorldKey::IsAlert => false],
+        },
+    ]
+}
+
+// === INTEGRATION COMPONENTS ===
+#[derive(Component)]
+pub struct CoverPoint {
+    pub capacity: u8,
+    pub current_users: u8,
+    pub cover_direction: Vec2,
+}
+
+#[derive(Component)]
+pub struct InCover {
+    pub cover_entity: Entity,
+}
+
+#[derive(Component)]
+pub struct AlarmPanel {
+    pub activated: bool,
+    pub range: f32,
+}
+
+#[derive(Component)]
+pub struct Equipment {
+    pub medkits: u8,
+    pub grenades: u8,
+    pub tools: Vec<String>,
+}
+
+impl Default for Equipment {
+    fn default() -> Self {
+        Self {
+            medkits: 1,
+            grenades: 0,
+            tools: Vec::new(),
+        }
+    }
+}
+
+// === DEBUG CONFIGURATION ===
+#[derive(Resource)]
+pub struct GoapConfig {
+    pub debug_enabled: bool,
+    pub planning_interval: f32,
+    pub max_plan_depth: usize,
+}
+
+impl Default for GoapConfig {
+    fn default() -> Self {
+        Self {
+            debug_enabled: false,
+            planning_interval: 2.0,
+            max_plan_depth: 10,
+        }
+    }
+}
 
 
 
@@ -803,7 +590,7 @@ pub fn goap_ai_system(
         &mut Vision,
         &Patrol,
         &Health,
-        Option<&WeaponState> // Add optional weapon state
+        Option<&WeaponState>
     ), (With<Enemy>, Without<Dead>)>,
     agent_query: Query<(Entity, &Transform), With<Agent>>,
     cover_query: Query<(Entity, &Transform, &CoverPoint), Without<Enemy>>,
@@ -819,7 +606,6 @@ pub fn goap_ai_system(
     for (enemy_entity, enemy_transform, mut ai_state, mut goap_agent, mut vision, patrol, health, weapon_state) in enemy_query.iter_mut() {
         goap_agent.planning_cooldown -= time.delta_secs();
         
-        // Enhanced world state updates with weapon state
         update_world_state_from_perception(
             &mut goap_agent,
             enemy_transform,
@@ -831,7 +617,7 @@ pub fn goap_ai_system(
             &all_enemy_query,
             enemy_entity,
             health,
-            weapon_state, // Pass weapon state
+            weapon_state,
         );
         
         let should_replan = goap_agent.current_plan.is_empty() || 
@@ -874,8 +660,7 @@ pub fn goap_ai_system(
     }
 }
 
-
-fn update_world_state_from_perception(
+fn update_world_state_from_perception (
     goap_agent: &mut GoapAgent,
     enemy_transform: &Transform,
     vision: &mut Vision,
@@ -886,235 +671,390 @@ fn update_world_state_from_perception(
     all_enemy_query: &Query<(Entity, &Transform), (With<Enemy>, Without<Dead>)>,
     current_enemy: Entity,
     health: &Health,
-    weapon_state: Option<&WeaponState>, // Add weapon state parameter
+    weapon_state: Option<&WeaponState>,    
 ) {
     let enemy_pos = enemy_transform.translation.truncate();
     
-    // === VISION DIRECTION UPDATE ===
+    update_vision_direction(goap_agent, ai_state, patrol, vision, enemy_pos, agent_query);
+    
+    let (visible_agent, has_target) = update_basic_perception(
+        enemy_transform, 
+        vision, 
+        agent_query, 
+        ai_state
+    );
+    
+    let tactical_state = assess_tactical_situation(
+        enemy_pos,
+        patrol,
+        cover_query,
+        all_enemy_query,
+        current_enemy,
+        health,
+        agent_query,
+        visible_agent
+    );
+    
+    update_weapon_state(goap_agent, weapon_state);
+    update_world_states(goap_agent, &tactical_state, has_target, visible_agent);
+    update_ai_mode(goap_agent, ai_state, has_target, visible_agent);
+}
+
+fn update_vision_direction(
+    goap_agent: &mut GoapAgent,
+    ai_state: &AIState,
+    patrol: &Patrol,
+    vision: &mut Vision,
+    enemy_pos: Vec2,
+    agent_query: &Query<(Entity, &Transform), With<Agent>>,
+) {
     match &ai_state.mode {
-        crate::systems::ai::AIMode::Patrol => {
+        AIMode::Patrol => {
             if let Some(target) = patrol.current_target() {
-                let direction = (target - enemy_pos).normalize_or_zero();
-                if direction != Vec2::ZERO {
-                    vision.direction = direction;
-                }
+                let direction = target - enemy_pos;
+                update_direction_if_valid(vision, direction);
             }
         },
-        crate::systems::ai::AIMode::Combat { target } => {
+
+        AIMode::Combat { target } => {
             if let Ok((_, target_transform)) = agent_query.get(*target) {
-                let direction = (target_transform.translation.truncate() - enemy_pos).normalize_or_zero();
-                if direction != Vec2::ZERO {
-                    vision.direction = direction;
-                }
+                let direction = target_transform.translation.truncate() - enemy_pos;
+                update_direction_if_valid(vision, direction);
             }
         },
-        crate::systems::ai::AIMode::Investigate { location } => {
-            let direction = (*location - enemy_pos).normalize_or_zero();
-            if direction != Vec2::ZERO {
-                vision.direction = direction;
-            }
+
+        AIMode::Investigate { location } => {
+            let direction = *location - enemy_pos;
+            update_direction_if_valid(vision, direction);
         },
-        crate::systems::ai::AIMode::Search { area } => {
-            let direction = (*area - enemy_pos).normalize_or_zero();
-            if direction != Vec2::ZERO {
-                vision.direction = direction;
-            }
+
+        AIMode::Search { area } => {
+            let direction = *area - enemy_pos;
+            update_direction_if_valid(vision, direction);
         },
-        crate::systems::ai::AIMode::Panic => {
-            goap_agent.update_world_state(WorldKey::IsAlert, true);
-            goap_agent.update_world_state(WorldKey::IsInvestigating, false);
-            goap_agent.update_world_state(WorldKey::IsPanicked, true);
-            goap_agent.update_world_state(WorldKey::IsRetreating, true);
+
+        AIMode::Panic => {
+            apply_panic_state(goap_agent);
         },        
     }
-    
-    // === BASIC PERCEPTION ===
+}
+
+// Helper function for panic state
+fn apply_panic_state(goap_agent: &mut GoapAgent) {
+    goap_agent.update_multiple([
+        (WorldKey::IsAlert, true),
+        (WorldKey::IsInvestigating, false),
+        (WorldKey::IsPanicked, true),
+        (WorldKey::IsRetreating, true),
+    ]);
+}
+
+fn update_direction_if_valid(vision: &mut Vision, delta: Vec2) {
+    let direction = delta.normalize_or_zero();
+    if direction != Vec2::ZERO {
+        vision.direction = direction;
+    }
+}
+
+fn update_basic_perception(
+    enemy_transform: &Transform,
+    vision: &mut Vision,
+    agent_query: &Query<(Entity, &Transform), With<Agent>>,
+    ai_state: &mut AIState,
+) -> (Option<Entity>, bool) {
     let visible_agent = check_line_of_sight_goap(enemy_transform, vision, agent_query);
     let has_target = visible_agent.is_some();
-    let target_visible = has_target;
     
     if let Some(agent_entity) = visible_agent {
         if let Ok((_, agent_transform)) = agent_query.get(agent_entity) {
-            let target_pos = agent_transform.translation.truncate();
-            ai_state.last_known_target = Some(target_pos);
+            ai_state.last_known_target = Some(agent_transform.translation.truncate());
         }
     }
     
-    let at_patrol_point = if let Some(patrol_target) = patrol.current_target() {
-        enemy_pos.distance(patrol_target) < 20.0
-    } else {
-        true
-    };
-    
-    let cover_available = find_nearest_cover(enemy_pos, cover_query).is_some();
-    
-    let nearby_allies = all_enemy_query.iter()
-        .filter(|(entity, transform)| {
-            *entity != current_enemy &&
-            enemy_pos.distance(transform.translation.truncate()) <= 200.0
-        })
-        .count() > 0;
-    
-    // === ENHANCED TACTICAL ASSESSMENT ===
+    (visible_agent, has_target)
+}
+
+struct TacticalState {
+    at_patrol_point: bool,
+    cover_available: bool,
+    nearby_allies: bool,
+    is_injured: bool,
+    outnumbered: bool,
+    at_safe_distance: bool,
+    target_grouped: bool,
+    safe_throw_distance: bool,
+    has_medkit: bool,
+    has_grenade: bool,
+    under_fire: bool,
+    better_cover_available: bool,
+    allies_advancing: bool,
+    retreat_path_clear: bool,
+}
+
+fn assess_tactical_situation(
+    enemy_pos: Vec2,
+    patrol: &Patrol,
+    cover_query: &Query<(Entity, &Transform, &CoverPoint), Without<Enemy>>,
+    all_enemy_query: &Query<(Entity, &Transform), (With<Enemy>, Without<Dead>)>,
+    current_enemy: Entity,
+    health: &Health,
+    agent_query: &Query<(Entity, &Transform), With<Agent>>,
+    visible_agent: Option<Entity>,
+) -> TacticalState {
+    let at_patrol_point = is_at_patrol_point(enemy_pos, patrol);
+    let cover_available = find_cover(enemy_pos, cover_query, None, false).is_some();
+    let nearby_allies = has_nearby_allies(enemy_pos, all_enemy_query, current_enemy);
     let is_injured = health.0 < 50.0;
     
-    let agent_count = agent_query.iter()
-        .filter(|(_, transform)| {
+    let (agent_count, nearby_enemy_count) = count_entities_in_range(
+        enemy_pos, 
+        agent_query, 
+        all_enemy_query, 
+        current_enemy
+    );
+    
+    let outnumbered = agent_count > nearby_enemy_count + 1;
+    let at_safe_distance = !is_any_agent_in_range(enemy_pos, agent_query, 150.0);
+    
+    let (target_grouped, safe_throw_distance) = assess_group_targets(
+        enemy_pos, 
+        agent_query,
+        300.0,
+        80.0,
+        (100.0, 250.0)
+    );
+    
+    TacticalState {
+        at_patrol_point,
+        cover_available,
+        nearby_allies,
+        is_injured,
+        outnumbered,
+        at_safe_distance,
+        target_grouped,
+        safe_throw_distance,
+        has_medkit: is_injured && rand::random::<f32>() < 0.3,
+        has_grenade: target_grouped && rand::random::<f32>() < 0.2,
+        under_fire: agent_count > 0 && is_any_agent_in_range(enemy_pos, agent_query, 120.0),
+        better_cover_available: cover_available && cover_query.iter().count() > 1,
+        allies_advancing: nearby_enemy_count > 0 && agent_count > 0,
+        retreat_path_clear: check_retreat_path(enemy_pos, patrol, agent_query),
+    }
+}
+
+fn is_at_patrol_point(enemy_pos: Vec2, patrol: &Patrol) -> bool {
+    patrol.current_target()
+        .map(|target| enemy_pos.distance(target) < 20.0)
+        .unwrap_or(true)
+}
+
+fn has_nearby_allies(
+    enemy_pos: Vec2,
+    all_enemy_query: &Query<(Entity, &Transform), (With<Enemy>, Without<Dead>)>,
+    current_enemy: Entity,
+) -> bool {
+    all_enemy_query.iter()
+        .filter(|(entity, transform)| {
+            *entity != current_enemy &&
             enemy_pos.distance(transform.translation.truncate()) <= 200.0
         })
+        .count() > 0
+}
+
+fn count_entities_in_range(
+    enemy_pos: Vec2,
+    agent_query: &Query<(Entity, &Transform), With<Agent>>,
+    all_enemy_query: &Query<(Entity, &Transform), (With<Enemy>, Without<Dead>)>,
+    current_enemy: Entity,
+) -> (usize, usize) {
+    let agent_count = agent_query.iter()
+        .filter(|(_, transform)| enemy_pos.distance(transform.translation.truncate()) <= 200.0)
         .count();
-    
-    let nearby_enemy_count = all_enemy_query.iter()
+        
+    let enemy_count = all_enemy_query.iter()
         .filter(|(entity, transform)| {
             *entity != current_enemy &&
             enemy_pos.distance(transform.translation.truncate()) <= 200.0
         })
         .count();
-    
-    let outnumbered = agent_count > nearby_enemy_count + 1;
-    
-    let at_safe_distance = !agent_query.iter()
-        .any(|(_, transform)| {
-            enemy_pos.distance(transform.translation.truncate()) <= 150.0
-        });
-    
-    // === NEW: ADVANCED TACTICAL PERCEPTION ===
-    // Check if multiple agents are grouped together (grenade opportunity)
-    let agents_in_area: Vec<_> = agent_query.iter()
+        
+    (agent_count, enemy_count)
+}
+
+fn update_weapon_state(
+    goap_agent: &mut GoapAgent,
+    weapon_state: Option<&WeaponState>,
+) {
+    match weapon_state {
+        Some(weapon) => {
+            goap_agent.update_multiple([
+                (WorldKey::WeaponLoaded, weapon.current_ammo > 0),
+                (WorldKey::HasWeapon, true),
+                // (WorldKey::NeedsReload, weapon.needs_reload()), // Uncomment if needed
+            ]);
+        }
+        None => {
+            goap_agent.update_multiple([
+                (WorldKey::WeaponLoaded, true),
+                (WorldKey::HasWeapon, true),
+            ]);
+        }
+    }
+}
+
+fn update_world_states(
+    goap_agent: &mut GoapAgent,
+    tactical_state: &TacticalState,
+    has_target: bool,
+    visible_agent: Option<Entity>,
+) {
+    // Core perception states
+    goap_agent.update_multiple([
+        (WorldKey::TargetVisible, has_target),
+        (WorldKey::HasTarget, has_target),
+        (WorldKey::AtPatrolPoint, tactical_state.at_patrol_point),
+        (WorldKey::CoverAvailable, tactical_state.cover_available),
+        (WorldKey::NearbyAlliesAvailable, tactical_state.nearby_allies),
+    ]);
+
+    // Tactical assessment states
+    goap_agent.update_multiple([
+        (WorldKey::IsInjured, tactical_state.is_injured),
+        (WorldKey::Outnumbered, tactical_state.outnumbered),
+        (WorldKey::AtSafeDistance, tactical_state.at_safe_distance),
+        (WorldKey::TargetGrouped, tactical_state.target_grouped),
+        (WorldKey::SafeThrowDistance, tactical_state.safe_throw_distance),
+        (WorldKey::UnderFire, tactical_state.under_fire),
+        (WorldKey::BetterCoverAvailable, tactical_state.better_cover_available),
+        (WorldKey::AlliesAdvancing, tactical_state.allies_advancing),
+        (WorldKey::RetreatPathClear, tactical_state.retreat_path_clear),
+    ]);
+
+    // Inventory states
+    goap_agent.update_multiple([
+        (WorldKey::HasMedKit, tactical_state.has_medkit),
+        (WorldKey::HasGrenade, tactical_state.has_grenade),
+    ]);
+
+    // Reset tactical positions if no target
+    if !has_target {
+        goap_agent.update_multiple([
+            (WorldKey::FlankingPosition, false),
+            (WorldKey::TacticalAdvantage, false),
+        ]);
+    }
+}
+
+fn update_ai_mode(
+    goap_agent: &mut GoapAgent,
+    ai_state: &mut AIState,
+    has_target: bool,
+    visible_agent: Option<Entity>,
+) {
+    match &ai_state.mode {
+        AIMode::Patrol => {
+            goap_agent.update_multiple([
+                (WorldKey::IsAlert, false),
+                (WorldKey::IsInvestigating, false),
+                (WorldKey::IsRetreating, false),
+            ]);
+
+            if has_target {
+                if let Some(target) = visible_agent {
+                    ai_state.mode = AIMode::Combat { target };
+                    goap_agent.update_world_state(WorldKey::IsAlert, true);
+                    goap_agent.abort_plan();
+                }
+            }
+        }
+        AIMode::Combat { .. } => {
+            goap_agent.update_multiple([
+                (WorldKey::IsAlert, true),
+                (WorldKey::IsInvestigating, false),
+            ]);
+        }
+        AIMode::Investigate { .. } | AIMode::Search { .. } => {
+            goap_agent.update_multiple([
+                (WorldKey::IsAlert, true),
+                (WorldKey::IsInvestigating, true),
+            ]);
+        }
+        AIMode::Panic => {
+            goap_agent.update_multiple([
+                (WorldKey::IsAlert, true),
+                (WorldKey::IsInvestigating, false),
+                (WorldKey::IsPanicked, true),
+                (WorldKey::IsRetreating, true),
+            ]);
+        }
+    }
+}
+
+fn assess_group_targets(
+    enemy_pos: Vec2,
+    agent_query: &Query<(Entity, &Transform), With<Agent>>,
+    detection_range: f32,
+    group_proximity: f32,
+    throw_range: (f32, f32),
+) -> (bool, bool) {
+    let agents_in_range: Vec<_> = agent_query.iter()
         .filter(|(_, transform)| {
-            enemy_pos.distance(transform.translation.truncate()) <= 300.0
+            enemy_pos.distance(transform.translation.truncate()) <= detection_range
         })
         .collect();
-    
-    let target_grouped = if agents_in_area.len() >= 2 {
-        // Check if agents are close to each other
-        let positions: Vec<Vec2> = agents_in_area.iter()
+
+    // Check if agents are grouped together
+    let target_grouped = if agents_in_range.len() >= 2 {
+        let positions: Vec<Vec2> = agents_in_range.iter()
             .map(|(_, t)| t.translation.truncate())
             .collect();
         
         positions.iter().any(|&pos1| {
-            positions.iter().filter(|&&pos2| pos1.distance(pos2) <= 80.0).count() >= 2
+            positions.iter()
+                .filter(|&&pos2| pos1.distance(pos2) <= group_proximity)
+                .count() >= 2
         })
     } else {
         false
     };
-    
-    // Safe throw distance - not too close, not too far
-    let safe_throw_distance = if let Some((_, agent_transform)) = agents_in_area.first() {
-        let distance = enemy_pos.distance(agent_transform.translation.truncate());
-        distance >= 100.0 && distance <= 250.0
-    } else {
-        false
-    };
-    
-    // Simple alarm panel detection (would be improved with actual panel entities)
-    let near_alarm_panel = false; // TODO: Implement actual alarm panel detection
-    
-    // Equipment states (simplified - would check actual inventory)
-    let has_medkit = is_injured && rand::random::<f32>() < 0.3; // 30% chance to have medkit when injured
-    let has_grenade = target_grouped && rand::random::<f32>() < 0.2; // 20% chance to have grenade when opportunity exists
-    
-    // === NEW: TACTICAL MOVEMENT PERCEPTION ===
-    // Check if better cover is available when under fire
-    let under_fire = agent_count > 0 && enemy_pos.distance(
-        agent_query.iter().next().map(|(_, t)| t.translation.truncate()).unwrap_or(Vec2::ZERO)
-    ) <= 120.0; // Within close combat range
-    
-    let better_cover_available = if under_fire && cover_available {
-        // Simple check: if current cover exists, assume better cover might be available
-        cover_query.iter().count() > 1
-    } else {
-        false
-    };
-    
-    // Check if allies are advancing (other enemies moving toward agents)
-    let allies_advancing = nearby_enemy_count > 0 && agent_count > 0;
-    
-    // Simple retreat path check - clear if no agents between enemy and patrol point
-    let retreat_path_clear = if let Some(patrol_point) = patrol.current_target() {
-        let to_patrol = (patrol_point - enemy_pos).normalize_or_zero();
-        let retreat_blocked = agent_query.iter().any(|(_, agent_transform)| {
-            let agent_pos = agent_transform.translation.truncate();
-            let to_agent = (agent_pos - enemy_pos).normalize_or_zero();
-            to_patrol.dot(to_agent) > 0.7 // Agent is in retreat direction
-        });
-        !retreat_blocked
-    } else {
-        true
-    };
-    
-    // === WEAPON/AMMO STATE ===
-    if let Some(weapon_state) = weapon_state {
-        let weapon_loaded = weapon_state.current_ammo > 0;
-        let _needs_reload = weapon_state.needs_reload();
-        
-        goap_agent.update_world_state(WorldKey::WeaponLoaded, weapon_loaded);
-        goap_agent.update_world_state(WorldKey::HasWeapon, true);
-        
-    } else {
-        goap_agent.update_world_state(WorldKey::WeaponLoaded, true);
-        goap_agent.update_world_state(WorldKey::HasWeapon, true);
-    }
-    
-    // Update all world states
-    goap_agent.update_world_state(WorldKey::TargetVisible, target_visible);
-    goap_agent.update_world_state(WorldKey::HasTarget, has_target);
-    goap_agent.update_world_state(WorldKey::AtPatrolPoint, at_patrol_point);
-    goap_agent.update_world_state(WorldKey::CoverAvailable, cover_available);
-    goap_agent.update_world_state(WorldKey::NearbyAlliesAvailable, nearby_allies);
-    goap_agent.update_world_state(WorldKey::IsInjured, is_injured);
-    goap_agent.update_world_state(WorldKey::Outnumbered, outnumbered);
-    goap_agent.update_world_state(WorldKey::AtSafeDistance, at_safe_distance);
-    
-    // NEW: Advanced tactical states
-    goap_agent.update_world_state(WorldKey::TargetGrouped, target_grouped);
-    goap_agent.update_world_state(WorldKey::SafeThrowDistance, safe_throw_distance);
-    goap_agent.update_world_state(WorldKey::NearAlarmPanel, near_alarm_panel);
-    goap_agent.update_world_state(WorldKey::HasMedKit, has_medkit);
-    goap_agent.update_world_state(WorldKey::HasGrenade, has_grenade);
-    // NEW: Tactical movement states
-    goap_agent.update_world_state(WorldKey::UnderFire, under_fire);
-    goap_agent.update_world_state(WorldKey::BetterCoverAvailable, better_cover_available);
-    goap_agent.update_world_state(WorldKey::AlliesAdvancing, allies_advancing);
-    goap_agent.update_world_state(WorldKey::RetreatPathClear, retreat_path_clear);
-    
-    if !has_target {
-        goap_agent.update_world_state(WorldKey::FlankingPosition, false);
-        goap_agent.update_world_state(WorldKey::TacticalAdvantage, false);
-    }
-    
-    // Update based on AI state with immediate mode switch for target detection
-    match &ai_state.mode {
-        crate::systems::ai::AIMode::Patrol => {
-            goap_agent.update_world_state(WorldKey::IsAlert, false);
-            goap_agent.update_world_state(WorldKey::IsInvestigating, false);
-            goap_agent.update_world_state(WorldKey::IsRetreating, false);
-            
-            if has_target && visible_agent.is_some() {
-                ai_state.mode = crate::systems::ai::AIMode::Combat { target: visible_agent.unwrap() };
-                goap_agent.update_world_state(WorldKey::IsAlert, true);
-                goap_agent.abort_plan();
-            }
-        },
-        crate::systems::ai::AIMode::Combat { .. } => {
-            goap_agent.update_world_state(WorldKey::IsAlert, true);
-            goap_agent.update_world_state(WorldKey::IsInvestigating, false);
-        },
-        crate::systems::ai::AIMode::Investigate { .. } => {
-            goap_agent.update_world_state(WorldKey::IsAlert, true);
-            goap_agent.update_world_state(WorldKey::IsInvestigating, true);
-        },
-        crate::systems::ai::AIMode::Search { .. } => {
-            goap_agent.update_world_state(WorldKey::IsAlert, true);
-            goap_agent.update_world_state(WorldKey::IsInvestigating, true);
-        },
-        crate::systems::ai::AIMode::Panic => {
-            goap_agent.update_world_state(WorldKey::IsAlert, true);
-            goap_agent.update_world_state(WorldKey::IsInvestigating, false);
-            goap_agent.update_world_state(WorldKey::IsPanicked, true);
-            goap_agent.update_world_state(WorldKey::IsRetreating, true);
-        },         
-    }
+
+    // Check safe throw distance
+    let safe_throw_distance = agents_in_range.first()
+        .map(|(_, transform)| {
+            let distance = enemy_pos.distance(transform.translation.truncate());
+            distance >= throw_range.0 && distance <= throw_range.1
+        })
+        .unwrap_or(false);
+
+    (target_grouped, safe_throw_distance)
+}
+
+fn is_any_agent_in_range(
+    enemy_pos: Vec2,
+    agent_query: &Query<(Entity, &Transform), With<Agent>>,
+    range: f32,
+) -> bool {
+    agent_query.iter()
+        .any(|(_, transform)| {
+            enemy_pos.distance(transform.translation.truncate()) <= range
+        })
+}
+
+fn check_retreat_path(
+    enemy_pos: Vec2,
+    patrol: &Patrol,
+    agent_query: &Query<(Entity, &Transform), With<Agent>>,
+) -> bool {
+    patrol.current_target()
+        .map(|patrol_point| {
+            let to_patrol = (patrol_point - enemy_pos).normalize_or_zero();
+            !agent_query.iter().any(|(_, agent_transform)| {
+                let agent_pos = agent_transform.translation.truncate();
+                let to_agent = (agent_pos - enemy_pos).normalize_or_zero();
+                to_patrol.dot(to_agent) > 0.7 // Agent is in retreat direction
+            })
+        })
+        .unwrap_or(true) // If no patrol point, assume path is clear
 }
 
 fn plan_invalidated(goap_agent: &GoapAgent, ai_state: &AIState, health: &Health) -> bool {
@@ -1291,7 +1231,7 @@ fn execute_goap_action(
         
         // === DEFENSIVE ACTIONS ===
         ActionType::TakeCover => {
-            if let Some((cover_entity, cover_pos)) = find_nearest_cover(enemy_transform.translation.truncate(), cover_query) {
+            if let Some((cover_entity, cover_pos)) = find_cover(enemy_transform.translation.truncate(), cover_query, None, false) {
                 action_events.write(ActionEvent {
                     entity: enemy_entity,
                     action: Action::MoveTo(cover_pos),
@@ -1414,10 +1354,11 @@ fn execute_goap_action(
         // === NEW: TACTICAL MOVEMENT EXECUTION ===
         ActionType::FindBetterCover { new_cover_pos: _ } => {
             // Find the best available cover point (furthest from agents)
-            if let Some((cover_entity, cover_pos)) = find_best_cover(
+            if let Some((cover_entity, cover_pos)) = find_cover(
                 enemy_transform.translation.truncate(), 
                 cover_query, 
-                agent_query
+                Some(&agent_query),
+                true
             ) {
                 action_events.write(ActionEvent {
                     entity: enemy_entity,
@@ -1536,25 +1477,6 @@ fn check_line_of_sight_goap(
 
 
 // === DEBUG AND CONFIGURATION SYSTEMS ===
-
-#[derive(Resource)]
-pub struct GoapConfig {
-    pub debug_enabled: bool,
-    pub planning_interval: f32,
-    pub max_plan_depth: usize,
-}
-
-impl Default for GoapConfig {
-    fn default() -> Self {
-        Self {
-            debug_enabled: false,
-            planning_interval: 2.0,
-            max_plan_depth: 10,
-        }
-    }
-}
-
-// Debug system to visualize GOAP state
 pub fn goap_debug_system(
     mut gizmos: Gizmos,
     config: Res<GoapConfig>,
@@ -1742,103 +1664,28 @@ pub fn apply_goap_config_system(
     }
 }
 
-#[derive(Component)]
-pub struct CoverPoint {
-    pub capacity: u8,      // How many enemies can use this cover
-    pub current_users: u8, // Currently occupied spots
-    pub cover_direction: Vec2, // Direction this cover protects from
-}
-
-#[derive(Component)]
-pub struct InCover {
-    pub cover_entity: Entity, // Which cover point we're using
-}
-
-#[derive(Component)]
-pub struct AlarmPanel {
-    pub activated: bool,
-    pub range: f32,
-}
-
-#[derive(Component)]
-pub struct Equipment {
-    pub medkits: u8,
-    pub grenades: u8,
-    pub tools: Vec<String>,
-}
-
-impl Default for Equipment {
-    fn default() -> Self {
-        Self {
-            medkits: 1,
-            grenades: 0, // Start without grenades
-            tools: Vec::new(),
-        }
-    }
-}
-
-// Cover utility function
-fn find_nearest_cover(
-    enemy_pos: Vec2, 
-    cover_query: &Query<(Entity, &Transform, &CoverPoint), Without<Enemy>>
-) -> Option<(Entity, Vec2)> {
-    let mut nearest_cover = None;
-    let mut nearest_distance = f32::INFINITY;
-    
-    for (cover_entity, cover_transform, cover_point) in cover_query.iter() {
-        // Only consider cover that has available capacity
-        if cover_point.current_users >= cover_point.capacity {
-            continue;
-        }
-        
-        let cover_pos = cover_transform.translation.truncate();
-        let distance = enemy_pos.distance(cover_pos);
-        
-        if distance < nearest_distance {
-            nearest_distance = distance;
-            nearest_cover = Some((cover_entity, cover_pos));
-        }
-    }
-    
-    nearest_cover
-}
-
-fn find_best_cover(
+fn find_cover(
     enemy_pos: Vec2,
-    cover_query: &Query<(Entity, &Transform, &CoverPoint), Without<Enemy>>,
-    agent_query: &Query<(Entity, &Transform), With<Agent>>,
+    cover_q: &Query<(Entity, &Transform, &CoverPoint), Without<Enemy>>,
+    agent_q: Option<&Query<(Entity, &Transform), With<Agent>>>,
+    use_score: bool,
 ) -> Option<(Entity, Vec2)> {
-    let mut best_cover = None;
-    let mut best_score = f32::NEG_INFINITY;
-    
-    for (cover_entity, cover_transform, cover_point) in cover_query.iter() {
-        if cover_point.current_users >= cover_point.capacity {
-            continue;
-        }
-        
-        let cover_pos = cover_transform.translation.truncate();
-        let distance_to_cover = enemy_pos.distance(cover_pos);
-        
-        if distance_to_cover > 150.0 { continue; } // Too far
-        
-        // Score based on: close to enemy, far from agents
-        let mut score = 100.0 - distance_to_cover; // Prefer closer cover
-        
-        // Bonus for being far from agents
-        for (_, agent_transform) in agent_query.iter() {
-            let distance_to_agent = cover_pos.distance(agent_transform.translation.truncate());
-            score += distance_to_agent * 0.5; // Prefer cover far from agents
-        }
-        
-        if score > best_score {
-            best_score = score;
-            best_cover = Some((cover_entity, cover_pos));
-        }
+    let (mut best, mut val) = (None, if use_score { f32::MIN } else { f32::MAX });
+    for (e, t, c) in cover_q.iter() {
+        if c.current_users >= c.capacity { continue; }
+        let p = t.translation.truncate();
+        let d = enemy_pos.distance(p);
+        if use_score {
+            if d > 150.0 { continue; }
+            let mut s = 100.0 - d;
+            if let Some(aq) = agent_q {
+                for (_, at) in aq.iter() { s += 0.5 * p.distance(at.translation.truncate()); }
+            }
+            if s > val { val = s; best = Some((e, p)); }
+        } else if d < val { val = d; best = Some((e, p)); }
     }
-    
-    best_cover
+    best
 }
-
 
 // Helper function to find closest agent
 fn find_closest_agent(

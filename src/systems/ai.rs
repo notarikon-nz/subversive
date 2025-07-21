@@ -91,18 +91,6 @@ pub fn legacy_enemy_ai_system(
 ) {
     if game_mode.paused { return; }
 
-    let enemy_count = enemy_query.iter().count();
-    let agent_count = agent_query.iter().count();
-    
-    // Debug output every few seconds
-    static mut DEBUG_COUNTER: u32 = 0;
-    unsafe {
-        DEBUG_COUNTER += 1;
-        if DEBUG_COUNTER % 300 == 0 { // Every 5 seconds at 60fps
-            info!("AI System: {} enemies, {} agents", enemy_count, agent_count);
-        }
-    }
-
     for (enemy_entity, enemy_transform, mut ai_state, mut vision, patrol) in enemy_query.iter_mut() {
         ai_state.alert_cooldown -= time.delta_secs();
         ai_state.investigation_timer -= time.delta_secs();
