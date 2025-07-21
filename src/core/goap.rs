@@ -580,6 +580,7 @@ impl Default for GoapConfig {
 use crate::core::*;
 use crate::systems::ai::AIState;
 
+// Updated main GOAP AI system signature
 pub fn goap_ai_system(
     mut commands: Commands,
     mut enemy_query: Query<(
@@ -590,11 +591,12 @@ pub fn goap_ai_system(
         &mut Vision,
         &Patrol,
         &Health,
+        &Faction, // ADD FACTION
         Option<&WeaponState>
     ), (With<Enemy>, Without<Dead>)>,
     agent_query: Query<(Entity, &Transform), With<Agent>>,
+    all_enemy_query: Query<(Entity, &Transform, &Faction), (With<Enemy>, Without<Dead>)>,
     cover_query: Query<(Entity, &Transform, &CoverPoint), Without<Enemy>>,
-    all_enemy_query: Query<(Entity, &Transform), (With<Enemy>, Without<Dead>)>,
     mut action_events: EventWriter<ActionEvent>,
     mut audio_events: EventWriter<AudioEvent>,
     mut alert_events: EventWriter<AlertEvent>,
@@ -603,19 +605,20 @@ pub fn goap_ai_system(
 ) {
     if game_mode.paused { return; }
 
-    for (enemy_entity, enemy_transform, mut ai_state, mut goap_agent, mut vision, patrol, health, weapon_state) in enemy_query.iter_mut() {
+    for (enemy_entity, enemy_transform, mut ai_state, mut goap_agent, mut vision, patrol, health, faction, weapon_state) in enemy_query.iter_mut() {
         goap_agent.planning_cooldown -= time.delta_secs();
         
         update_world_state_from_perception(
             &mut goap_agent,
             enemy_transform,
             &mut vision,
+            faction,
+            enemy_entity,
             &agent_query,
+            &all_enemy_query,
             &mut ai_state,
             patrol,
             &cover_query,
-            &all_enemy_query,
-            enemy_entity,
             health,
             weapon_state,
         );
@@ -652,6 +655,7 @@ pub fn goap_ai_system(
                 &mut alert_events,
                 patrol,
                 &agent_query,
+                &all_enemy_query,
                 &vision,
                 &cover_query,
                 &mut commands,
@@ -660,53 +664,76 @@ pub fn goap_ai_system(
     }
 }
 
-fn update_world_state_from_perception (
+// Updated update_world_state_from_perception with faction support
+fn update_world_state_from_perception(
     goap_agent: &mut GoapAgent,
     enemy_transform: &Transform,
     vision: &mut Vision,
+    faction: &Faction,
+    current_entity: Entity,
     agent_query: &Query<(Entity, &Transform), With<Agent>>,
+    enemy_query: &Query<(Entity, &Transform, &Faction), (With<Enemy>, Without<Dead>)>,
     ai_state: &mut AIState,
     patrol: &Patrol,
     cover_query: &Query<(Entity, &Transform, &CoverPoint), Without<Enemy>>,
-    all_enemy_query: &Query<(Entity, &Transform), (With<Enemy>, Without<Dead>)>,
-    current_enemy: Entity,
     health: &Health,
     weapon_state: Option<&WeaponState>,    
 ) {
     let enemy_pos = enemy_transform.translation.truncate();
     
-    update_vision_direction(goap_agent, ai_state, patrol, vision, enemy_pos, agent_query);
+    update_vision_direction(goap_agent, ai_state, patrol, vision, enemy_pos, current_entity, agent_query, enemy_query);
     
-    let (visible_agent, has_target) = update_basic_perception(
-        enemy_transform, 
-        vision, 
-        agent_query, 
-        ai_state
-    );
+    // Look for ANY hostile entity in sight
+    let visible_hostile = check_line_of_sight_goap(enemy_transform, vision, faction, current_entity, agent_query, enemy_query);
+    let has_target = visible_hostile.is_some();
     
-    let tactical_state = assess_tactical_situation(
+    if let Some(target_entity) = visible_hostile {
+        // Try to get position from either query
+        let target_pos = if let Ok((_, agent_transform)) = agent_query.get(target_entity) {
+            Some(agent_transform.translation.truncate())
+        } else if let Ok((_, enemy_transform, _)) = enemy_query.get(target_entity) {
+            Some(enemy_transform.translation.truncate())
+        } else {
+            None
+        };
+        
+        if let Some(pos) = target_pos {
+            ai_state.last_known_target = Some(pos);
+        }
+    }
+    
+    // Convert the 3-tuple query to 2-tuple for assess_tactical_situation
+    let enemy_positions: Vec<(Entity, Vec2)> = enemy_query.iter()
+        .map(|(entity, transform, _faction)| (entity, transform.translation.truncate()))
+        .collect();
+    
+    let tactical_state = assess_tactical_situation_with_positions(
         enemy_pos,
         patrol,
         cover_query,
-        all_enemy_query,
-        current_enemy,
+        &enemy_positions,
+        current_entity,
         health,
         agent_query,
-        visible_agent
+        visible_hostile
     );
     
     update_weapon_state(goap_agent, weapon_state);
-    update_world_states(goap_agent, &tactical_state, has_target, visible_agent);
-    update_ai_mode(goap_agent, ai_state, has_target, visible_agent);
+    update_world_states(goap_agent, &tactical_state, has_target, visible_hostile);
+    update_ai_mode(goap_agent, ai_state, has_target, visible_hostile);
 }
 
+
+// Updated update_vision_direction to include self entity for comparison
 fn update_vision_direction(
     goap_agent: &mut GoapAgent,
     ai_state: &AIState,
     patrol: &Patrol,
     vision: &mut Vision,
     enemy_pos: Vec2,
+    current_entity: Entity,
     agent_query: &Query<(Entity, &Transform), With<Agent>>,
+    enemy_query: &Query<(Entity, &Transform, &Faction), (With<Enemy>, Without<Dead>)>,
 ) {
     match &ai_state.mode {
         AIMode::Patrol => {
@@ -717,7 +744,11 @@ fn update_vision_direction(
         },
 
         AIMode::Combat { target } => {
+            // Try to find target in agent query first
             if let Ok((_, target_transform)) = agent_query.get(*target) {
+                let direction = target_transform.translation.truncate() - enemy_pos;
+                update_direction_if_valid(vision, direction);
+            } else if let Ok((_, target_transform, _)) = enemy_query.get(*target) {
                 let direction = target_transform.translation.truncate() - enemy_pos;
                 update_direction_if_valid(vision, direction);
             }
@@ -756,24 +787,6 @@ fn update_direction_if_valid(vision: &mut Vision, delta: Vec2) {
     }
 }
 
-fn update_basic_perception(
-    enemy_transform: &Transform,
-    vision: &mut Vision,
-    agent_query: &Query<(Entity, &Transform), With<Agent>>,
-    ai_state: &mut AIState,
-) -> (Option<Entity>, bool) {
-    let visible_agent = check_line_of_sight_goap(enemy_transform, vision, agent_query);
-    let has_target = visible_agent.is_some();
-    
-    if let Some(agent_entity) = visible_agent {
-        if let Ok((_, agent_transform)) = agent_query.get(agent_entity) {
-            ai_state.last_known_target = Some(agent_transform.translation.truncate());
-        }
-    }
-    
-    (visible_agent, has_target)
-}
-
 struct TacticalState {
     at_patrol_point: bool,
     cover_available: bool,
@@ -791,25 +804,26 @@ struct TacticalState {
     retreat_path_clear: bool,
 }
 
-fn assess_tactical_situation(
+// Updated tactical assessment with position data instead of query
+fn assess_tactical_situation_with_positions(
     enemy_pos: Vec2,
     patrol: &Patrol,
     cover_query: &Query<(Entity, &Transform, &CoverPoint), Without<Enemy>>,
-    all_enemy_query: &Query<(Entity, &Transform), (With<Enemy>, Without<Dead>)>,
+    enemy_positions: &[(Entity, Vec2)],
     current_enemy: Entity,
     health: &Health,
     agent_query: &Query<(Entity, &Transform), With<Agent>>,
-    visible_agent: Option<Entity>,
+    visible_hostile: Option<Entity>,
 ) -> TacticalState {
     let at_patrol_point = is_at_patrol_point(enemy_pos, patrol);
     let cover_available = find_cover(enemy_pos, cover_query, None, false).is_some();
-    let nearby_allies = has_nearby_allies(enemy_pos, all_enemy_query, current_enemy);
+    let nearby_allies = has_nearby_allies_from_positions(enemy_pos, enemy_positions, current_enemy);
     let is_injured = health.0 < 50.0;
     
-    let (agent_count, nearby_enemy_count) = count_entities_in_range(
+    let (agent_count, nearby_enemy_count) = count_entities_in_range_from_positions(
         enemy_pos, 
         agent_query, 
-        all_enemy_query, 
+        enemy_positions, 
         current_enemy
     );
     
@@ -842,6 +856,38 @@ fn assess_tactical_situation(
     }
 }
 
+fn has_nearby_allies_from_positions(
+    enemy_pos: Vec2,
+    enemy_positions: &[(Entity, Vec2)],
+    current_enemy: Entity,
+) -> bool {
+    enemy_positions.iter()
+        .filter(|(entity, pos)| {
+            *entity != current_enemy &&
+            enemy_pos.distance(*pos) <= 200.0
+        })
+        .count() > 0
+}
+
+fn count_entities_in_range_from_positions(
+    enemy_pos: Vec2,
+    agent_query: &Query<(Entity, &Transform), With<Agent>>,
+    enemy_positions: &[(Entity, Vec2)],
+    current_enemy: Entity,
+) -> (usize, usize) {
+    let agent_count = agent_query.iter()
+        .filter(|(_, transform)| enemy_pos.distance(transform.translation.truncate()) <= 200.0)
+        .count();
+        
+    let enemy_count = enemy_positions.iter()
+        .filter(|(entity, pos)| {
+            *entity != current_enemy &&
+            enemy_pos.distance(*pos) <= 200.0
+        })
+        .count();
+        
+    (agent_count, enemy_count)
+}
 fn is_at_patrol_point(enemy_pos: Vec2, patrol: &Patrol) -> bool {
     patrol.current_target()
         .map(|target| enemy_pos.distance(target) < 20.0)
@@ -1095,6 +1141,32 @@ fn plan_invalidated(goap_agent: &GoapAgent, ai_state: &AIState, health: &Health)
     }
 }
 
+// Helper functions
+fn find_any_hostile_target(
+    enemy_transform: &Transform,
+    vision: &Vision,
+    agent_query: &Query<(Entity, &Transform), With<Agent>>,
+    all_enemy_query: &Query<(Entity, &Transform, &Faction), (With<Enemy>, Without<Dead>)>,
+) -> Option<Entity> {
+    // This would need the current entity's faction, so it's better to call from the main system
+    // For now, just find the closest agent
+    find_closest_agent(enemy_transform, agent_query)
+}
+
+fn get_entity_position(
+    entity: Entity,
+    agent_query: &Query<(Entity, &Transform), With<Agent>>,
+    enemy_query: &Query<(Entity, &Transform, &Faction), (With<Enemy>, Without<Dead>)>,
+) -> Option<Vec2> {
+    if let Ok((_, transform)) = agent_query.get(entity) {
+        Some(transform.translation.truncate())
+    } else if let Ok((_, transform, _)) = enemy_query.get(entity) {
+        Some(transform.translation.truncate())
+    } else {
+        None
+    }
+}
+
 fn execute_goap_action(
     action: &GoapAction,
     enemy_entity: Entity,
@@ -1105,6 +1177,7 @@ fn execute_goap_action(
     alert_events: &mut EventWriter<AlertEvent>,
     patrol: &Patrol,
     agent_query: &Query<(Entity, &Transform), With<Agent>>,
+    all_enemy_query: &Query<(Entity, &Transform, &Faction), (With<Enemy>, Without<Dead>)>,
     vision: &Vision,
     cover_query: &Query<(Entity, &Transform, &CoverPoint), Without<Enemy>>,
     commands: &mut Commands,
@@ -1132,26 +1205,24 @@ fn execute_goap_action(
         
         // === ENHANCED COMBAT ACTIONS ===
         ActionType::Attack { target: _ } => {
-            if let Some(agent_entity) = check_line_of_sight_goap(
-                &Transform::from_translation(enemy_transform.translation),
-                vision,
-                agent_query
-            ) {
-                if let Ok((_, agent_transform)) = agent_query.get(agent_entity) {
-                    let distance = enemy_transform.translation.truncate()
-                        .distance(agent_transform.translation.truncate());
+            // Find ANY hostile target in sight
+            if let Some(target_entity) = find_any_hostile_target(enemy_transform, vision, agent_query, all_enemy_query) {
+                let target_pos = get_entity_position(target_entity, agent_query, all_enemy_query);
+                
+                if let Some(pos) = target_pos {
+                    let distance = enemy_transform.translation.truncate().distance(pos);
                     
-                    ai_state.mode = crate::systems::ai::AIMode::Combat { target: agent_entity };
+                    ai_state.mode = crate::systems::ai::AIMode::Combat { target: target_entity };
                     
                     if distance <= 150.0 {
                         action_events.write(ActionEvent {
                             entity: enemy_entity,
-                            action: Action::Attack(agent_entity),
+                            action: Action::Attack(target_entity),
                         });
                     } else {
                         action_events.write(ActionEvent {
                             entity: enemy_entity,
-                            action: Action::MoveTo(agent_transform.translation.truncate()),
+                            action: Action::MoveTo(pos),
                         });
                     }
                 }
@@ -1452,22 +1523,50 @@ fn execute_goap_action(
 fn check_line_of_sight_goap(
     enemy_transform: &Transform,
     vision: &Vision,
+    faction: &Faction,
+    current_entity: Entity,
     agent_query: &Query<(Entity, &Transform), With<Agent>>,
+    enemy_query: &Query<(Entity, &Transform, &Faction), (With<Enemy>, Without<Dead>)>,
 ) -> Option<Entity> {
     let enemy_pos = enemy_transform.translation.truncate();
     
+    // Check for hostile player agents first
     for (agent_entity, agent_transform) in agent_query.iter() {
         let agent_pos = agent_transform.translation.truncate();
-        let to_agent = agent_pos - enemy_pos;
-        let distance = to_agent.length();
+        let to_target = agent_pos - enemy_pos;
+        let distance = to_target.length();
         
         if distance <= vision.range && distance > 1.0 {
-            let agent_direction = to_agent.normalize();
-            let dot_product = vision.direction.dot(agent_direction);
+            let target_direction = to_target.normalize();
+            let dot_product = vision.direction.dot(target_direction);
             let angle_cos = (vision.angle / 2.0).cos();
             
             if dot_product >= angle_cos {
+                // Players are always hostile to everyone
                 return Some(agent_entity);
+            }
+        }
+    }
+    
+    // Check for hostile enemy entities
+    for (other_entity, other_transform, other_faction) in enemy_query.iter() {
+        // Skip self
+        if other_entity == current_entity { continue; }
+        
+        // Check if factions are hostile
+        if faction.is_hostile_to(other_faction) {
+            let other_pos = other_transform.translation.truncate();
+            let to_target = other_pos - enemy_pos;
+            let distance = to_target.length();
+            
+            if distance <= vision.range && distance > 1.0 {
+                let target_direction = to_target.normalize();
+                let dot_product = vision.direction.dot(target_direction);
+                let angle_cos = (vision.angle / 2.0).cos();
+                
+                if dot_product >= angle_cos {
+                    return Some(other_entity);
+                }
             }
         }
     }

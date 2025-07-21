@@ -12,9 +12,7 @@ use core::*;
 use systems::*;
 use pool::*;
 use systems::scenes::*;
-use systems::testing_spawn;
 use core::factions;
-use core::goap::{goap_ai_system};
 
 fn main() {
     let (global_data, research_progress) = load_global_data_or_default();
@@ -33,6 +31,11 @@ fn main() {
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.0))
         .add_plugins(InputManagerPlugin::<PlayerAction>::default())
         .add_plugins(Light2dPlugin) // bevy_light_2d
+
+        // .add_plugins(bevy::diagnostic::LogDiagnosticsPlugin::default())
+        // .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin::default())
+        // .add_plugins(bevy::diagnostic::EntityCountDiagnosticsPlugin::default())
+
         .register_type::<PlayerAction>()
 
         .init_state::<GameState>()
@@ -180,9 +183,14 @@ fn main() {
             day_night::lighting_system,
             day_night::time_ui_system,
             health_bars::update_health_bars_system,
-            testing_spawn::testing_spawn_system,
-            testing_spawn::cover_debug_system,
+
+            testing_spawn::goap_debug_display_system,
+            testing_spawn::debug_selection_visual_system,
             testing_spawn::goap_testing_info_system,
+
+            testing_spawn::simple_entity_count_system,
+            testing_spawn::simple_visual_debug_system,
+            testing_spawn::patrol_debug_system,
 
         ).run_if(in_state(GameState::Mission)))
         .add_systems(Update, (
@@ -197,13 +205,16 @@ pub fn setup_mission_scene_optimized(
     mut commands: Commands,
     sprites: Res<GameSprites>,
     global_data: Res<GlobalData>,
-    // constants: Res<GameConstants>,          // NEW: Constants resource
-    mut scene_cache: ResMut<SceneCache>,    // NEW: Scene cache resource
+    mut scene_cache: ResMut<SceneCache>,
     agents: Query<Entity, With<Agent>>,
 ) {
     // Clean up any existing agents first
     for entity in agents.iter() {
-        commands.entity(entity).despawn();
+        if agents.get(entity).is_ok() {
+            commands.entity(entity).despawn();
+        } else {
+            warn!("Agent entity {:?} no longer exists, skipping despawn.", entity);
+        }
     }
     
     let scene_name = match global_data.selected_region {
@@ -224,8 +235,6 @@ pub fn setup_mission_scene_optimized(
             spawn_fallback_mission(&mut commands, &*global_data, &sprites);
         }
     }
-
-    
 }
 
 fn setup_camera_and_input(mut commands: Commands) {

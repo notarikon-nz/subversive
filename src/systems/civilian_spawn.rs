@@ -165,7 +165,7 @@ pub fn civilian_cleanup_system(
             .map(|&agent_pos| civilian_pos.distance(agent_pos))
             .fold(f32::INFINITY, f32::min);
         
-        if min_distance > 600.0 {
+        if min_distance > 600.0 && civilian_query.get(entity).is_ok() {
             commands.entity(entity).despawn();
         }
     }
