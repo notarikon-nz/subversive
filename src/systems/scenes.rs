@@ -2,11 +2,13 @@
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 use serde::{Deserialize, Serialize};
+
 use crate::core::*;
 use crate::systems::panic_spread::*;
 use crate::systems::ai::*;
 use crate::systems::vehicles::spawn_vehicle;
 use crate::core::factions::Faction;
+use crate::systems::*;
 
 // === SCENE DATA STRUCTURES ===
 #[derive(Clone, Serialize, Deserialize)]
@@ -16,6 +18,28 @@ pub struct SceneData {
     pub enemies: Vec<EnemySpawn>,
     pub terminals: Vec<TerminalSpawn>,
     pub vehicles: Vec<VehicleSpawn>,
+    pub urban_areas: Option<UrbanAreasData>,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct UrbanAreasData {
+    pub work_zones: Vec<UrbanZoneData>,
+    pub shopping_zones: Vec<UrbanZoneData>,
+    pub residential_zones: Vec<UrbanZoneData>,
+    pub transit_routes: Vec<TransitRouteData>,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct UrbanZoneData {
+    pub center: [f32; 2],
+    pub radius: f32,
+    pub capacity: usize,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct TransitRouteData {
+    pub points: Vec<[f32; 2]>,
+    pub foot_traffic_density: f32,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -84,26 +108,80 @@ pub fn spawn_from_scene(
     global_data: &GlobalData, 
     sprites: &GameSprites
 ) {
+    // Set up urban areas first
+    setup_mission_urban_areas(commands, scene, global_data.selected_region);
+
     // Spawn all entity types
     spawn_agents(commands, &scene.agents, global_data, sprites);
-    spawn_civilians(commands, &scene.civilians, sprites);
+    spawn_urban_civilians(commands, &scene.civilians, sprites);
     spawn_enemies(commands, &scene.enemies, global_data, sprites);
     spawn_terminals(commands, &scene.terminals, sprites);
     spawn_vehicles_from_scene(commands, &scene.vehicles, sprites);
     spawn_cover_points(commands);
     
-    info!("Scene spawned: {} agents, {} enemies, {} civilians, {} terminals, {} vehicles", 
+    info!("Urban mission spawned: {} agents, {} enemies, {} civilians, {} terminals, {} vehicles", 
           scene.agents.len(), scene.enemies.len(), scene.civilians.len(), 
           scene.terminals.len(), scene.vehicles.len());
 }
+
+// NEW: Setup urban areas based on mission type
+fn setup_mission_urban_areas(commands: &mut Commands, scene: &SceneData, region_idx: usize) {
+    let urban_areas = if let Some(scene_urban) = &scene.urban_areas {
+        // Use scene-defined urban areas
+        UrbanAreas {
+            work_zones: scene_urban.work_zones.iter().map(|z| UrbanZone {
+                center: Vec2::from(z.center),
+                radius: z.radius,
+                capacity: z.capacity,
+                current_occupancy: 0,
+            }).collect(),
+            shopping_zones: scene_urban.shopping_zones.iter().map(|z| UrbanZone {
+                center: Vec2::from(z.center),
+                radius: z.radius,
+                capacity: z.capacity,
+                current_occupancy: 0,
+            }).collect(),
+            residential_zones: scene_urban.residential_zones.iter().map(|z| UrbanZone {
+                center: Vec2::from(z.center),
+                radius: z.radius,
+                capacity: z.capacity,
+                current_occupancy: 0,
+            }).collect(),
+            transit_routes: scene_urban.transit_routes.iter().map(|r| TransitRoute {
+                points: r.points.iter().map(|&p| Vec2::from(p)).collect(),
+                foot_traffic_density: r.foot_traffic_density,
+            }).collect(),
+        }
+    } else {
+        // Use mission-specific defaults based on region
+        create_mission_urban_areas(region_idx)
+    };
+    
+    commands.insert_resource(urban_areas);
+}
+
+// NEW: Create mission-specific urban areas
+fn create_mission_urban_areas(region_idx: usize) -> UrbanAreas {
+    match region_idx {
+        0 => create_urban_district_areas(),     // Mission 1: Urban commercial
+        1 => create_corporate_district_areas(), // Mission 2: Corporate complex
+        2 => create_industrial_areas(),         // Mission 3: Industrial/underground
+        _ => UrbanAreas::default(),
+    }
+}
+
 
 pub fn spawn_fallback_mission(
     commands: &mut Commands,
     global_data: &GlobalData,
     sprites: &GameSprites,
 ) {
-    warn!("Using fallback mission");
-    // Minimal viable mission - 3 agents in formation
+    warn!("Using fallback mission with urban simulation");
+    
+    // Set up basic urban areas for fallback
+    commands.insert_resource(UrbanAreas::default());
+    
+    // Spawn agents
     let positions = [
         Vec2::new(-200.0, 0.0), 
         Vec2::new(-170.0, 0.0), 
@@ -112,9 +190,21 @@ pub fn spawn_fallback_mission(
     for (i, &pos) in positions.iter().enumerate() {
         spawn_agent(commands, pos, global_data.agent_levels[i], i, global_data, sprites);
     }
+    
+    // Spawn some urban civilians
+    let civilian_positions = [
+        Vec2::new(100.0, 100.0),
+        Vec2::new(150.0, 80.0),
+        Vec2::new(80.0, 150.0),
+    ];
+    for &pos in &civilian_positions {
+        spawn_single_urban_civilian(commands, pos, sprites);
+    }
+    
     spawn_terminal_direct(commands, Vec2::new(200.0, 0.0), TerminalType::Objective, sprites);
     spawn_cover_points(commands);
 }
+
 
 // === ENTITY SPAWNING FUNCTIONS ===
 fn spawn_agents(commands: &mut Commands, agents: &[AgentSpawn], global_data: &GlobalData, sprites: &GameSprites) {
@@ -211,6 +301,16 @@ fn spawn_agent(
         Velocity::default(),
         Damping { linear_damping: 10.0, angular_damping: 10.0 },
     ));
+}
+
+// This replaces spawn_civilian in scenes.rs for mission loading
+pub fn spawn_urban_civilian_from_scene(
+    commands: &mut Commands, 
+    position: Vec2, 
+    sprites: &GameSprites,
+    urban_areas: &UrbanAreas,
+) {
+    urban_simulation::spawn_urban_civilian(commands, position, sprites, urban_areas);
 }
 
 fn spawn_civilian(commands: &mut Commands, position: Vec2, sprites: &GameSprites) {
@@ -379,3 +479,151 @@ fn parse_vehicle_type(type_str: &str) -> VehicleType {
     }
 }
 
+
+
+
+
+// Mission 1: Neo-Tokyo Central - Urban commercial district
+fn create_urban_district_areas() -> UrbanAreas {
+    UrbanAreas {
+        work_zones: vec![
+            UrbanZone { center: Vec2::new(150.0, -80.0), radius: 70.0, capacity: 12, current_occupancy: 0 }, // Near equipment terminal
+            UrbanZone { center: Vec2::new(50.0, 120.0), radius: 60.0, capacity: 8, current_occupancy: 0 },   // Near intel terminal
+        ],
+        shopping_zones: vec![
+            UrbanZone { center: Vec2::new(200.0, 100.0), radius: 80.0, capacity: 15, current_occupancy: 0 }, // Main shopping area
+            UrbanZone { center: Vec2::new(100.0, 60.0), radius: 50.0, capacity: 8, current_occupancy: 0 },   // Small shops
+        ],
+        residential_zones: vec![
+            UrbanZone { center: Vec2::new(300.0, 180.0), radius: 90.0, capacity: 20, current_occupancy: 0 }, // Residential block
+            UrbanZone { center: Vec2::new(80.0, 200.0), radius: 70.0, capacity: 12, current_occupancy: 0 },  // Apartments
+        ],
+        transit_routes: vec![
+            // Main street (horizontal)
+            TransitRoute { 
+                points: vec![Vec2::new(-100.0, 0.0), Vec2::new(100.0, 0.0), Vec2::new(300.0, 0.0)], 
+                foot_traffic_density: 0.8 
+            },
+            // Shopping district route
+            TransitRoute { 
+                points: vec![Vec2::new(150.0, -50.0), Vec2::new(200.0, 50.0), Vec2::new(250.0, 150.0)], 
+                foot_traffic_density: 0.6 
+            },
+            // Residential connector
+            TransitRoute { 
+                points: vec![Vec2::new(100.0, 100.0), Vec2::new(200.0, 120.0), Vec2::new(300.0, 180.0)], 
+                foot_traffic_density: 0.4 
+            },
+        ],
+    }
+}
+
+// Mission 2: Corporate District
+fn create_corporate_district_areas() -> UrbanAreas {
+    UrbanAreas {
+        work_zones: vec![
+            UrbanZone { center: Vec2::new(400.0, -20.0), radius: 100.0, capacity: 25, current_occupancy: 0 }, // Main corporate tower
+            UrbanZone { center: Vec2::new(100.0, -150.0), radius: 80.0, capacity: 15, current_occupancy: 0 },  // Secondary office
+        ],
+        shopping_zones: vec![
+            UrbanZone { center: Vec2::new(200.0, 200.0), radius: 60.0, capacity: 10, current_occupancy: 0 }, // Corporate plaza shops
+        ],
+        residential_zones: vec![
+            UrbanZone { center: Vec2::new(50.0, 100.0), radius: 80.0, capacity: 18, current_occupancy: 0 },  // Executive housing
+            UrbanZone { center: Vec2::new(150.0, 50.0), radius: 70.0, capacity: 12, current_occupancy: 0 },  // Mid-level housing
+        ],
+        transit_routes: vec![
+            // Corporate corridor
+            TransitRoute { 
+                points: vec![Vec2::new(0.0, -150.0), Vec2::new(200.0, -100.0), Vec2::new(400.0, -20.0)], 
+                foot_traffic_density: 0.9 
+            },
+            // Residential to corporate
+            TransitRoute { 
+                points: vec![Vec2::new(50.0, 100.0), Vec2::new(150.0, 50.0), Vec2::new(300.0, 0.0)], 
+                foot_traffic_density: 0.7 
+            },
+            // Plaza access
+            TransitRoute { 
+                points: vec![Vec2::new(150.0, 150.0), Vec2::new(200.0, 200.0), Vec2::new(250.0, 180.0)], 
+                foot_traffic_density: 0.5 
+            },
+        ],
+    }
+}
+
+// Mission 3: Industrial/Underground - Minimal civilian presence
+fn create_industrial_areas() -> UrbanAreas {
+    UrbanAreas {
+        work_zones: vec![
+            UrbanZone { center: Vec2::new(200.0, -100.0), radius: 60.0, capacity: 8, current_occupancy: 0 }, // Factory area
+            UrbanZone { center: Vec2::new(350.0, -50.0), radius: 50.0, capacity: 6, current_occupancy: 0 },  // Industrial complex
+        ],
+        shopping_zones: vec![
+            // Minimal - just a small supply depot
+            UrbanZone { center: Vec2::new(50.0, -200.0), radius: 40.0, capacity: 4, current_occupancy: 0 },
+        ],
+        residential_zones: vec![
+            UrbanZone { center: Vec2::new(-150.0, 200.0), radius: 70.0, capacity: 10, current_occupancy: 0 }, // Worker housing
+        ],
+        transit_routes: vec![
+            // Main industrial route
+            TransitRoute { 
+                points: vec![Vec2::new(-200.0, 0.0), Vec2::new(0.0, -50.0), Vec2::new(200.0, -100.0), Vec2::new(400.0, -50.0)], 
+                foot_traffic_density: 0.3 // Low foot traffic in industrial area
+            },
+            // Worker commute
+            TransitRoute { 
+                points: vec![Vec2::new(-150.0, 200.0), Vec2::new(0.0, 100.0), Vec2::new(150.0, 0.0)], 
+                foot_traffic_density: 0.4 
+            },
+        ],
+    }
+}
+
+// UPDATED: Replace spawn_civilians with spawn_urban_civilians
+fn spawn_urban_civilians(commands: &mut Commands, civilians: &[CivilianSpawn], sprites: &GameSprites) {
+    for civilian_data in civilians {
+        spawn_single_urban_civilian(commands, Vec2::from(civilian_data.position), sprites);
+    }
+}
+
+// NEW: Spawn individual urban civilian (for scene-placed civilians)
+fn spawn_single_urban_civilian(commands: &mut Commands, position: Vec2, sprites: &GameSprites) {
+    let (sprite, _) = create_civilian_sprite(sprites);
+    
+    // Give scene-placed civilians varied personalities
+    let crowd_influence = 0.2 + rand::random::<f32>() * 0.6; // 0.2-0.8
+    let panic_threshold = 15.0 + rand::random::<f32>() * 50.0; // 15-65
+    
+    // Scene civilians start in random appropriate states
+    let daily_state = match rand::random::<f32>() {
+        x if x < 0.3 => DailyState::Working,
+        x if x < 0.5 => DailyState::Shopping,  
+        x if x < 0.7 => DailyState::GoingHome,
+        _ => DailyState::Idle,
+    };
+    
+    commands.spawn((
+        sprite,
+        Transform::from_translation(position.extend(1.0)),
+        Civilian,
+        Health(50.0),
+        Morale::new(80.0, panic_threshold),
+        MovementSpeed(80.0 + rand::random::<f32>() * 40.0),
+        Controllable,
+        NeurovectorTarget,
+        UrbanCivilian {
+            daily_state,
+            state_timer: rand::random::<f32>() * 15.0, // Stagger initial state changes
+            next_destination: None, // Will be assigned by daily routine system
+            crowd_influence,
+            panic_threshold,
+            movement_urgency: 0.0,
+        },
+        bevy_rapier2d::prelude::RigidBody::Dynamic,
+        bevy_rapier2d::prelude::Collider::ball(7.5),
+        bevy_rapier2d::prelude::Velocity::default(),
+        bevy_rapier2d::prelude::Damping { linear_damping: 10.0, angular_damping: 10.0 },
+    ));
+}

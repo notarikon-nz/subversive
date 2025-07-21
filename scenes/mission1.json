@@ -1,125 +1,132 @@
 {
   "agents": [
     {
-      "position": [
-        -200.0,
-        0.0
-      ],
+      "position": [-200.0, 0.0],
       "level": 1
     },
     {
-      "position": [
-        -170.0,
-        0.0
-      ],
+      "position": [-170.0, 0.0],
       "level": 1
     },
     {
-      "position": [
-        -140.0,
-        0.0
-      ],
+      "position": [-140.0, 0.0],
       "level": 1
     }
   ],
   "civilians": [
     {
-      "position": [
-        100.0,
-        100.0
-      ]
+      "position": [100.0, 100.0]
     },
     {
-      "position": [
-        160.0,
-        120.0
-      ]
+      "position": [160.0, 120.0]
     },
     {
-      "position": [
-        220.0,
-        80.0
-      ]
+      "position": [220.0, 80.0]
     },
     {
-      "position": [
-        80.0,
-        180.0
-      ]
+      "position": [80.0, 180.0]
     },
     {
-      "position": [
-        250.0,
-        150.0
-      ]
+      "position": [250.0, 150.0]
     },
     {
-      "position": [
-        120.0,
-        200.0
-      ]
+      "position": [120.0, 200.0]
     },
     {
-      "position": [
-        180.0,
-        60.0
-      ]
+      "position": [180.0, 60.0]
     },
     {
-      "position": [
-        300.0,
-        120.0
-      ]
+      "position": [300.0, 120.0]
     }
   ],
   "enemies": [
     {
-      "position": [
-        200.0,
-        -100.0
-      ],
+      "position": [200.0, -100.0],
       "patrol_points": [
-        [
-          200.0,
-          -100.0
-        ],
-        [
-          300.0,
-          -100.0
-        ],
-        [
-          300.0,
-          50.0
-        ],
-        [
-          200.0,
-          50.0
-        ]
+        [200.0, -100.0],
+        [300.0, -100.0],
+        [300.0, 50.0],
+        [200.0, 50.0]
       ]
     }
   ],
   "vehicles": [],
   "terminals": [
     {
-      "position": [
-        320.0,
-        -50.0
-      ],
+      "position": [320.0, -50.0],
       "terminal_type": "objective"
     },
     {
-      "position": [
-        150.0,
-        -80.0
-      ],
+      "position": [150.0, -80.0],
       "terminal_type": "equipment"
     },
     {
-      "position": [
-        50.0,
-        120.0
-      ],
+      "position": [50.0, 120.0],
       "terminal_type": "intel"
     }
-  ]
+  ],
+  "urban_areas": {
+    "work_zones": [
+      {
+        "center": [150.0, -80.0],
+        "radius": 70.0,
+        "capacity": 12
+      },
+      {
+        "center": [50.0, 120.0],
+        "radius": 60.0,
+        "capacity": 8
+      }
+    ],
+    "shopping_zones": [
+      {
+        "center": [200.0, 100.0],
+        "radius": 80.0,
+        "capacity": 15
+      },
+      {
+        "center": [100.0, 60.0],
+        "radius": 50.0,
+        "capacity": 8
+      }
+    ],
+    "residential_zones": [
+      {
+        "center": [300.0, 180.0],
+        "radius": 90.0,
+        "capacity": 20
+      },
+      {
+        "center": [80.0, 200.0],
+        "radius": 70.0,
+        "capacity": 12
+      }
+    ],
+    "transit_routes": [
+      {
+        "points": [
+          [-100.0, 0.0],
+          [100.0, 0.0],
+          [300.0, 0.0]
+        ],
+        "foot_traffic_density": 0.8
+      },
+      {
+        "points": [
+          [150.0, -50.0],
+          [200.0, 50.0],
+          [250.0, 150.0]
+        ],
+        "foot_traffic_density": 0.6
+      },
+      {
+        "points": [
+          [100.0, 100.0],
+          [200.0, 120.0],
+          [300.0, 180.0]
+        ],
+        "foot_traffic_density": 0.4
+      }
+    ]
+  }
 }

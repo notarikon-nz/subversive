@@ -85,6 +85,7 @@ fn main() {
             setup_attachments,
             apply_loaded_research_benefits,
             fonts::check_fonts_loaded,
+            setup_urban_areas,
         ))
         .add_systems(PostStartup, (
             preload_common_scenes,
@@ -164,35 +165,49 @@ fn main() {
             area_control::weapon_area_control_system,
             area_control::area_effect_system,
             area_control::suppression_movement_system,
+
             formations::formation_input_system,
             formations::formation_movement_system,
             formations::formation_visual_system,
+
             enhanced_neurovector::enhanced_neurovector_system,
             enhanced_neurovector::controlled_civilian_behavior_system,
             enhanced_neurovector::controlled_civilian_visual_system,
-            civilian_spawn::dynamic_civilian_spawn_system,
-            civilian_spawn::civilian_wander_system,
-            civilian_spawn::civilian_cleanup_system,
         ).run_if(in_state(GameState::Mission)))
         .add_systems(Update, (
             vehicles::vehicle_explosion_system,
             vehicles::explosion_damage_system,
             vehicles::vehicle_cover_system,
             vehicles::vehicle_spawn_system,
+
             day_night::day_night_system,
             day_night::lighting_system,
             day_night::time_ui_system,
+
             health_bars::update_health_bars_system,
 
+            // TEMP
             testing_spawn::goap_debug_display_system,
             testing_spawn::debug_selection_visual_system,
             testing_spawn::goap_testing_info_system,
-
             testing_spawn::simple_entity_count_system,
             testing_spawn::simple_visual_debug_system,
             testing_spawn::patrol_debug_system,
 
         ).run_if(in_state(GameState::Mission)))
+
+        .add_systems(Update, (
+            // Replaces civilian_spawn::dynamic_civilian_spawn_system
+            urban_simulation::urban_civilian_spawn_system,
+            urban_simulation::crowd_dynamics_system,
+            urban_simulation::daily_routine_system,
+            urban_simulation::urban_cleanup_system,
+            urban_simulation::urban_debug_system,
+
+            civilian_spawn::civilian_wander_system,
+            civilian_spawn::civilian_cleanup_system,
+        ).run_if(in_state(GameState::Mission)))        
+
         .add_systems(Update, (
             mission::process_mission_results,  
             ui::screens::post_mission_ui_system,
@@ -216,7 +231,7 @@ pub fn setup_mission_scene_optimized(
             warn!("Agent entity {:?} no longer exists, skipping despawn.", entity);
         }
     }
-    
+
     let scene_name = match global_data.selected_region {
         0 => "mission1",
         1 => "mission2", 
@@ -321,4 +336,8 @@ pub fn preload_common_scenes(mut scene_cache: ResMut<SceneCache>) {
     let common_scenes = ["mission1", "mission2", "mission3"];
     scene_cache.preload_scenes(&common_scenes);
     info!("Preloaded {} scenes at startup", common_scenes.len());
+}
+
+fn setup_urban_areas(mut commands: Commands) {
+    commands.insert_resource(UrbanAreas::default());
 }

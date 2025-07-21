@@ -49,9 +49,9 @@
           ],
           "attachments": {
             "Magazine": null,
-            "Barrel": null,
             "Stock": null,
-            "Sight": null
+            "Sight": null,
+            "Barrel": null
           },
           "behavior": {
             "preferred_range": 150.0,
@@ -79,8 +79,8 @@
             "Stock"
           ],
           "attachments": {
-            "Sight": null,
             "Stock": null,
+            "Sight": null,
             "Barrel": null,
             "Magazine": null
           },
@@ -110,10 +110,10 @@
             "Stock"
           ],
           "attachments": {
-            "Magazine": null,
-            "Stock": null,
             "Barrel": null,
-            "Sight": null
+            "Magazine": null,
+            "Sight": null,
+            "Stock": null
           },
           "behavior": {
             "preferred_range": 150.0,
