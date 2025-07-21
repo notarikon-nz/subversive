@@ -86,14 +86,15 @@ pub fn spawn_fallback_mission(
     sprites: &GameSprites,
 ) {
     warn!("Using fallback mission");
-    
-    // Minimal viable mission
-    let positions = [Vec2::new(-200.0, 0.0), Vec2::new(-170.0, 0.0), Vec2::new(-140.0, 0.0)];
+    // Minimal viable mission - 3 agents in formation
+    let positions = [
+        Vec2::new(-200.0, 0.0), 
+        Vec2::new(-170.0, 0.0), 
+        Vec2::new(-140.0, 0.0)
+    ];
     for (i, &pos) in positions.iter().enumerate() {
         spawn_agent(commands, pos, global_data.agent_levels[i], i, global_data, sprites);
     }
-    
-    // One objective terminal
     spawn_terminal_direct(commands, Vec2::new(200.0, 0.0), TerminalType::Objective, sprites);
     spawn_cover_points(commands);
 }
@@ -339,3 +340,4 @@ fn parse_vehicle_type(type_str: &str) -> VehicleType {
         }
     }
 }
+

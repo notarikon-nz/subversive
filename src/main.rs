@@ -1,4 +1,4 @@
-// src/main.rs - Clean version with core systems only
+// src/main.rs - Updated with new module structure
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 use bevy_light_2d::prelude::*;
@@ -81,7 +81,7 @@ fn main() {
         ))
 
         .add_systems(Update, (
-            input::handle_input,
+            systems::input::handle_input,
             ui::screens::fps_system,
             pool::cleanup_inactive_entities,
             save::auto_save_system,

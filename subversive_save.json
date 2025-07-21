@@ -1,6 +1,6 @@
 {
   "credits": 4150,
-  "current_day": 6,
+  "current_day": 8,
   "agent_levels": [
     1,
     1,
@@ -12,16 +12,16 @@
     30
   ],
   "agent_recovery": [
-    6,
-    6,
-    6
+    11,
+    11,
+    11
   ],
   "regions": [
     {
       "name": "Neo-Tokyo Central",
       "threat_level": 1,
-      "alert_level": 0,
-      "alert_decay_timer": 0
+      "alert_level": 3,
+      "alert_decay_timer": 22
     },
     {
       "name": "Corporate District",
@@ -48,9 +48,9 @@
             "Stock"
           ],
           "attachments": {
+            "Stock": null,
             "Barrel": null,
             "Sight": null,
-            "Stock": null,
             "Magazine": null
           },
           "behavior": {
@@ -79,9 +79,9 @@
             "Stock"
           ],
           "attachments": {
+            "Magazine": null,
             "Barrel": null,
             "Stock": null,
-            "Magazine": null,
             "Sight": null
           },
           "behavior": {
@@ -111,8 +111,8 @@
           ],
           "attachments": {
             "Stock": null,
-            "Magazine": null,
             "Sight": null,
+            "Magazine": null,
             "Barrel": null
           },
           "behavior": {

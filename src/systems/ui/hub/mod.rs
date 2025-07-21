@@ -135,7 +135,7 @@ pub fn hub_system(
     }
 
     // Delegate input handling to appropriate tab
-    let mut needs_rebuild = match hub_state.active_tab {
+    let needs_rebuild = match hub_state.active_tab {
         HubTab::GlobalMap => global_map::handle_input(
             &input, 
             &mut global_data, 

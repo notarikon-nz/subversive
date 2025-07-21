@@ -13,6 +13,8 @@ macro_rules! hashmap {
     };
 }
 
+
+
 // === WORLD STATE ===
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum WorldKey {
@@ -1340,8 +1342,11 @@ fn execute_goap_action(
             alert_events.write(AlertEvent {
                 alerter: enemy_entity,
                 position: enemy_transform.translation.truncate(),
+                alert_level: 1,  // Add missing field
+                source: AlertSource::Gunshot,  // Add missing field
                 alert_type: AlertType::CallForHelp,
             });
+
             
         },
 
@@ -1398,6 +1403,8 @@ fn execute_goap_action(
             alert_events.write(AlertEvent {
                 alerter: enemy_entity,
                 position: enemy_transform.translation.truncate(),
+                alert_level: 2,  // Add missing field  
+                source: AlertSource::Alarm,  // Add missing field
                 alert_type: AlertType::EnemySpotted, // Reuse existing type
             });
             
