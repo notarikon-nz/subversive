@@ -64,7 +64,7 @@ pub fn weapon_pickup_system(
                 
                 commands.entity(dropped_entity).despawn();
                 
-                action_events.send(ActionEvent {
+                action_events.write(ActionEvent {
                     entity: enemy_entity,
                     action: Action::PickupWeapon,
                 });
@@ -123,7 +123,7 @@ pub fn weapon_behavior_system(
             });
             
             if !has_cover {
-                action_events.send(ActionEvent {
+                action_events.write(ActionEvent {
                     entity: enemy_entity,
                     action: Action::MoveTo(find_cover_position(enemy_pos, agent_pos)),
                 });

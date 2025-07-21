@@ -6,7 +6,6 @@ use bevy_rapier2d::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::core::*;
-use crate::systems::panic_spread::*;
 use crate::systems::ai::*;
 use crate::systems::vehicles::spawn_vehicle;
 use crate::core::factions::Faction;

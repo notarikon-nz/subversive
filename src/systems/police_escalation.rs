@@ -101,29 +101,40 @@ impl Default for PoliceEscalation {
     }
 }
 
-// Show Threat Level
-// Should eventually be a sprite indicator
+#[derive(Component)]
+pub struct ThreatLevelText;
+
+// Replace the render_threat_level function with this:
 pub fn render_threat_level(
     mut commands: Commands,
-    ui_state: Res<UIState>,
     police_escalation: Res<PoliceEscalation>,
+    mut threat_text_query: Query<&mut Text, With<ThreatLevelText>>,
 ) {
-    // BAD - we don't want to keep creating (and destroying)
-    let threat_text = format!("{:?}", police_escalation.current_level as u32);
-    commands.spawn((
-        Text::new(threat_text),
-        TextFont {
-            font_size: 16.0,
-            ..default()
-        },
-        TextColor(Color::WHITE),
-        Node {
-            position_type: PositionType::Absolute,
-            top: Val::Px(10.0),
-            right: Val::Px(10.0),
-            ..default()
-        },
-    ));
+    let threat_text = format!("{}", police_escalation.current_level as u32);
+    
+    // Try to update existing text first
+    if let Ok(mut text) = threat_text_query.single_mut() {
+        if police_escalation.is_changed() {
+            **text = threat_text;
+        }
+    } else {
+        // Only create if it doesn't exist
+        commands.spawn((
+            Text::new(threat_text),
+            TextFont {
+                font_size: 20.0,
+                ..default()
+            },
+            TextColor(Color::WHITE),
+            Node {
+                position_type: PositionType::Absolute,
+                top: Val::Px(10.0),
+                right: Val::Px(10.0),
+                ..default()
+            },
+            ThreatLevelText,
+        ));
+    }
 }
 
 impl PoliceEscalation {

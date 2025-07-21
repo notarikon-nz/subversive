@@ -1,6 +1,7 @@
 // src/systems/ui/screens.rs - All the screen UIs updated for Bevy 0.16
 use bevy::prelude::*;
 use crate::core::*;
+use bevy::diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin};
 
 // Re-export components for compatibility
 #[derive(Component)]
@@ -21,19 +22,37 @@ pub struct FpsText;
 // FPS system
 pub fn fps_system(
     mut commands: Commands,
+    diagnostics: Res<DiagnosticsStore>,
     ui_state: Res<UIState>,
-    fps_query: Query<Entity, With<FpsText>>,
-    mut fps_text_query: Query<&mut Text, With<FpsText>>,
-    time: Res<Time>,
+    mut fps_text_query: Query<(Entity, &mut Text), With<FpsText>>,
 ) {
-    if ui_state.fps_visible && fps_query.is_empty() {
+    if !ui_state.fps_visible {
+        // Clean up FPS text if it exists and should be hidden
+        for (entity, _) in fps_text_query.iter() {
+            commands.entity(entity).despawn();
+        }
+        return;
+    }
+
+    let fps = diagnostics
+        .get(&FrameTimeDiagnosticsPlugin::FPS)
+        .and_then(|fps| fps.smoothed())
+        .unwrap_or(0.0);
+    
+    let fps_text = format!("FPS: {:.1}", fps);
+    
+    // Try to update existing text first
+    if let Ok((_, mut text)) = fps_text_query.single_mut() {
+        **text = fps_text;
+    } else {
+        // Only create if it doesn't exist and should be visible
         commands.spawn((
-            Text::new("FPS: --"),
+            Text::new(fps_text),
             TextFont {
-                font_size: 20.0,
+                font_size: 16.0,
                 ..default()
             },
-            TextColor(Color::srgb(0.0, 1.0, 0.0)),
+            TextColor(Color::WHITE),
             Node {
                 position_type: PositionType::Absolute,
                 top: Val::Px(10.0),
@@ -42,15 +61,6 @@ pub fn fps_system(
             },
             FpsText,
         ));
-    } else if !ui_state.fps_visible && !fps_query.is_empty() {
-        for entity in fps_query.iter() {
-            commands.safe_despawn(entity);
-        }
-    } else if ui_state.fps_visible && !fps_query.is_empty() {
-        let fps = 1.0 / time.delta_secs();
-        if let Ok(mut text) = fps_text_query.single_mut() {
-            **text = format!("FPS: {:.0}", fps);
-        }
     }
 }
 

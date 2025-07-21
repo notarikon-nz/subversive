@@ -1,7 +1,6 @@
 // src/systems/movement.rs - Fixed core movement system (no physics)
 use bevy::prelude::*;
 use crate::core::*;
-use bevy::ecs::system::*;
 
 pub fn system(
     mut commands: Commands,

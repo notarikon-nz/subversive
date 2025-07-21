@@ -24,6 +24,7 @@ pub mod health_bars;
 pub mod testing_spawn;
 pub mod urban_simulation;
 pub mod police_escalation;
+pub mod explosions;
 
 pub use urban_simulation::*;
 pub use panic_spread::*;

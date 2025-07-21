@@ -1,6 +1,5 @@
 // src/main.rs - Updated with new module structure
 use bevy::prelude::*;
-use bevy_mod_imgui::prelude::*;
 
 // https://github.com/Noxime/steamworks-rs/tree/master
 
@@ -19,6 +18,7 @@ use systems::*;
 use pool::*;
 use systems::scenes::*;
 use systems::police_escalation::*;
+use systems::explosions::*;
 
 fn main() {
     let (global_data, research_progress) = load_global_data_or_default();
@@ -40,7 +40,7 @@ fn main() {
         .add_plugins(bevy_mod_imgui::ImguiPlugin::default())
 
         // .add_plugins(bevy::diagnostic::LogDiagnosticsPlugin::default())
-        // .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin::default())
+        .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin::default())
         // .add_plugins(bevy::diagnostic::EntityCountDiagnosticsPlugin::default())
 
         .register_type::<PlayerAction>()
@@ -56,6 +56,7 @@ fn main() {
         .init_resource::<MissionState>()
         .init_resource::<DayNightCycle>()
         .init_resource::<PoliceEscalation>()
+        .init_resource::<CombatTextSettings>()
 
         .insert_resource(GameConfig::load())
         .insert_resource(global_data)
@@ -88,6 +89,7 @@ fn main() {
         .add_event::<CombatEvent>()
         .add_event::<AudioEvent>()
         .add_event::<AlertEvent>()
+        .add_event::<GrenadeEvent>()
 
         .add_systems(Startup, (
             fonts::load_fonts,
@@ -229,7 +231,12 @@ fn main() {
             police_escalation::police_cleanup_system,
             police_escalation::police_deescalation_system,
             police_escalation::police_debug_system,
-            // police_escalation::render_threat_level,
+            police_escalation::render_threat_level,
+
+            explosions::explosion_damage_system,
+            explosions::floating_text_system,
+            explosions::handle_grenade_events,
+            explosions::handle_vehicle_explosions,            
         ).run_if(in_state(GameState::Mission)))
 
         .add_systems(Update, (

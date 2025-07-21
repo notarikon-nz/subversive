@@ -204,7 +204,7 @@ pub fn goap_debug_display_system(
     }
 }
 
-pub fn imgui_example_ui(mut context: NonSendMut<ImguiContext>, mut state: ResMut<ImguiState>) {
+pub fn imgui_example_ui(mut context: NonSendMut<ImguiContext>, state: ResMut<ImguiState>) {
     let ui = context.ui();
     let window = ui.window("GOAP Debug Help");
     window

@@ -89,7 +89,7 @@ impl Default for UrbanAreas {
 pub fn urban_civilian_spawn_system(
     mut commands: Commands,
     mut spawner: ResMut<CivilianSpawner>,
-    mut urban_areas: ResMut<UrbanAreas>,
+    urban_areas: ResMut<UrbanAreas>,
     civilian_query: Query<Entity, With<Civilian>>,
     sprites: Res<GameSprites>,
     time: Res<Time>,
@@ -204,7 +204,7 @@ fn pick_random_zone_center(zones: &[UrbanZone]) -> Option<Vec2> {
 
 // === CROWD DYNAMICS SYSTEM ===
 pub fn crowd_dynamics_system(
-    mut commands: Commands,
+    commands: Commands,
     mut civilian_query: Query<(Entity, &Transform, &mut UrbanCivilian, &mut MovementSpeed, &Morale), With<Civilian>>,
     crowd_query: Query<(&Transform, &CrowdNode), Without<Civilian>>,
     mut action_events: EventWriter<ActionEvent>,
