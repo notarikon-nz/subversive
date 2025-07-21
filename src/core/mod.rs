@@ -20,6 +20,7 @@ pub mod entities;
 pub mod missions;
 pub mod weapons;
 pub mod config;
+pub mod scene_cache; 
 
 // Re-exports for convenience
 pub use events::*;
@@ -39,6 +40,7 @@ pub use entities::*;
 pub use missions::*;
 pub use weapons::*;
 pub use config::*;
+pub use scene_cache::*;
 
 pub use crate::systems::ui::hub::{HubState};
 

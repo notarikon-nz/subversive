@@ -9,6 +9,7 @@ mod core;
 mod systems;
 
 use core::*;
+use core::scene_cache::*;
 use systems::*;
 use pool::*;
 use systems::scenes::*;
@@ -64,6 +65,7 @@ fn main() {
         .init_resource::<CivilianSpawner>()
         .insert_resource(CyberneticsDatabase::load())
         .insert_resource(AgentManagementState::default())
+        .init_resource::<SceneCache>()
 
         .add_event::<ActionEvent>()
         .add_event::<CombatEvent>()
@@ -77,7 +79,10 @@ fn main() {
             sprites::load_sprites,
             setup_attachments,
             apply_loaded_research_benefits,
-            fonts::check_fonts_loaded
+            fonts::check_fonts_loaded,
+        ))
+        .add_systems(PostStartup, (
+            preload_common_scenes,
         ))
 
         .add_systems(Update, (
@@ -87,7 +92,7 @@ fn main() {
             save::auto_save_system,
             save::save_input_system,
             audio::audio_system,
-            
+            scene_cache_debug_system,
         ))
 
         .add_systems(OnEnter(GameState::PostMission), (
@@ -105,7 +110,7 @@ fn main() {
 
         .add_systems(OnEnter(GameState::Mission), (
             ui::cleanup_global_map_ui,
-            setup_mission_scene,
+            setup_mission_scene_optimized,
             health_bars::spawn_health_bar_system,
         ))
 
@@ -138,7 +143,7 @@ fn main() {
         .add_systems(Update, (            
             mission::timer_system,
             mission::check_completion,
-            mission::restart_system,
+            mission::restart_system_optimized,
             cover::cover_management_system,
             cover::cover_exit_system,
             quicksave::quicksave_system,
@@ -180,10 +185,12 @@ fn main() {
         .run();
 }
 
-fn setup_mission_scene(
+pub fn setup_mission_scene_optimized(
     mut commands: Commands,
     sprites: Res<GameSprites>,
     global_data: Res<GlobalData>,
+    // constants: Res<GameConstants>,          // NEW: Constants resource
+    mut scene_cache: ResMut<SceneCache>,    // NEW: Scene cache resource
     agents: Query<Entity, With<Agent>>,
 ) {
     // Clean up any existing agents first
@@ -198,14 +205,14 @@ fn setup_mission_scene(
         _ => "mission1",
     };
     
-    match crate::systems::scenes::load_scene(scene_name) {
+    // NEW: Use cached scene loading
+    match load_scene_cached(&mut scene_cache, scene_name) {
         Some(scene) => {
-            crate::systems::scenes::spawn_from_scene(&mut commands, &scene, &*global_data, &sprites);
-            info!("Loaded scene: {}", scene_name);
+            spawn_from_scene(&mut commands, &scene, &*global_data, &sprites);
+            info!("Loaded cached scene: {}", scene_name);
         },
         None => {
             error!("Failed to load scene: {}. Creating minimal fallback.", scene_name);
-            // Create minimal fallback scene with just agents
             spawn_fallback_mission(&mut commands, &*global_data, &sprites);
         }
     }
@@ -289,4 +296,10 @@ fn ensure_data_directories() {
             warn!("Missing data file: {} - game may not function properly", file);
         }
     }
+}
+
+pub fn preload_common_scenes(mut scene_cache: ResMut<SceneCache>) {
+    let common_scenes = ["mission1", "mission2", "mission3"];
+    scene_cache.preload_scenes(&common_scenes);
+    info!("Preloaded {} scenes at startup", common_scenes.len());
 }

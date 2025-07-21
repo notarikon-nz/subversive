@@ -8,7 +8,7 @@ use crate::systems::ai::*;
 use crate::systems::vehicles::spawn_vehicle;
 
 // === SCENE DATA STRUCTURES ===
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct SceneData {
     pub agents: Vec<AgentSpawn>,
     pub civilians: Vec<CivilianSpawn>,
@@ -17,30 +17,30 @@ pub struct SceneData {
     pub vehicles: Vec<VehicleSpawn>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct AgentSpawn {
     pub position: [f32; 2],
     pub level: u8,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct CivilianSpawn {
     pub position: [f32; 2],
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct EnemySpawn {
     pub position: [f32; 2],
     pub patrol_points: Vec<[f32; 2]>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct TerminalSpawn {
     pub position: [f32; 2],
     pub terminal_type: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct VehicleSpawn {
     pub position: [f32; 2],
     pub vehicle_type: String,
@@ -53,7 +53,23 @@ pub fn ensure_scenes_directory() {
     }
 }
 
+// Keep the old function for backward compatibility:
 pub fn load_scene(name: &str) -> Option<SceneData> {
+    warn!("Using deprecated load_scene, consider using SceneCache");
+    let path = format!("scenes/{}.json", name);
+    let content = std::fs::read_to_string(&path).ok()?;
+    serde_json::from_str(&content)
+        .map_err(|e| error!("Failed to parse scene {}: {}", name, e))
+        .ok()
+}
+
+pub fn load_scene_cached(scene_cache: &mut SceneCache, name: &str) -> Option<SceneData> {
+    scene_cache.get_scene(name).cloned()
+}
+
+/// Legacy function for compatibility - will be deprecated
+pub fn load_scene_direct(name: &str) -> Option<SceneData> {
+    warn!("Using deprecated load_scene_direct, consider using SceneCache");
     let path = format!("scenes/{}.json", name);
     let content = std::fs::read_to_string(&path).ok()?;
     serde_json::from_str(&content)

@@ -53,11 +53,13 @@ pub fn check_completion(
     }
 }
 
-pub fn restart_system(
+pub fn restart_system_optimized(
     mut commands: Commands,
     restart_check: Option<Res<ShouldRestart>>,
     entities: Query<Entity, (Without<Camera>, Without<Window>)>,
     sprites: Res<GameSprites>,
+    // constants: Res<GameConstants>,              // NEW: Constants resource
+    mut scene_cache: ResMut<SceneCache>,        // NEW: Scene cache resource
     mut mission_data: ResMut<MissionData>,
     mut game_mode: ResMut<GameMode>,
     mut selection: ResMut<SelectionState>,
@@ -68,12 +70,14 @@ pub fn restart_system(
     
     info!("Restarting mission - despawning {} entities", entities.iter().count());
     
+    // Clean up entities (same as before)
     for entity in entities.iter() {
         if let Ok(_) = commands.get_entity(entity) {
             commands.safe_despawn(entity);
         }
     }
     
+    // Reset game state (same as before)
     *mission_data = MissionData::default();
     *game_mode = GameMode::default();
     *selection = SelectionState::default();
@@ -88,10 +92,11 @@ pub fn restart_system(
         _ => "mission1",
     };
     
-    match crate::systems::scenes::load_scene(scene_name) {
+    // NEW: Use cached scene loading for restart
+    match load_scene_cached(&mut scene_cache, scene_name) {
         Some(scene) => {
-            crate::systems::scenes::spawn_from_scene(&mut commands, &scene, &*global_data, &sprites);
-            info!("Mission restart complete with scene: {}", scene_name);
+            spawn_from_scene(&mut commands, &scene, &*global_data, &sprites);
+            info!("Mission restart complete with cached scene: {}", scene_name);
         },
         None => {
             error!("Failed to load scene during restart: {}. Using fallback.", scene_name);
