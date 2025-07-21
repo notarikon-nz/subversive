@@ -9,10 +9,11 @@ mod core;
 mod systems;
 
 use core::*;
+use core::factions;
 use systems::*;
 use pool::*;
 use systems::scenes::*;
-use core::factions;
+use systems::police_escalation::*;
 
 fn main() {
     let (global_data, research_progress) = load_global_data_or_default();
@@ -48,6 +49,7 @@ fn main() {
         .init_resource::<PostMissionResults>()
         .init_resource::<MissionState>()
         .init_resource::<DayNightCycle>()
+        .init_resource::<PoliceEscalation>()
 
         .insert_resource(GameConfig::load())
         .insert_resource(global_data)
@@ -207,6 +209,14 @@ fn main() {
             civilian_spawn::civilian_wander_system,
             civilian_spawn::civilian_cleanup_system,
         ).run_if(in_state(GameState::Mission)))        
+
+        .add_systems(Update, (
+            police_escalation::police_incident_tracking_system,
+            police_escalation::police_spawn_system,
+            police_escalation::police_cleanup_system,
+            police_escalation::police_deescalation_system,
+            police_escalation::police_debug_system,
+        ).run_if(in_state(GameState::Mission)))
 
         .add_systems(Update, (
             mission::process_mission_results,  

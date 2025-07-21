@@ -9,6 +9,7 @@ use crate::systems::ai::*;
 use crate::systems::vehicles::spawn_vehicle;
 use crate::core::factions::Faction;
 use crate::systems::*;
+use crate::systems::police_escalation::*;
 
 // === SCENE DATA STRUCTURES ===
 #[derive(Clone, Serialize, Deserialize)]
@@ -19,6 +20,7 @@ pub struct SceneData {
     pub terminals: Vec<TerminalSpawn>,
     pub vehicles: Vec<VehicleSpawn>,
     pub urban_areas: Option<UrbanAreasData>,
+    pub police: Option<Vec<PoliceSpawn>>,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -71,6 +73,13 @@ pub struct VehicleSpawn {
     pub vehicle_type: String,
 }
 
+#[derive(Clone, Serialize, Deserialize)]
+pub struct PoliceSpawn {
+    pub position: [f32; 2],
+    pub patrol_points: Vec<[f32; 2]>,
+    pub unit_type: String, // "patrol", "armed", "tactical", "military", "corporate"
+}
+
 // === CORE FUNCTIONS ===
 pub fn ensure_scenes_directory() {
     if std::fs::create_dir_all("scenes").is_err() {
@@ -117,6 +126,9 @@ pub fn spawn_from_scene(
     spawn_enemies(commands, &scene.enemies, global_data, sprites);
     spawn_terminals(commands, &scene.terminals, sprites);
     spawn_vehicles_from_scene(commands, &scene.vehicles, sprites);
+    if let Some(police_units) = &scene.police {
+        spawn_police_units(commands, police_units, sprites);
+    }    
     spawn_cover_points(commands);
     
     info!("Urban mission spawned: {} agents, {} enemies, {} civilians, {} terminals, {} vehicles", 
@@ -623,6 +635,93 @@ fn spawn_single_urban_civilian(commands: &mut Commands, position: Vec2, sprites:
         },
         bevy_rapier2d::prelude::RigidBody::Dynamic,
         bevy_rapier2d::prelude::Collider::ball(7.5),
+        bevy_rapier2d::prelude::Velocity::default(),
+        bevy_rapier2d::prelude::Damping { linear_damping: 10.0, angular_damping: 10.0 },
+    ));
+}
+
+
+// NEW: Spawn police units from scene data
+fn spawn_police_units(commands: &mut Commands, police_data: &[PoliceSpawn], sprites: &GameSprites) {
+    for police_spawn in police_data {
+        let position = Vec2::from(police_spawn.position);
+        let patrol_points: Vec<Vec2> = police_spawn.patrol_points.iter()
+            .map(|&p| Vec2::from(p))
+            .collect();
+        
+        let unit_type = parse_police_unit_type(&police_spawn.unit_type);
+        spawn_scene_police_unit(commands, position, patrol_points, unit_type, sprites);
+    }
+}
+
+fn parse_police_unit_type(type_str: &str) -> EscalationLevel {
+    match type_str.to_lowercase().as_str() {
+        "patrol" => EscalationLevel::Patrol,
+        "armed" => EscalationLevel::Armed,
+        "tactical" | "swat" => EscalationLevel::Tactical,
+        "military" | "army" => EscalationLevel::Military,
+        "corporate" | "elite" => EscalationLevel::Corporate,
+        _ => {
+            warn!("Unknown police unit type: {}, using Patrol", type_str);
+            EscalationLevel::Patrol
+        }
+    }
+}
+
+// NEW: Spawn individual police unit for scenes
+fn spawn_scene_police_unit(
+    commands: &mut Commands,
+    position: Vec2,
+    patrol_points: Vec<Vec2>,
+    unit_type: EscalationLevel,
+    sprites: &GameSprites,
+) {
+    let (mut sprite, _) = crate::core::sprites::create_enemy_sprite(sprites);
+    sprite.color = unit_type.color();
+    
+    let (health, weapon, speed, vision_range) = match unit_type {
+        EscalationLevel::Patrol => (80.0, WeaponType::Pistol, 100.0, 100.0),
+        EscalationLevel::Armed => (120.0, WeaponType::Rifle, 120.0, 120.0),
+        EscalationLevel::Tactical => (150.0, WeaponType::Rifle, 140.0, 140.0),
+        EscalationLevel::Military => (180.0, WeaponType::Minigun, 130.0, 160.0),
+        EscalationLevel::Corporate => (200.0, WeaponType::Flamethrower, 150.0, 180.0),
+        EscalationLevel::None => (100.0, WeaponType::Pistol, 100.0, 100.0),
+    };
+    
+    // Use provided patrol points or create simple patrol
+    let patrol = if patrol_points.is_empty() {
+        Patrol::new(vec![position, position + Vec2::new(80.0, 0.0)])
+    } else {
+        Patrol::new(patrol_points)
+    };
+    
+    let mut inventory = Inventory::default();
+    inventory.equipped_weapon = Some(WeaponConfig::new(weapon.clone()));
+    
+    // Enhanced AI for higher tiers
+    let mut ai_state = AIState::default();
+    ai_state.use_goap = unit_type >= EscalationLevel::Tactical;
+    
+    commands.spawn_empty()
+    .insert((
+        sprite,
+        Transform::from_translation(position.extend(1.0)),
+        Enemy,
+        Police { response_level: unit_type as u8 },
+        Faction::Police,
+        Health(health),
+        Morale::new(health * 1.5, 20.0),
+        MovementSpeed(speed),
+        Vision::new(vision_range, 50.0),
+        patrol,
+    ))
+    .insert((
+        ai_state,
+        GoapAgent::default(),
+        WeaponState::new(&weapon),
+        inventory,
+        bevy_rapier2d::prelude::RigidBody::Dynamic,
+        bevy_rapier2d::prelude::Collider::ball(9.0),
         bevy_rapier2d::prelude::Velocity::default(),
         bevy_rapier2d::prelude::Damping { linear_damping: 10.0, angular_damping: 10.0 },
     ));
