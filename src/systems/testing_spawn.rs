@@ -184,23 +184,6 @@ pub fn goap_debug_display_system(
             ZIndex(1000),
             DebugInfoText,
         ));
-    } else if selected_query.is_empty() {
-        // Show help text when nothing selected
-        commands.spawn((
-            Text::new("GOAP Debug Help:\nShift+Click: Select Enemy\nX: Clear Selection\nT/Y/U: Spawn enemies"),
-            TextFont { font_size: 12.0, ..default() },
-            TextColor(Color::srgb(0.7, 0.7, 0.7)),
-            Node {
-                position_type: PositionType::Absolute,
-                right: Val::Px(10.0),
-                top: Val::Px(10.0),
-                padding: UiRect::all(Val::Px(10.0)),
-                ..default()
-            },
-            BackgroundColor(Color::srgba(0.1, 0.1, 0.1, 0.6)),
-            ZIndex(1000),
-            DebugInfoText,
-        ));
     }
 }
 

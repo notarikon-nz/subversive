@@ -22,6 +22,8 @@ pub mod weapons;
 pub mod config;
 pub mod scene_cache; 
 pub mod factions;
+pub mod lore;
+pub mod hackable;
 
 // Re-exports for convenience
 pub use events::*;
@@ -42,6 +44,8 @@ pub use missions::*;
 pub use weapons::*;
 pub use config::*;
 pub use scene_cache::*;
+pub use lore::*;
+pub use hackable::*;
 
 pub use crate::systems::ui::hub::{HubState};
 

@@ -149,6 +149,28 @@
         ],
         "foot_traffic_density": 0.4
       }
-    ]
+    ],
+  "infrastructure": [
+    {
+      "type": "power_station",
+      "position": [200, -100],
+      "network_id": "district_main"
+    },
+    {
+      "type": "street_light", 
+      "position": [150, 0],
+      "network_id": "district_main"
+    },
+    {
+      "type": "security_camera",
+      "position": [100, 50],
+      "network_id": "district_main"
+    },
+    {
+      "type": "automated_turret",
+      "position": [0, 100],
+      "network_id": "district_main"
+    }
+  ]
   }
 }

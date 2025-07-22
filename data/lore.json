@@ -1,0 +1,125 @@
+{
+  "entries": {
+    "corp_memo_001": {
+      "id": "corp_memo_001",
+      "title": "Project Neurovector Status",
+      "content": "TO: All Department Heads\nFROM: Dr. Sarah Chen, R&D\n\nProject Neurovector has entered Phase 3 testing. Initial trials show promising results for civilian crowd control applications. However, we're seeing unexpected side effects in prolonged exposure scenarios.\n\nRecommend proceeding with caution. The board wants results, but we can't afford another incident like the Tokyo facility.\n\n- Dr. Chen",
+      "category": "CorpMemo",
+      "discovered": false,
+      "source": "Terminal A-7"
+    },
+    "personal_log_002": {
+      "id": "personal_log_002",
+      "title": "Marcus - Day 14",
+      "content": "They think I don't know what they're doing in Sub-Level 3. The screaming stopped two days ago. That's not a good sign.\n\nFound Sarah's research notes in the trash. The neural interface isn't just for crowd control - they're trying to create permanent compliance. Turn people into puppets.\n\nI need to get this information out. If they catch me...",
+      "category": "PersonalLog",
+      "discovered": false,
+      "source": "Hidden Drive"
+    },
+    "news_report_003": {
+      "id": "news_report_003",
+      "title": "Underground Violence Escalates",
+      "content": "Neo-Tokyo News Network - Reports of coordinated attacks on corporate facilities continue to rise. Authorities suspect the involvement of the shadowy organization known only as 'The Resistance.'\n\nCorporate Security Chief Williams stated: 'These terrorists threaten the stability that our citizens depend on. We will not negotiate with extremists.'\n\nMeanwhile, civilian casualties from police response continue to mount...",
+      "category": "NewsReport",
+      "discovered": false,
+      "source": "News Terminal"
+    },
+    "tech_doc_004": {
+      "id": "tech_doc_004",
+      "title": "Neurovector Technical Manual v2.3",
+      "content": "CLASSIFIED - LEVEL 4 CLEARANCE REQUIRED\n\nNeurovector Field Deployment Guidelines:\n\n1. Effective range: 200m radius\n2. Target limit: 3 subjects maximum\n3. Duration: 5-8 minutes before neural fatigue\n4. Side effects: Temporary memory loss, disorientation\n\nWARNING: Do not exceed recommended exposure times. Permanent neural damage may occur.\n\nFor technical support, contact Dr. Chen at extension 4471.",
+      "category": "TechnicalDoc",
+      "discovered": false,
+      "source": "Secure Terminal"
+    },
+    "conversation_005": {
+      "id": "conversation_005",
+      "title": "Overheard: Lab Technicians",
+      "content": "Audio Log - Security Camera 7B\n\nTech 1: \"Did you see the test results from yesterday?\"\nTech 2: \"The ones they told us to delete? Yeah, I saw them.\"\nTech 1: \"Twenty percent permanent neural damage. TWENTY PERCENT!\"\nTech 2: \"Keep your voice down. They're shipping it to field teams next week anyway.\"\nTech 1: \"Those poor bastards don't know what they're signing up for...\"\n\n[End of recording]",
+      "category": "Conversation",
+      "discovered": false,
+      "source": "Security Camera"
+    },
+    "research_006": {
+      "id": "research_006",
+      "title": "Neural Interface Research - Phase 3",
+      "content": "Research Log 47-C\n\nSubject compliance rates have improved to 87% with the new neural interface design. However, we're observing concerning patterns:\n\n- 15% of subjects show permanent behavioral changes\n- 8% develop aggressive tendencies toward corporate personnel\n- 3% exhibit complete neural shutdown\n\nDr. Martinez has requested we halt testing, but the board insists we meet the Q4 deadline. Beginning Phase 4 testing on unwilling subjects tomorrow.\n\n- Dr. Sarah Chen, Lead Researcher",
+      "category": "Research",
+      "discovered": false,
+      "source": "Research Terminal"
+    },
+    "history_007": {
+      "id": "history_007",
+      "title": "The Tokyo Incident - Classified Report",
+      "content": "EYES ONLY - BOARD MEMBERS\n\nIncident Report: Tokyo Research Facility\nDate: March 15, 2087\n\nAt 14:30, a catastrophic failure occurred during Neurovector testing. Subject 47 broke free from neural control and activated the facility's security systems against personnel.\n\nCasualties: 23 dead, 67 injured\nCover Story: Industrial accident, gas leak explosion\nStatus: Facility destroyed, all evidence eliminated\n\nRecommendation: Suspend all Neurovector research pending safety review.\nBoard Decision: Research to continue at Neo-Tokyo facility with enhanced security protocols.",
+      "category": "History",
+      "discovered": false,
+      "source": "Executive Terminal"
+    },
+    "mission_008": {
+      "id": "mission_008",
+      "title": "Operation Mindbreak - Mission Brief",
+      "content": "CONFIDENTIAL MISSION BRIEFING\n\nOperation: MINDBREAK\nObjective: Infiltrate Syntech Research Facility\nPrimary Target: Dr. Sarah Chen\nSecondary Target: Neurovector research data\n\nINTEL: Dr. Chen has been feeding information to resistance cells. She knows too much about the project's true purpose. Extraction or elimination authorized.\n\nWARNING: Facility is equipped with automated defense systems. Neurovector-enhanced security personnel on site. Approach with extreme caution.\n\nExtraction point: Roof, 0300 hours.",
+      "category": "Mission",
+      "discovered": false,
+      "source": "Mission Terminal"
+    },
+    "corp_memo_009": {
+      "id": "corp_memo_009",
+      "title": "Budget Allocation - Security Division",
+      "content": "Internal Memo - Finance Department\n\nSecurity budget has been increased by 300% following recent 'incidents.' New allocations:\n\n- Automated turret systems: $2.4M\n- Neural compliance officers: $1.8M\n- Facility hardening: $3.2M\n- 'Accident' cleanup fund: $5.0M\n\nNote: All receipts for cleanup operations to be filed under 'Facility Maintenance' to avoid board scrutiny.\n\nReminder: Quarterly neural compliance testing is mandatory for all personnel.",
+      "category": "CorpMemo",
+      "discovered": false,
+      "source": "Finance Terminal"
+    },
+    "personal_log_010": {
+      "id": "personal_log_010",
+      "title": "Sarah's Final Entry",
+      "content": "Personal Log - Dr. Sarah Chen\n\nThey know. Security came by my lab today asking questions. I've hidden the real research data, but it's only a matter of time.\n\nIf you're reading this, I'm probably dead. The Neurovector project isn't what they told us. It's not crowd control - it's mass enslavement. They want to turn every citizen into a compliant worker drone.\n\nThe resistance was right. We have to stop this before it's too late.\n\nThe real data is hidden in terminal subnet 7-Alpha. Password: FREEDOM47\n\nTell my daughter I'm sorry.\n\n- Sarah",
+      "category": "PersonalLog",
+      "discovered": false,
+      "source": "Hidden Personal Device"
+    },
+    "security_log_011": {
+      "id": "security_log_011",
+      "title": "Security Breach - Level 7",
+      "content": "SECURITY ALERT LOG\nTimestamp: 23:47:12\nLocation: Research Level 7\n\nUnauthorized access detected in Neurovector storage vault. Subject attempted to download classified files before triggering security lockdown.\n\nSubject Identity: Dr. Sarah Chen (Employee ID: 4471)\nAction Taken: Subject terminated by automated defense systems\nStatus: Data breach contained, all files secured\n\nNote: Cover story prepared - 'Laboratory accident during late-night research.' Family has been notified.\n\nSecurity Chief Williams recommends increasing surveillance on all Level 4+ personnel.",
+      "category": "CorpMemo",
+      "discovered": false,
+      "source": "Security Terminal"
+    },
+    "email_012": {
+      "id": "email_012",
+      "title": "RE: Unusual Power Grid Activity",
+      "content": "From: maintenance@syntech.corp\nTo: security@syntech.corp\nSubject: RE: Unusual Power Grid Activity\n\nSecurity Team,\n\nWe've detected multiple unauthorized access attempts on our power grid control systems. Someone's been probing our infrastructure - specifically targeting street lighting and traffic control networks.\n\nRecommend immediate security audit of all hackable systems. If they can cut power to a district, they could disable our entire security network.\n\nFull system diagnostic attached. Note the pattern in access attempts - this isn't random. Someone knows exactly what they're looking for.\n\n- Chief Engineer Rodriguez\n\nP.S. The backup generators won't help if they hack the distribution network itself.",
+      "category": "TechnicalDoc",
+      "discovered": false,
+      "source": "Maintenance Terminal"
+    },
+    "resistance_note_013": {
+      "id": "resistance_note_013",
+      "title": "Resistance Cell - Operation Notes",
+      "content": "ENCRYPTED MESSAGE - CELL 7\n\nComrades,\n\nIntel confirms our worst fears. Project Neurovector isn't just mind control - it's permanent neural restructuring. They're not just controlling people, they're rewriting their personalities.\n\nSarah Chen tried to warn us before they killed her. Her research data contains the antidote formulas. We need to retrieve it before they move the facility.\n\nNew recruits: Learn to hack infrastructure. Power grids, traffic systems, security cameras - turn their own technology against them. Every light you kill is one less camera watching us.\n\nRemember: We're not terrorists. We're the last free minds fighting for humanity's future.\n\nStay vigilant. Trust no one.\n\n- Commander Phoenix",
+      "category": "Mission",
+      "discovered": false,
+      "source": "Dead Drop Terminal"
+    },
+    "experiment_log_014": {
+      "id": "experiment_log_014",
+      "title": "Test Subject 47 - Final Report",
+      "content": "CLASSIFIED EXPERIMENT LOG\nSubject: 47 (Former Resistance Operative)\nDate: March 14, 2087\nResearcher: Dr. S. Chen\n\nDay 30 of neural interface testing. Subject 47 has shown remarkable resistance to standard conditioning protocols. Unlike previous subjects, cognitive function remains largely intact despite 72 hours of continuous exposure.\n\nConcerning development: Subject appears to be learning to manipulate the neural interface. Several security systems activated without authorization during testing. Recommend immediate termination of experiment.\n\nUPDATE: Dr. Martinez overruled termination order. Board demands results before quarterly review.\n\nUPDATE 2: Subject has somehow accessed facility network. All security personnel to Level 3 immediately. This is not a drill.\n\n[LOG TERMINATED - SYSTEM LOCKDOWN INITIATED]",
+      "category": "Research",
+      "discovered": false,
+      "source": "Emergency Terminal"
+    },
+    "news_report_015": {
+      "id": "news_report_015",
+      "title": "Rolling Blackouts Plague Neo-Tokyo",
+      "content": "Neo-Tokyo Evening News - Breaking Report\n\nThe city experienced its third major power outage this month as unknown hackers continue to target critical infrastructure. Traffic lights failed across twelve districts, causing massive delays during evening rush hour.\n\n\"This coordinated attack on our power grid is clearly the work of domestic terrorists,\" stated Mayor Harrison. \"We will not be held hostage by these extremists.\"\n\nSyntech Corporation, which manages much of the city's automated systems, declined to comment on security vulnerabilities. However, sources indicate that hackers are specifically targeting interconnected systems - bringing down power stations to disable entire networks of cameras, doors, and defensive systems.\n\nCitizens are advised to avoid the affected districts until power is restored.\n\nThis is the largest infrastructure attack since the Tokyo facility incident five years ago.",
+      "category": "NewsReport",
+      "discovered": false,
+      "source": "Public News Feed"
+    }
+  },
+  "discovered_count": 0
+}

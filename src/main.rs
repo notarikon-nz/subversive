@@ -65,6 +65,7 @@ fn main() {
         .insert_resource(CyberneticsDatabase::load())
         .insert_resource(TraitsDatabase::load())
         .insert_resource(AttachmentDatabase::load())
+        .insert_resource(LoreDatabase::load())
 
         .insert_resource(ImguiState {
             demo_window_open: true,
@@ -81,6 +82,7 @@ fn main() {
         .init_resource::<PoliceResponse>()
         .init_resource::<FormationState>()
         .init_resource::<CivilianSpawner>()
+        .init_resource::<PowerGrid>()
         .insert_resource(CyberneticsDatabase::load())
         .insert_resource(AgentManagementState::default())
         .init_resource::<SceneCache>()
@@ -91,6 +93,10 @@ fn main() {
         .add_event::<AlertEvent>()
         .add_event::<GrenadeEvent>()
         .add_event::<BarkEvent>()
+        .add_event::<LoreAccessEvent>()
+        .add_event::<HackAttemptEvent>() 
+        .add_event::<HackCompletedEvent>()
+        .add_event::<PowerGridEvent>()
 
         .add_systems(Startup, (
             fonts::load_fonts,
@@ -241,11 +247,32 @@ fn main() {
         ).run_if(in_state(GameState::Mission)))
 
         .add_systems(Update, (
+            lore::lore_interaction_system,
+            lore::lore_notification_system,
+            hacking_feedback::enhanced_hacking_system, // hacking_system,
+            hack_recovery_system,
+            power_grid_system,
+            power_grid_management_system,
+            street_light_system,
+            traffic_light_system,
+            security_camera_system,
+            automated_turret_system,
+            security_door_system,
+            power_grid_debug_system,    // H to toggle: Green=powered+working, Yellow=powered+hacked, Red=no power
+        ).run_if(in_state(GameState::Mission)))
+
+        .add_systems(Update, (
             npc_barks::goap_bark_system,
             npc_barks::combat_bark_system,
             npc_barks::bark_handler_system,
             npc_barks::chat_bubble_system,
             npc_barks::bark_cooldown_system,
+
+            hacking_feedback::hack_progress_visualization,
+            hacking_feedback::hack_status_indicator_system,
+            hacking_feedback::device_visual_feedback_system,
+            hacking_feedback::hack_interruption_system,
+            hacking_feedback::hack_notification_system,            
         ).run_if(in_state(GameState::Mission)))
 
         .add_systems(Update, (

@@ -1,20 +1,20 @@
 {
-  "credits": 2750,
-  "current_day": 23,
+  "credits": 6450,
+  "current_day": 28,
   "agent_levels": [
     1,
     1,
     1
   ],
   "agent_experience": [
-    50,
-    50,
-    50
+    90,
+    90,
+    90
   ],
   "agent_recovery": [
-    23,
-    23,
-    23
+    29,
+    29,
+    29
   ],
   "regions": [
     {
@@ -48,10 +48,10 @@
             "Stock"
           ],
           "attachments": {
-            "Stock": null,
+            "Barrel": null,
             "Magazine": null,
             "Sight": null,
-            "Barrel": null
+            "Stock": null
           },
           "behavior": {
             "preferred_range": 150.0,
@@ -79,9 +79,9 @@
             "Stock"
           ],
           "attachments": {
+            "Barrel": null,
             "Stock": null,
             "Sight": null,
-            "Barrel": null,
             "Magazine": null
           },
           "behavior": {
@@ -110,10 +110,10 @@
             "Stock"
           ],
           "attachments": {
-            "Magazine": null,
             "Barrel": null,
-            "Stock": null,
-            "Sight": null
+            "Magazine": null,
+            "Sight": null,
+            "Stock": null
           },
           "behavior": {
             "preferred_range": 150.0,

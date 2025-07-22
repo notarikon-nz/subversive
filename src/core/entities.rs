@@ -255,9 +255,7 @@ pub struct VehicleCover {
     pub occupied: Vec<bool>,
 }
 
-// Remove duplicate AgentLoadout - it's defined in attachments.rs
-// === ENUM TYPES THAT WERE MISSING ===
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum CyberneticType {
     Neurovector,
     CombatEnhancer,
@@ -265,7 +263,7 @@ pub enum CyberneticType {
     TechInterface,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum ToolType {
     Hacker,
     Scanner,

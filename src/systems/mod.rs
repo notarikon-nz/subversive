@@ -26,12 +26,16 @@ pub mod urban_simulation;
 pub mod police_escalation;
 pub mod explosions;
 pub mod npc_barks;
+pub mod power_grid;
+pub mod hacking_feedback;
 
 pub use urban_simulation::*;
 pub use panic_spread::*;
 pub use enhanced_neurovector::*;
 pub use civilian_spawn::*;
 pub use npc_barks::*;
+pub use power_grid::*;
+pub use hacking_feedback::*;
 
 pub mod scenes;
 
