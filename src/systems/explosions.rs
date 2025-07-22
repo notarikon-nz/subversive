@@ -30,10 +30,6 @@ pub struct CombatTextSettings {
     pub font_size: f32,
 }
 
-// To adjust settings, access CombatTextSettings resource:
-// combat_text_settings.enabled = false; // Turn off
-// combat_text_settings.font_size = 20.0; // Make bigger
-
 impl Default for CombatTextSettings {
     fn default() -> Self {
         Self {
@@ -99,14 +95,14 @@ pub fn explosion_damage_system(
 }
 
 pub fn floating_text_system(
-    mut text_query: Query<(Entity, &mut Transform, &mut FloatingText)>,
+    mut text_query: Query<(Entity, &mut Transform, &mut FloatingText, &mut TextColor)>,
     mut commands: Commands,
     time: Res<Time>,
     game_mode: Res<GameMode>,
 ) {
     if game_mode.paused { return; }
 
-    for (entity, mut transform, mut floating_text) in text_query.iter_mut() {
+    for (entity, mut transform, mut floating_text, mut text_color) in text_query.iter_mut() {
         floating_text.lifetime -= time.delta_secs();
         
         if floating_text.lifetime <= 0.0 {
@@ -115,6 +111,10 @@ pub fn floating_text_system(
             // Move text upward and fade
             transform.translation += floating_text.velocity.extend(0.0) * time.delta_secs();
             floating_text.velocity.y *= 0.95; // Slow down over time
+            
+            // Fade out
+            let alpha = floating_text.lifetime;
+            text_color.0.set_alpha(alpha);
         }
     }
 }
@@ -198,16 +198,12 @@ fn spawn_damage_text(
     };
     
     commands.spawn((
-        Text::new(damage_text),
+        Text2d::new(damage_text),
         TextFont {
             font_size: settings.font_size,
             ..default()
         },
         TextColor(text_color),
-        Node {
-            position_type: PositionType::Absolute,
-            ..default()
-        },
         Transform::from_translation((position + Vec2::new(0.0, 30.0)).extend(100.0)),
         FloatingText {
             lifetime: 1.0,

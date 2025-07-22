@@ -90,6 +90,7 @@ fn main() {
         .add_event::<AudioEvent>()
         .add_event::<AlertEvent>()
         .add_event::<GrenadeEvent>()
+        .add_event::<BarkEvent>()
 
         .add_systems(Startup, (
             fonts::load_fonts,
@@ -231,12 +232,20 @@ fn main() {
             police_escalation::police_cleanup_system,
             police_escalation::police_deescalation_system,
             police_escalation::police_debug_system,
-            police_escalation::render_threat_level,
+            // police_escalation::render_threat_level,
 
             explosions::explosion_damage_system,
             explosions::floating_text_system,
             explosions::handle_grenade_events,
             explosions::handle_vehicle_explosions,            
+        ).run_if(in_state(GameState::Mission)))
+
+        .add_systems(Update, (
+            npc_barks::goap_bark_system,
+            npc_barks::combat_bark_system,
+            npc_barks::bark_handler_system,
+            npc_barks::chat_bubble_system,
+            npc_barks::bark_cooldown_system,
         ).run_if(in_state(GameState::Mission)))
 
         .add_systems(Update, (

@@ -1,27 +1,27 @@
 {
-  "credits": 1650,
-  "current_day": 15,
+  "credits": 2750,
+  "current_day": 23,
   "agent_levels": [
     1,
     1,
     1
   ],
   "agent_experience": [
-    30,
-    30,
-    30
+    50,
+    50,
+    50
   ],
   "agent_recovery": [
-    15,
-    15,
-    15
+    23,
+    23,
+    23
   ],
   "regions": [
     {
       "name": "Neo-Tokyo Central",
       "threat_level": 1,
       "alert_level": 3,
-      "alert_decay_timer": 26
+      "alert_decay_timer": 34
     },
     {
       "name": "Corporate District",
@@ -48,41 +48,10 @@
             "Stock"
           ],
           "attachments": {
-            "Sight": null,
             "Stock": null,
-            "Barrel": null,
-            "Magazine": null
-          },
-          "behavior": {
-            "preferred_range": 150.0,
-            "burst_fire": true,
-            "requires_cover": true,
-            "area_effect": false,
-            "reload_retreat": true
-          }
-        }
-      ],
-      "equipped_weapon_idx": 0,
-      "tools": [
-        "Scanner"
-      ],
-      "cybernetics": []
-    },
-    {
-      "weapon_configs": [
-        {
-          "base_weapon": "Rifle",
-          "supported_slots": [
-            "Sight",
-            "Barrel",
-            "Magazine",
-            "Stock"
-          ],
-          "attachments": {
-            "Barrel": null,
             "Magazine": null,
             "Sight": null,
-            "Stock": null
+            "Barrel": null
           },
           "behavior": {
             "preferred_range": 150.0,
@@ -110,10 +79,41 @@
             "Stock"
           ],
           "attachments": {
-            "Barrel": null,
-            "Sight": null,
             "Stock": null,
+            "Sight": null,
+            "Barrel": null,
             "Magazine": null
+          },
+          "behavior": {
+            "preferred_range": 150.0,
+            "burst_fire": true,
+            "requires_cover": true,
+            "area_effect": false,
+            "reload_retreat": true
+          }
+        }
+      ],
+      "equipped_weapon_idx": 0,
+      "tools": [
+        "Scanner"
+      ],
+      "cybernetics": []
+    },
+    {
+      "weapon_configs": [
+        {
+          "base_weapon": "Rifle",
+          "supported_slots": [
+            "Sight",
+            "Barrel",
+            "Magazine",
+            "Stock"
+          ],
+          "attachments": {
+            "Magazine": null,
+            "Barrel": null,
+            "Stock": null,
+            "Sight": null
           },
           "behavior": {
             "preferred_range": 150.0,
