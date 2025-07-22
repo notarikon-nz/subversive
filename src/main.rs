@@ -22,11 +22,6 @@ use systems::explosions::*;
 
 fn main() {
 
-    // temp
-    let cities_db = CitiesDatabase::load();
-    cities_db.save();
-    // 
-
     let (global_data, research_progress) = load_global_data_or_default();
     systems::scenes::ensure_scenes_directory();
     ensure_data_directories();
@@ -66,7 +61,7 @@ fn main() {
         .init_resource::<AgentManagementState>()
         .init_resource::<CitiesDatabase>()
         .init_resource::<CitiesProgress>()
-        
+
         .insert_resource(GameConfig::load())
         .insert_resource(global_data)
         .insert_resource(research_progress)
@@ -75,6 +70,7 @@ fn main() {
         .insert_resource(TraitsDatabase::load())
         .insert_resource(AttachmentDatabase::load())
         .insert_resource(LoreDatabase::load())
+        .insert_resource(CitiesDatabase::load())
 
         .insert_resource(ImguiState {
             demo_window_open: true,

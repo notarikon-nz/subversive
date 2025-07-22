@@ -18,7 +18,10 @@ pub struct GlobalMapState {
     pub selected_city: Option<String>,
     pub hovered_city: Option<String>,
     pub map_projection: Option<MapProjection>,
+    pub city_positions: std::collections::HashMap<String, Vec2>,
 }
+
+
 
 pub fn handle_input(
     input: &ButtonInput<KeyCode>,
@@ -76,6 +79,7 @@ pub fn handle_input(
         let mut new_hovered = None;
         
         for (entity, transform, interactive_city) in city_query.iter() {
+            
             let city_pos = transform.translation.truncate();
             let distance = world_pos.distance(city_pos);
             
@@ -145,11 +149,12 @@ pub fn create_content(
         row_gap: Val::Px(15.0),
         ..default()
     }).with_children(|content| {
-        // Agent status section
-        // create_agent_status_section(content, global_data);
         
         // World map section
         create_world_map_section(content, cities_db, cities_progress, map_state);
+
+        // Agent status section
+        // create_agent_status_section(content, global_data);
         
         // Selected city info
         create_selected_city_info(content, cities_db, cities_progress, map_state);
@@ -164,11 +169,7 @@ pub fn create_content(
 }
 
 fn create_agent_status_section(parent: &mut ChildSpawnerCommands, global_data: &GlobalData) {
-    parent.spawn((
-        Text::new("AGENT STATUS:"),
-        TextFont { font_size: 20.0, ..default() },
-        TextColor(Color::WHITE),
-    ));
+    // parent.spawn((Text::new("AGENT STATUS:"),TextFont { font_size: 20.0, ..default() },TextColor(Color::WHITE),));
     
     for i in 0..3 {
         let level = global_data.agent_levels[i];
@@ -186,7 +187,7 @@ fn create_agent_status_section(parent: &mut ChildSpawnerCommands, global_data: &
         
         parent.spawn((
             Text::new(status),
-            TextFont { font_size: 16.0, ..default() },
+            TextFont { font_size: 8.0, ..default() }, // WAS 16.0
             TextColor(color),
         ));
     }
@@ -212,24 +213,32 @@ fn create_world_map_section(
         BackgroundColor(Color::srgb(0.05, 0.05, 0.1)),
     )).with_children(|map_container| {
         // Initialize map projection
-        let map_width = 800.0;
-        let map_height = 400.0;
+        let map_width = 1200.0; // get screen width = padding
+        let map_height = 500.0;
         map_state.map_projection = Some(MapProjection::new(map_width, map_height));
         
         let projection = map_state.map_projection.as_ref().unwrap();
         let accessible_cities = cities_db.get_accessible_cities(cities_progress);
+        let all_cities = cities_db.get_all_cities(); // Get all cities for rendering
         
-        // Draw accessible cities
-        for city in &accessible_cities {
+        // Draw ALL cities (both accessible and inaccessible)
+        for city in &all_cities {
+            
             let pixel_pos = projection.lat_lon_to_pixel(&city.coordinates);
             let city_state = cities_progress.get_city_state(&city.id);
             
+            // Store the actual rendered position
+            map_state.city_positions.insert(city.id.clone(), pixel_pos);
+
+            let is_accessible = accessible_cities.iter().any(|acc_city| acc_city.id == city.id);
             let is_selected = map_state.selected_city.as_ref() == Some(&city.id);
             let is_hovered = map_state.hovered_city.as_ref() == Some(&city.id);
             let is_completed = city_state.completed;
             
             // City circle color based on status
-            let city_color = if is_completed {
+            let city_color = if !is_accessible {
+                Color::srgba(0.3, 0.3, 0.3, 0.4) // Dark grey for inaccessible
+            } else if is_completed {
                 Color::srgb(0.2, 0.8, 0.2) // Green for completed
             } else {
                 match city_state.alert_level {
@@ -260,18 +269,30 @@ fn create_world_map_section(
                     ..default()
                 },
                 BackgroundColor(city_color),
-                BorderColor(if is_selected { Color::WHITE } else { Color::srgb(0.4, 0.4, 0.4) }),
+                BorderColor(if is_selected { 
+                    Color::WHITE 
+                } else if is_accessible {
+                    Color::srgb(0.4, 0.4, 0.4)
+                } else {
+                    Color::srgba(0.2, 0.2, 0.2, 0.4) // Darker border for inaccessible
+                }),
                 InteractiveCity {
                     city_id: city.id.clone(),
-                    accessible: true,
+                    accessible: is_accessible,
                 },
             ));
             
-            // City name label
+            // City name label (dimmer for inaccessible cities)
+            let text_color = if is_accessible {
+                Color::WHITE
+            } else {
+                Color::srgba(0.5, 0.5, 0.5, 0.6) // Semi-transparent for inaccessible
+            };
+            
             map_container.spawn((
                 Text::new(&city.name),
                 TextFont { font_size: 10.0, ..default() },
-                TextColor(Color::WHITE),
+                TextColor(text_color),
                 Node {
                     position_type: PositionType::Absolute,
                     left: Val::Px(pixel_pos.x - 30.0),
@@ -282,22 +303,24 @@ fn create_world_map_section(
                 },
             ));
             
-            // Corporation indicator
-            let corp_color = city.controlling_corp.color();
-            map_container.spawn((
-                Node {
-                    width: Val::Px(6.0),
-                    height: Val::Px(6.0),
-                    position_type: PositionType::Absolute,
-                    left: Val::Px(pixel_pos.x + 8.0),
-                    top: Val::Px(pixel_pos.y - 8.0),
-                    ..default()
-                },
-                BackgroundColor(corp_color),
-            ));
+            // Corporation indicator (only for accessible cities)
+            if is_accessible {
+                let corp_color = city.controlling_corp.color();
+                map_container.spawn((
+                    Node {
+                        width: Val::Px(6.0),
+                        height: Val::Px(6.0),
+                        position_type: PositionType::Absolute,
+                        left: Val::Px(pixel_pos.x + 8.0),
+                        top: Val::Px(pixel_pos.y - 8.0),
+                        ..default()
+                    },
+                    BackgroundColor(corp_color),
+                ));
+            }
         }
         
-        // Draw connections between accessible cities
+        // Draw connections between accessible cities only
         for city in &accessible_cities {
             let city_pos = projection.lat_lon_to_pixel(&city.coordinates);
             
@@ -325,8 +348,22 @@ fn create_world_map_section(
                 }
             }
         }
+        
+        // Debug info overlay
+        map_container.spawn((
+            Text::new(format!("Cities: {} total, {} accessible", all_cities.len(), accessible_cities.len())),
+            TextFont { font_size: 10.0, ..default() },
+            TextColor(Color::srgb(0.8, 0.8, 0.2)),
+            Node {
+                position_type: PositionType::Absolute,
+                top: Val::Px(5.0),
+                left: Val::Px(5.0),
+                ..default()
+            },
+        ));
     });
 }
+
 
 fn create_selected_city_info(
     parent: &mut ChildSpawnerCommands,

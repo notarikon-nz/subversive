@@ -81,7 +81,12 @@ pub fn get_world_mouse_position(
     let (camera, camera_transform) = cameras.single().ok()?;
     let cursor_pos = window.cursor_position()?;
     
-    camera.viewport_to_world_2d(camera_transform, cursor_pos).ok()
+    // Flip Y coordinate to match UI coordinate system
+    let flipped_cursor = Vec2::new(cursor_pos.x, window.height() - cursor_pos.y);
+    
+    camera.viewport_to_world_2d(camera_transform, flipped_cursor).ok()
+        
+    // camera.viewport_to_world_2d(camera_transform, cursor_pos).ok()
 }
 
 pub fn experience_for_level(level: u8) -> u32 {

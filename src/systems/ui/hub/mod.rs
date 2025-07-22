@@ -99,10 +99,10 @@ pub struct HubDatabases {
 impl Default for HubDatabases {
     fn default() -> Self {
         Self {
-            research_db: ResearchDatabase::default(),
-            cybernetics_db: CyberneticsDatabase::default(),
-            attachment_db: AttachmentDatabase::default(),
-            cities_db: CitiesDatabase::default(),
+            research_db: ResearchDatabase::load(),
+            cybernetics_db: CyberneticsDatabase::load(),
+            attachment_db: AttachmentDatabase::load(),
+            cities_db: CitiesDatabase::load(),
         }
     }
 }
