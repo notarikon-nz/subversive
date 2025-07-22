@@ -152,6 +152,42 @@ pub fn spawn_from_scene(commands: &mut Commands, scene: &SceneData, global_data:
           scene.terminals.len(), scene.vehicles.len());
 }
 
+pub fn spawn_from_scene_with_city(
+    commands: &mut Commands, 
+    scene: &SceneData, 
+    global_data: &GlobalData, 
+    sprites: &GameSprites,
+    city: Option<&City>,  // NEW parameter
+) {
+    // Apply city-specific modifiers to spawning
+    if let Some(city) = city {
+        info!("Spawning mission in {} ({})", city.name, city.country);
+        
+        // Modify enemy spawning based on city traits
+        let enemy_modifier = calculate_city_difficulty_modifier(city);
+        
+        // Apply corporation-specific enemy types
+        let preferred_faction = match city.controlling_corp {
+            Corporation::Nexus => Faction::Corporate,
+            Corporation::Syndicate => Faction::Syndicate,
+            _ => Faction::Corporate,
+        };
+        
+        // ... modify spawning logic based on city data ...
+    }
+    
+    // ... rest of existing spawn logic ...
+}
+
+fn calculate_city_difficulty_modifier(city: &City) -> f32 {
+    let base_modifier = 1.0;
+    let corruption_modifier = 1.0 + (city.corruption_level as f32 * 0.05);
+    let trait_modifier = if city.traits.contains(&CityTrait::PoliceBrutality) { 1.2 } else { 1.0 };
+    
+    base_modifier * corruption_modifier * trait_modifier
+}
+
+
 pub fn spawn_fallback_mission(commands: &mut Commands, global_data: &GlobalData, sprites: &GameSprites) {
     warn!("Using fallback mission with urban simulation");
     

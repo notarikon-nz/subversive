@@ -1,6 +1,7 @@
 // src/systems/ui/hub/mod.rs - Updated with agent state integration
 use bevy::prelude::*;
 use crate::core::*;
+use crate::systems::*;
 use serde::{Deserialize, Serialize};
 
 // Re-export all tab modules
@@ -11,6 +12,7 @@ pub mod manufacture;
 pub mod missions;
 
 pub use agents::*;
+pub use global_map::*;
 
 #[derive(Component)]
 pub struct HubScreen;
@@ -102,7 +104,15 @@ pub fn hub_system(
     screen_query: Query<Entity, With<HubScreen>>,
     attachment_db: Res<AttachmentDatabase>,
     agent_query: Query<&mut Inventory, With<Agent>>,
-    fonts: Option<Res<GameFonts>>,  // ADD THIS
+    fonts: Option<Res<GameFonts>>,
+    // NEW: Cities system resources
+    cities_db: Res<CitiesDatabase>,
+    mut cities_progress: ResMut<CitiesProgress>,
+    mut map_state: ResMut<GlobalMapState>,
+    windows: Query<&Window>,
+    cameras: Query<(&Camera, &GlobalTransform)>,
+    mouse: Res<ButtonInput<MouseButton>>,
+    city_query: Query<(Entity, &Transform, &InteractiveCity)>,
 ) {
     // Global tab switching with Q/E
     let mut tab_changed = false;
@@ -131,7 +141,10 @@ pub fn hub_system(
             &attachment_db, 
             &unlocked, 
             &cybernetics_db, 
-            fonts_ref);
+            fonts_ref,
+            &cities_db,
+            &cities_progress,
+            &mut map_state);
     }
 
     // Delegate input handling to appropriate tab
@@ -139,7 +152,14 @@ pub fn hub_system(
         HubTab::GlobalMap => global_map::handle_input(
             &input, 
             &mut global_data, 
-            &mut hub_state
+            &mut hub_state,
+            &cities_db,
+            &mut cities_progress,
+            &mut map_state,
+            &windows,
+            &cameras,
+            &mouse,
+            &city_query,
         ),
         HubTab::Research => research::handle_input(
             &input, 
@@ -177,12 +197,13 @@ pub fn hub_system(
         std::process::exit(0);
     }
 
+    // Update rebuild_hub function call to include cities data:
     if screen_query.is_empty() || needs_rebuild {
         let fonts_ref = fonts.as_ref().map(|f| f.as_ref());
         rebuild_hub(&mut commands, &screen_query, &global_data, &hub_state, 
                    &manufacture_state, &agent_state, &research_progress, 
                    &research_db, &attachment_db, &unlocked, &cybernetics_db,
-                   fonts_ref);  
+                   fonts_ref, &cities_db, &cities_progress, &mut map_state);  
     }
 }
 
@@ -199,12 +220,16 @@ fn rebuild_hub(
     unlocked: &UnlockedAttachments,
     cybernetics_db: &CyberneticsDatabase,
     fonts: Option<&GameFonts>,
+    cities_db: &CitiesDatabase,              // NEW
+    cities_progress: &CitiesProgress,        // NEW
+    map_state: &mut GlobalMapState,          // NEW
 ) {
     for entity in screen_query.iter() {
         commands.safe_despawn(entity);
     }
     create_hub_ui(commands, global_data, hub_state, manufacture_state, agent_state,
-        research_progress, research_db, attachment_db, unlocked, cybernetics_db, fonts);
+        research_progress, research_db, attachment_db, unlocked, cybernetics_db, 
+        fonts, cities_db, cities_progress, map_state);
 }
 
 fn create_hub_ui(
@@ -218,7 +243,10 @@ fn create_hub_ui(
     attachment_db: &AttachmentDatabase,
     unlocked: &UnlockedAttachments,
     cybernetics_db: &CyberneticsDatabase,
-    fonts: Option<&GameFonts>, 
+    fonts: Option<&GameFonts>,
+    cities_db: &CitiesDatabase,              // NEW
+    cities_progress: &CitiesProgress,        // NEW  
+    map_state: &mut GlobalMapState,          // NEW
 ) {
     commands.spawn((
         Node {
@@ -234,7 +262,14 @@ fn create_hub_ui(
         create_tab_bar(parent, hub_state.active_tab, fonts);
         
         match hub_state.active_tab {
-            HubTab::GlobalMap => global_map::create_content(parent, global_data, hub_state),
+            HubTab::GlobalMap => global_map::create_content(
+                parent, 
+                global_data, 
+                hub_state, 
+                cities_db, 
+                cities_progress, 
+                map_state
+            ),
             HubTab::Research => research::create_content(
                 parent, 
                 global_data, 

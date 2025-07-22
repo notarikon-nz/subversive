@@ -15,6 +15,7 @@ pub struct SaveData {
     pub regions: Vec<SaveRegion>,
     pub agent_loadouts: [AgentLoadout; 3],
     pub research_progress: ResearchProgress,
+    pub cities_progress: CitiesProgress,  // NEW
 }
 
 #[derive(Serialize, Deserialize)]
@@ -34,7 +35,7 @@ impl From<&GlobalData> for SaveData {
             agent_experience: data.agent_experience,
             agent_recovery: data.agent_recovery,
             agent_loadouts: data.agent_loadouts.clone(),
-            research_progress: data.research_progress.clone(), // ADD THIS
+            research_progress: data.research_progress.clone(),
             regions: data.regions.iter().map(|r| SaveRegion {
                 name: r.name.clone(),
                 threat_level: r.threat_level,
@@ -46,6 +47,7 @@ impl From<&GlobalData> for SaveData {
                 },
                 alert_decay_timer: r.alert_decay_timer,
             }).collect(),
+            cities_progress: data.cities_progress.clone(),
         }
     }
 }
@@ -72,6 +74,7 @@ impl From<SaveData> for GlobalData {
                 },
                 alert_decay_timer: r.alert_decay_timer,
             }).collect(),
+            cities_progress: save.cities_progress,
         }
     }
 }

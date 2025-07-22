@@ -1,0 +1,951 @@
+{
+  "cities": [
+    {
+      "id": "new_york",
+      "name": "New York",
+      "country": "USA",
+      "coordinates": {
+        "latitude": 40.7128,
+        "longitude": -74.006
+      },
+      "population": 8,
+      "corruption_level": 4,
+      "controlling_corp": "Nexus",
+      "traits": [
+        "FinancialHub",
+        "HighTechSurveillance"
+      ],
+      "connections": [
+        "chicago",
+        "miami",
+        "toronto"
+      ]
+    },
+    {
+      "id": "los_angeles",
+      "name": "Los Angeles",
+      "country": "USA",
+      "coordinates": {
+        "latitude": 34.0522,
+        "longitude": -118.2437
+      },
+      "population": 4,
+      "corruption_level": 5,
+      "controlling_corp": "Omnicorp",
+      "traits": [
+        "BlackMarket",
+        "Cybercrime"
+      ],
+      "connections": [
+        "chicago",
+        "mexico_city"
+      ]
+    },
+    {
+      "id": "mexico_city",
+      "name": "Mexico City",
+      "country": "Mexico",
+      "coordinates": {
+        "latitude": 19.4326,
+        "longitude": -99.1332
+      },
+      "population": 9,
+      "corruption_level": 7,
+      "controlling_corp": "Syndicate",
+      "traits": [
+        "DrugCartels",
+        "Corruption"
+      ],
+      "connections": [
+        "los_angeles",
+        "panama_city"
+      ]
+    },
+    {
+      "id": "chicago",
+      "name": "Chicago",
+      "country": "USA",
+      "coordinates": {
+        "latitude": 41.8781,
+        "longitude": -87.6298
+      },
+      "population": 3,
+      "corruption_level": 3,
+      "controlling_corp": "Aegis",
+      "traits": [
+        "HeavyIndustry",
+        "PoliceBrutality"
+      ],
+      "connections": [
+        "new_york",
+        "los_angeles",
+        "toronto"
+      ]
+    },
+    {
+      "id": "miami",
+      "name": "Miami",
+      "country": "USA",
+      "coordinates": {
+        "latitude": 25.7617,
+        "longitude": -80.1918
+      },
+      "population": 2,
+      "corruption_level": 6,
+      "controlling_corp": "Syndicate",
+      "traits": [
+        "DrugCartels",
+        "BlackMarket"
+      ],
+      "connections": [
+        "new_york",
+        "panama_city"
+      ]
+    },
+    {
+      "id": "toronto",
+      "name": "Toronto",
+      "country": "Canada",
+      "coordinates": {
+        "latitude": 43.6532,
+        "longitude": -79.3832
+      },
+      "population": 3,
+      "corruption_level": 2,
+      "controlling_corp": "Nexus",
+      "traits": [
+        "FinancialHub"
+      ],
+      "connections": [
+        "new_york",
+        "chicago"
+      ]
+    },
+    {
+      "id": "panama_city",
+      "name": "Panama City",
+      "country": "Panama",
+      "coordinates": {
+        "latitude": 8.538,
+        "longitude": -79.5205
+      },
+      "population": 1,
+      "corruption_level": 8,
+      "controlling_corp": "Syndicate",
+      "traits": [
+        "DrugCartels",
+        "Corruption"
+      ],
+      "connections": [
+        "mexico_city",
+        "miami",
+        "bogota"
+      ]
+    },
+    {
+      "id": "bogota",
+      "name": "Bogotá",
+      "country": "Colombia",
+      "coordinates": {
+        "latitude": 4.711,
+        "longitude": -74.0721
+      },
+      "population": 7,
+      "corruption_level": 9,
+      "controlling_corp": "Syndicate",
+      "traits": [
+        "DrugCartels",
+        "CivilianUnrest"
+      ],
+      "connections": [
+        "panama_city",
+        "lima"
+      ]
+    },
+    {
+      "id": "lima",
+      "name": "Lima",
+      "country": "Peru",
+      "coordinates": {
+        "latitude": -12.0464,
+        "longitude": -77.0428
+      },
+      "population": 10,
+      "corruption_level": 7,
+      "controlling_corp": "Omnicorp",
+      "traits": [
+        "HeavyIndustry",
+        "CivilianUnrest"
+      ],
+      "connections": [
+        "bogota",
+        "sao_paulo"
+      ]
+    },
+    {
+      "id": "sao_paulo",
+      "name": "São Paulo",
+      "country": "Brazil",
+      "coordinates": {
+        "latitude": -23.5505,
+        "longitude": -46.6333
+      },
+      "population": 12,
+      "corruption_level": 6,
+      "controlling_corp": "Helix",
+      "traits": [
+        "HeavyIndustry",
+        "Cybercrime"
+      ],
+      "connections": [
+        "lima",
+        "rio_janeiro",
+        "buenos_aires"
+      ]
+    },
+    {
+      "id": "rio_janeiro",
+      "name": "Rio de Janeiro",
+      "country": "Brazil",
+      "coordinates": {
+        "latitude": -22.9068,
+        "longitude": -43.1729
+      },
+      "population": 6,
+      "corruption_level": 8,
+      "controlling_corp": "Syndicate",
+      "traits": [
+        "DrugCartels",
+        "CivilianUnrest"
+      ],
+      "connections": [
+        "sao_paulo"
+      ]
+    },
+    {
+      "id": "buenos_aires",
+      "name": "Buenos Aires",
+      "country": "Argentina",
+      "coordinates": {
+        "latitude": -34.6118,
+        "longitude": -58.396
+      },
+      "population": 15,
+      "corruption_level": 5,
+      "controlling_corp": "Omnicorp",
+      "traits": [
+        "FinancialHub",
+        "PoliceBrutality"
+      ],
+      "connections": [
+        "sao_paulo"
+      ]
+    },
+    {
+      "id": "london",
+      "name": "London",
+      "country": "UK",
+      "coordinates": {
+        "latitude": 51.5074,
+        "longitude": -0.1278
+      },
+      "population": 9,
+      "corruption_level": 3,
+      "controlling_corp": "Nexus",
+      "traits": [
+        "FinancialHub",
+        "HighTechSurveillance"
+      ],
+      "connections": [
+        "paris",
+        "amsterdam",
+        "berlin"
+      ]
+    },
+    {
+      "id": "paris",
+      "name": "Paris",
+      "country": "France",
+      "coordinates": {
+        "latitude": 48.8566,
+        "longitude": 2.3522
+      },
+      "population": 11,
+      "corruption_level": 4,
+      "controlling_corp": "Helix",
+      "traits": [
+        "CorporateHeadquarters",
+        "Underground"
+      ],
+      "connections": [
+        "london",
+        "berlin",
+        "barcelona"
+      ]
+    },
+    {
+      "id": "berlin",
+      "name": "Berlin",
+      "country": "Germany",
+      "coordinates": {
+        "latitude": 52.52,
+        "longitude": 13.405
+      },
+      "population": 4,
+      "corruption_level": 2,
+      "controlling_corp": "Omnicorp",
+      "traits": [
+        "HeavyIndustry",
+        "HighTechSurveillance"
+      ],
+      "connections": [
+        "london",
+        "paris",
+        "prague",
+        "warsaw"
+      ]
+    },
+    {
+      "id": "moscow",
+      "name": "Moscow",
+      "country": "Russia",
+      "coordinates": {
+        "latitude": 55.7558,
+        "longitude": 37.6176
+      },
+      "population": 12,
+      "corruption_level": 6,
+      "controlling_corp": "Aegis",
+      "traits": [
+        "MilitaryBase",
+        "Cybercrime"
+      ],
+      "connections": [
+        "warsaw",
+        "istanbul"
+      ]
+    },
+    {
+      "id": "istanbul",
+      "name": "Istanbul",
+      "country": "Turkey",
+      "coordinates": {
+        "latitude": 41.0082,
+        "longitude": 28.9784
+      },
+      "population": 15,
+      "corruption_level": 5,
+      "controlling_corp": "Syndicate",
+      "traits": [
+        "BlackMarket",
+        "Corruption"
+      ],
+      "connections": [
+        "moscow",
+        "athens",
+        "cairo"
+      ]
+    },
+    {
+      "id": "rome",
+      "name": "Rome",
+      "country": "Italy",
+      "coordinates": {
+        "latitude": 41.9028,
+        "longitude": 12.4964
+      },
+      "population": 3,
+      "corruption_level": 6,
+      "controlling_corp": "Helix",
+      "traits": [
+        "CorporateHeadquarters",
+        "Underground"
+      ],
+      "connections": [
+        "barcelona",
+        "athens"
+      ]
+    },
+    {
+      "id": "barcelona",
+      "name": "Barcelona",
+      "country": "Spain",
+      "coordinates": {
+        "latitude": 41.3851,
+        "longitude": 2.1734
+      },
+      "population": 5,
+      "corruption_level": 4,
+      "controlling_corp": "Nexus",
+      "traits": [
+        "FinancialHub"
+      ],
+      "connections": [
+        "paris",
+        "rome",
+        "casablanca"
+      ]
+    },
+    {
+      "id": "amsterdam",
+      "name": "Amsterdam",
+      "country": "Netherlands",
+      "coordinates": {
+        "latitude": 52.3676,
+        "longitude": 4.9041
+      },
+      "population": 1,
+      "corruption_level": 2,
+      "controlling_corp": "Nexus",
+      "traits": [
+        "FinancialHub",
+        "BlackMarket"
+      ],
+      "connections": [
+        "london",
+        "berlin"
+      ]
+    },
+    {
+      "id": "prague",
+      "name": "Prague",
+      "country": "Czech Republic",
+      "coordinates": {
+        "latitude": 50.0755,
+        "longitude": 14.4378
+      },
+      "population": 1,
+      "corruption_level": 3,
+      "controlling_corp": "Omnicorp",
+      "traits": [
+        "Underground",
+        "Cybercrime"
+      ],
+      "connections": [
+        "berlin",
+        "warsaw"
+      ]
+    },
+    {
+      "id": "warsaw",
+      "name": "Warsaw",
+      "country": "Poland",
+      "coordinates": {
+        "latitude": 52.2297,
+        "longitude": 21.0122
+      },
+      "population": 2,
+      "corruption_level": 4,
+      "controlling_corp": "Aegis",
+      "traits": [
+        "MilitaryBase"
+      ],
+      "connections": [
+        "berlin",
+        "prague",
+        "moscow"
+      ]
+    },
+    {
+      "id": "athens",
+      "name": "Athens",
+      "country": "Greece",
+      "coordinates": {
+        "latitude": 37.9838,
+        "longitude": 23.7275
+      },
+      "population": 3,
+      "corruption_level": 7,
+      "controlling_corp": "Syndicate",
+      "traits": [
+        "BlackMarket",
+        "Underground"
+      ],
+      "connections": [
+        "rome",
+        "istanbul"
+      ]
+    },
+    {
+      "id": "stockholm",
+      "name": "Stockholm",
+      "country": "Sweden",
+      "coordinates": {
+        "latitude": 59.3293,
+        "longitude": 18.0686
+      },
+      "population": 1,
+      "corruption_level": 1,
+      "controlling_corp": "Nexus",
+      "traits": [
+        "HighTechSurveillance"
+      ],
+      "connections": [
+        "amsterdam"
+      ]
+    },
+    {
+      "id": "tokyo",
+      "name": "Tokyo",
+      "country": "Japan",
+      "coordinates": {
+        "latitude": 35.6762,
+        "longitude": 139.6503
+      },
+      "population": 14,
+      "corruption_level": 2,
+      "controlling_corp": "Nexus",
+      "traits": [
+        "HighTechSurveillance",
+        "CorporateHeadquarters"
+      ],
+      "connections": [
+        "seoul",
+        "shanghai"
+      ]
+    },
+    {
+      "id": "shanghai",
+      "name": "Shanghai",
+      "country": "China",
+      "coordinates": {
+        "latitude": 31.2304,
+        "longitude": 121.4737
+      },
+      "population": 26,
+      "corruption_level": 3,
+      "controlling_corp": "Omnicorp",
+      "traits": [
+        "HeavyIndustry",
+        "HighTechSurveillance"
+      ],
+      "connections": [
+        "tokyo",
+        "hong_kong",
+        "seoul"
+      ]
+    },
+    {
+      "id": "hong_kong",
+      "name": "Hong Kong",
+      "country": "China",
+      "coordinates": {
+        "latitude": 22.3193,
+        "longitude": 114.1694
+      },
+      "population": 7,
+      "corruption_level": 2,
+      "controlling_corp": "Nexus",
+      "traits": [
+        "FinancialHub",
+        "Cybercrime"
+      ],
+      "connections": [
+        "shanghai",
+        "singapore",
+        "manila"
+      ]
+    },
+    {
+      "id": "seoul",
+      "name": "Seoul",
+      "country": "South Korea",
+      "coordinates": {
+        "latitude": 37.5665,
+        "longitude": 126.978
+      },
+      "population": 10,
+      "corruption_level": 2,
+      "controlling_corp": "Nexus",
+      "traits": [
+        "HighTechSurveillance",
+        "Cybercrime"
+      ],
+      "connections": [
+        "tokyo",
+        "shanghai"
+      ]
+    },
+    {
+      "id": "singapore",
+      "name": "Singapore",
+      "country": "Singapore",
+      "coordinates": {
+        "latitude": 1.3521,
+        "longitude": 103.8198
+      },
+      "population": 6,
+      "corruption_level": 1,
+      "controlling_corp": "Nexus",
+      "traits": [
+        "HighTechSurveillance",
+        "FinancialHub"
+      ],
+      "connections": [
+        "hong_kong",
+        "bangkok",
+        "jakarta"
+      ]
+    },
+    {
+      "id": "bangkok",
+      "name": "Bangkok",
+      "country": "Thailand",
+      "coordinates": {
+        "latitude": 13.7563,
+        "longitude": 100.5018
+      },
+      "population": 10,
+      "corruption_level": 6,
+      "controlling_corp": "Syndicate",
+      "traits": [
+        "BlackMarket",
+        "Corruption"
+      ],
+      "connections": [
+        "singapore",
+        "manila"
+      ]
+    },
+    {
+      "id": "mumbai",
+      "name": "Mumbai",
+      "country": "India",
+      "coordinates": {
+        "latitude": 19.076,
+        "longitude": 72.8777
+      },
+      "population": 20,
+      "corruption_level": 7,
+      "controlling_corp": "Helix",
+      "traits": [
+        "CivilianUnrest",
+        "BlackMarket"
+      ],
+      "connections": [
+        "delhi",
+        "dubai"
+      ]
+    },
+    {
+      "id": "delhi",
+      "name": "Delhi",
+      "country": "India",
+      "coordinates": {
+        "latitude": 28.7041,
+        "longitude": 77.1025
+      },
+      "population": 30,
+      "corruption_level": 8,
+      "controlling_corp": "Omnicorp",
+      "traits": [
+        "HeavyIndustry",
+        "CivilianUnrest"
+      ],
+      "connections": [
+        "mumbai",
+        "karachi"
+      ]
+    },
+    {
+      "id": "jakarta",
+      "name": "Jakarta",
+      "country": "Indonesia",
+      "coordinates": {
+        "latitude": -6.2088,
+        "longitude": 106.8456
+      },
+      "population": 10,
+      "corruption_level": 8,
+      "controlling_corp": "Syndicate",
+      "traits": [
+        "Corruption",
+        "CivilianUnrest"
+      ],
+      "connections": [
+        "singapore",
+        "manila",
+        "sydney"
+      ]
+    },
+    {
+      "id": "manila",
+      "name": "Manila",
+      "country": "Philippines",
+      "coordinates": {
+        "latitude": 14.5995,
+        "longitude": 120.9842
+      },
+      "population": 13,
+      "corruption_level": 9,
+      "controlling_corp": "Syndicate",
+      "traits": [
+        "Corruption",
+        "DrugCartels"
+      ],
+      "connections": [
+        "hong_kong",
+        "bangkok",
+        "jakarta"
+      ]
+    },
+    {
+      "id": "dubai",
+      "name": "Dubai",
+      "country": "UAE",
+      "coordinates": {
+        "latitude": 25.2048,
+        "longitude": 55.2708
+      },
+      "population": 3,
+      "corruption_level": 3,
+      "controlling_corp": "Nexus",
+      "traits": [
+        "FinancialHub",
+        "HighTechSurveillance"
+      ],
+      "connections": [
+        "mumbai",
+        "tehran",
+        "cairo"
+      ]
+    },
+    {
+      "id": "tehran",
+      "name": "Tehran",
+      "country": "Iran",
+      "coordinates": {
+        "latitude": 35.6892,
+        "longitude": 51.389
+      },
+      "population": 9,
+      "corruption_level": 7,
+      "controlling_corp": "Aegis",
+      "traits": [
+        "MilitaryBase",
+        "Underground"
+      ],
+      "connections": [
+        "dubai",
+        "moscow"
+      ]
+    },
+    {
+      "id": "karachi",
+      "name": "Karachi",
+      "country": "Pakistan",
+      "coordinates": {
+        "latitude": 24.8607,
+        "longitude": 67.0011
+      },
+      "population": 15,
+      "corruption_level": 9,
+      "controlling_corp": "Syndicate",
+      "traits": [
+        "DrugCartels",
+        "CivilianUnrest"
+      ],
+      "connections": [
+        "delhi",
+        "mumbai"
+      ]
+    },
+    {
+      "id": "dhaka",
+      "name": "Dhaka",
+      "country": "Bangladesh",
+      "coordinates": {
+        "latitude": 23.8103,
+        "longitude": 90.4125
+      },
+      "population": 22,
+      "corruption_level": 8,
+      "controlling_corp": "Helix",
+      "traits": [
+        "CivilianUnrest",
+        "Corruption"
+      ],
+      "connections": [
+        "delhi"
+      ]
+    },
+    {
+      "id": "cairo",
+      "name": "Cairo",
+      "country": "Egypt",
+      "coordinates": {
+        "latitude": 30.0444,
+        "longitude": 31.2357
+      },
+      "population": 10,
+      "corruption_level": 6,
+      "controlling_corp": "Aegis",
+      "traits": [
+        "MilitaryBase",
+        "Underground"
+      ],
+      "connections": [
+        "istanbul",
+        "dubai",
+        "addis_ababa"
+      ]
+    },
+    {
+      "id": "lagos",
+      "name": "Lagos",
+      "country": "Nigeria",
+      "coordinates": {
+        "latitude": 6.5244,
+        "longitude": 3.3792
+      },
+      "population": 15,
+      "corruption_level": 8,
+      "controlling_corp": "Syndicate",
+      "traits": [
+        "DrugCartels",
+        "CivilianUnrest"
+      ],
+      "connections": [
+        "casablanca",
+        "nairobi"
+      ]
+    },
+    {
+      "id": "nairobi",
+      "name": "Nairobi",
+      "country": "Kenya",
+      "coordinates": {
+        "latitude": -1.2921,
+        "longitude": 36.8219
+      },
+      "population": 4,
+      "corruption_level": 6,
+      "controlling_corp": "Helix",
+      "traits": [
+        "Underground",
+        "CivilianUnrest"
+      ],
+      "connections": [
+        "lagos",
+        "cairo",
+        "addis_ababa",
+        "johannesburg"
+      ]
+    },
+    {
+      "id": "johannesburg",
+      "name": "Johannesburg",
+      "country": "South Africa",
+      "coordinates": {
+        "latitude": -26.2041,
+        "longitude": 28.0473
+      },
+      "population": 5,
+      "corruption_level": 5,
+      "controlling_corp": "Omnicorp",
+      "traits": [
+        "HeavyIndustry",
+        "CivilianUnrest"
+      ],
+      "connections": [
+        "nairobi"
+      ]
+    },
+    {
+      "id": "casablanca",
+      "name": "Casablanca",
+      "country": "Morocco",
+      "coordinates": {
+        "latitude": 33.5731,
+        "longitude": -7.5898
+      },
+      "population": 4,
+      "corruption_level": 5,
+      "controlling_corp": "Syndicate",
+      "traits": [
+        "BlackMarket",
+        "Corruption"
+      ],
+      "connections": [
+        "barcelona",
+        "lagos"
+      ]
+    },
+    {
+      "id": "addis_ababa",
+      "name": "Addis Ababa",
+      "country": "Ethiopia",
+      "coordinates": {
+        "latitude": 9.145,
+        "longitude": 38.7451
+      },
+      "population": 3,
+      "corruption_level": 6,
+      "controlling_corp": "Aegis",
+      "traits": [
+        "MilitaryBase"
+      ],
+      "connections": [
+        "cairo",
+        "nairobi"
+      ]
+    },
+    {
+      "id": "sydney",
+      "name": "Sydney",
+      "country": "Australia",
+      "coordinates": {
+        "latitude": -33.8688,
+        "longitude": 151.2093
+      },
+      "population": 5,
+      "corruption_level": 2,
+      "controlling_corp": "Nexus",
+      "traits": [
+        "FinancialHub"
+      ],
+      "connections": [
+        "melbourne",
+        "jakarta",
+        "auckland"
+      ]
+    },
+    {
+      "id": "melbourne",
+      "name": "Melbourne",
+      "country": "Australia",
+      "coordinates": {
+        "latitude": -37.8136,
+        "longitude": 144.9631
+      },
+      "population": 5,
+      "corruption_level": 2,
+      "controlling_corp": "Omnicorp",
+      "traits": [
+        "HeavyIndustry"
+      ],
+      "connections": [
+        "sydney"
+      ]
+    },
+    {
+      "id": "auckland",
+      "name": "Auckland",
+      "country": "New Zealand",
+      "coordinates": {
+        "latitude": -36.8485,
+        "longitude": 174.7633
+      },
+      "population": 2,
+      "corruption_level": 1,
+      "controlling_corp": "Nexus",
+      "traits": [
+        "Underground"
+      ],
+      "connections": [
+        "sydney"
+      ]
+    }
+  ],
+  "starting_city": "new_york"
+}

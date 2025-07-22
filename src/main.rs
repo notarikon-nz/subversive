@@ -1,4 +1,4 @@
-// src/main.rs - Updated with new module structure
+// src/main.rs - Fixed system tuple parentheses
 use bevy::prelude::*;
 
 // https://github.com/Noxime/steamworks-rs/tree/master
@@ -20,7 +20,18 @@ use systems::scenes::*;
 use systems::police_escalation::*;
 use systems::explosions::*;
 
+
+// temp
+use std::path::Path;
+//
+
 fn main() {
+
+    // temp
+    let cities_db = CitiesDatabase::load();
+    cities_db.save();
+    // 
+
     let (global_data, research_progress) = load_global_data_or_default();
     systems::scenes::ensure_scenes_directory();
     ensure_data_directories();
@@ -112,8 +123,7 @@ fn main() {
             preload_common_scenes,
         ))
 
-        .add_systems(Update, 
-        (
+        .add_systems(Update, (
             systems::input::handle_input,
             ui::screens::fps_system,
             pool::cleanup_inactive_entities,
@@ -121,6 +131,8 @@ fn main() {
             save::save_input_system,
             audio::audio_system,
             scene_cache_debug_system,
+
+            
         ))
 
         .add_systems(OnEnter(GameState::PostMission), (
@@ -132,9 +144,6 @@ fn main() {
             ui::cleanup_global_map_ui,
             ui::reset_hub_to_global_map,
         ))
-        .add_systems(Update, (
-            ui::hub_system,
-        ).run_if(in_state(GameState::GlobalMap)))
 
         .add_systems(OnEnter(GameState::Mission), (
             ui::cleanup_global_map_ui,
@@ -145,9 +154,14 @@ fn main() {
         ))
 
         .add_systems(Update, (
+            ui::hub::hub_system,
+        ).run_if(in_state(GameState::GlobalMap)))
+
+        // Core mission systems
+        .add_systems(Update, (
             camera::movement,
             selection::system,
-            movement::system,                    // FIXED: Core movement system
+            movement::system,
             goap::goap_ai_system,
             ai::goap_sound_detection_system,
             ai::alert_system,
@@ -157,6 +171,8 @@ fn main() {
             morale::civilian_morale_system,
             morale::flee_system,
         ).run_if(in_state(GameState::Mission)))
+
+        // Combat and interaction systems
         .add_systems(Update, (            
             weapon_swap::weapon_drop_system,
             weapon_swap::weapon_pickup_system,
@@ -170,6 +186,8 @@ fn main() {
             ui::screens::inventory_system,
             ui::screens::pause_system,
         ).run_if(in_state(GameState::Mission)))
+
+        // Mission management systems
         .add_systems(Update, (            
             mission::timer_system,
             mission::check_completion,
@@ -183,73 +201,70 @@ fn main() {
             police::police_tracking_system,
             police::police_spawn_system,
         ).run_if(in_state(GameState::Mission)))
+
+        // Area control and formations
         .add_systems(Update, (            
             area_control::weapon_area_control_system,
             area_control::area_effect_system,
             area_control::suppression_movement_system,
-
             formations::formation_input_system,
             formations::formation_movement_system,
             formations::formation_visual_system,
-
             enhanced_neurovector::enhanced_neurovector_system,
             enhanced_neurovector::controlled_civilian_behavior_system,
             enhanced_neurovector::controlled_civilian_visual_system,
-
-            // imgui_example_ui,
-
         ).run_if(in_state(GameState::Mission)))
+
+        // Environmental systems
         .add_systems(Update, (
             vehicles::vehicle_explosion_system,
             vehicles::explosion_damage_system,
             vehicles::vehicle_cover_system,
             vehicles::vehicle_spawn_system,
-
             day_night::day_night_system,
             day_night::lighting_system,
             day_night::time_ui_system,
-
             health_bars::update_health_bars_system,
+        ).run_if(in_state(GameState::Mission)))
 
-            // TEMP
+        // Debug systems
+        .add_systems(Update, (
             testing_spawn::goap_debug_display_system,
             testing_spawn::debug_selection_visual_system,
             testing_spawn::simple_visual_debug_system,
             testing_spawn::patrol_debug_system,
             testing_spawn::faction_visualization_system,
-
         ).run_if(in_state(GameState::Mission)))
 
+        // Urban simulation
         .add_systems(Update, (
-            // Replaces civilian_spawn::dynamic_civilian_spawn_system
             urban_simulation::urban_civilian_spawn_system,
             urban_simulation::crowd_dynamics_system,
             urban_simulation::daily_routine_system,
             urban_simulation::urban_cleanup_system,
             urban_simulation::urban_debug_system,
-
             civilian_spawn::civilian_wander_system,
             civilian_spawn::civilian_cleanup_system,
-        ).run_if(in_state(GameState::Mission)))        
+        ).run_if(in_state(GameState::Mission)))
 
+        // Police escalation
         .add_systems(Update, (
             police_escalation::police_incident_tracking_system,
             police_escalation::police_spawn_system,
             police_escalation::police_cleanup_system,
             police_escalation::police_deescalation_system,
             police_escalation::police_debug_system,
-            // police_escalation::render_threat_level,
-
             explosions::explosion_damage_system,
             explosions::floating_text_system,
             explosions::handle_grenade_events,
             explosions::handle_vehicle_explosions,            
         ).run_if(in_state(GameState::Mission)))
 
+        // Hacking and infrastructure
         .add_systems(Update, (
             lore::lore_interaction_system,
             lore::lore_notification_system,
-            hacking_feedback::enhanced_hacking_system, // hacking_system,
+            hacking_feedback::enhanced_hacking_system,
             hack_recovery_system,
             power_grid_system,
             power_grid_management_system,
@@ -258,16 +273,16 @@ fn main() {
             security_camera_system,
             automated_turret_system,
             security_door_system,
-            power_grid_debug_system,    // H to toggle: Green=powered+working, Yellow=powered+hacked, Red=no power
+            power_grid_debug_system,
         ).run_if(in_state(GameState::Mission)))
 
+        // NPC communication and feedback
         .add_systems(Update, (
             npc_barks::goap_bark_system,
             npc_barks::combat_bark_system,
             npc_barks::bark_handler_system,
             npc_barks::chat_bubble_system,
             npc_barks::bark_cooldown_system,
-
             hacking_feedback::hack_progress_visualization,
             hacking_feedback::hack_status_indicator_system,
             hacking_feedback::device_visual_feedback_system,
@@ -275,6 +290,7 @@ fn main() {
             hacking_feedback::hack_notification_system,            
         ).run_if(in_state(GameState::Mission)))
 
+        // Post mission
         .add_systems(Update, (
             mission::process_mission_results,  
             ui::screens::post_mission_ui_system,
@@ -283,37 +299,59 @@ fn main() {
         .run();
 }
 
+pub fn dummy_fn() {
+
+}
+
 pub fn setup_mission_scene_optimized(
     mut commands: Commands,
     sprites: Res<GameSprites>,
     global_data: Res<GlobalData>,
+    cities_db: Res<CitiesDatabase>,           // NEW
+    cities_progress: Res<CitiesProgress>,     // NEW
     mut scene_cache: ResMut<SceneCache>,
     agents: Query<Entity, With<Agent>>,
 ) {
-    // Clean up any existing agents first
+    // Clean up existing agents
     for entity in agents.iter() {
         if agents.get(entity).is_ok() {
             commands.entity(entity).despawn();
-        } else {
-            warn!("Agent entity {:?} no longer exists, skipping despawn.", entity);
         }
     }
 
-    let scene_name = match global_data.selected_region {
-        0 => "mission1",
-        1 => "mission2", 
-        2 => "mission3",
-        _ => "mission1",
+    // Get selected city context
+    let selected_city = if !cities_progress.current_city.is_empty() {
+        cities_db.get_city(&cities_progress.current_city)
+    } else {
+        None
+    };
+
+    let scene_name = if let Some(city) = selected_city {
+        // Map cities to appropriate scenes
+        match city.traits.first() {
+            Some(CityTrait::FinancialHub) => "mission_corporate",
+            Some(CityTrait::DrugCartels) => "mission_syndicate", 
+            Some(CityTrait::Underground) => "mission_underground",
+            _ => "mission1", // fallback
+        }
+    } else {
+        // Legacy fallback
+        match global_data.selected_region {
+            0 => "mission1",
+            1 => "mission2", 
+            2 => "mission3",
+            _ => "mission1",
+        }
     };
     
-    // NEW: Use cached scene loading
     match load_scene_cached(&mut scene_cache, scene_name) {
         Some(scene) => {
-            spawn_from_scene(&mut commands, &scene, &*global_data, &sprites);
-            info!("Loaded cached scene: {}", scene_name);
+            spawn_from_scene_with_city(&mut commands, &scene, &*global_data, &sprites, selected_city);
+            info!("Loaded scene: {} for city: {}", scene_name, 
+                  selected_city.map_or("None", |c| &c.name));
         },
         None => {
-            error!("Failed to load scene: {}. Creating minimal fallback.", scene_name);
+            error!("Failed to load scene: {}. Creating fallback.", scene_name);
             spawn_fallback_mission(&mut commands, &*global_data, &sprites);
         }
     }

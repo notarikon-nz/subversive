@@ -24,6 +24,7 @@ pub mod scene_cache;
 pub mod factions;
 pub mod lore;
 pub mod hackable;
+pub mod cities;
 
 // Re-exports for convenience
 pub use events::*;
@@ -46,6 +47,7 @@ pub use config::*;
 pub use scene_cache::*;
 pub use lore::*;
 pub use hackable::*;
+pub use cities::*;
 
 pub use crate::systems::ui::hub::{HubState};
 

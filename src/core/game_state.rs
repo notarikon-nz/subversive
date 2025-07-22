@@ -1,6 +1,8 @@
 // src/core/game_state.rs - Game states and global data
 use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 use crate::core::{ResearchProgress};
+use crate::core::cities::*;
 
 // === GAME STATES ===
 #[derive(States, Debug, Clone, PartialEq, Eq, Hash)]
@@ -15,7 +17,7 @@ impl Default for GameState {
 }
 
 // === ALERT LEVELS ===
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
 pub enum AlertLevel {
     Green,
     Yellow,
@@ -37,6 +39,7 @@ pub struct GlobalData {
     pub agent_recovery: [u32; MAX_SQUAD_SIZE],
     pub agent_loadouts: [crate::core::AgentLoadout; MAX_SQUAD_SIZE],
     pub research_progress: ResearchProgress,
+    pub cities_progress: CitiesProgress,
 }
 
 impl GlobalData {
@@ -87,6 +90,7 @@ impl Default for GlobalData {
                 crate::core::AgentLoadout::default()
             ],
             research_progress: ResearchProgress::default(),
+            cities_progress: CitiesProgress::default(),
         }
     }
 }
