@@ -23,6 +23,7 @@ pub fn timer_system(
             credits_earned: 0,
             alert_level: mission_data.alert_level,
         };
+        info!("Time Limit Exceeded - Mission Failed");
         next_state.set(GameState::PostMission);
     }
 }
@@ -33,6 +34,10 @@ pub fn check_completion(
     mut post_mission: ResMut<PostMissionResults>,
     agent_query: Query<&Inventory, With<Agent>>,
 ) {
+    if agent_query.is_empty() && mission_data.timer < 1.0 {
+        return; // Skip check if agents haven't spawned yet
+    }
+
     let objectives_complete = mission_data.objectives_completed >= mission_data.total_objectives;
     let agents_alive = !agent_query.is_empty();
     
@@ -46,8 +51,10 @@ pub fn check_completion(
             credits_earned,
             alert_level: mission_data.alert_level,
         };
+        info!("Objectives Completed - Mission Success");
         next_state.set(GameState::PostMission);
     } else if !agents_alive {
+        info!("Agents Deceased - Mission Failed");
         *post_mission = PostMissionResults::default();
         next_state.set(GameState::PostMission);
     }
@@ -247,6 +254,9 @@ fn create_results_ui(
     post_mission: &PostMissionResults,
     global_data: &GlobalData,
 ) {
+
+    info!("create_results_ui");
+
     let (title, color) = if post_mission.success {
         ("MISSION SUCCESS", Color::srgb(0.2, 0.8, 0.2))
     } else {

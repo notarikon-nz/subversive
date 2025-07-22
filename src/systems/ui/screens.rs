@@ -344,6 +344,9 @@ fn create_post_mission_ui(
     post_mission: &PostMissionResults,
     global_data: &GlobalData,
 ) {
+
+    info!("create_post_mission_ui");
+    
     let (title, title_color) = if post_mission.success {
         ("MISSION SUCCESS", Color::srgb(0.2, 0.8, 0.2))
     } else {

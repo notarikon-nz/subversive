@@ -1,6 +1,7 @@
 // src/core/missions.rs - Mission briefing and evaluation systems
 use bevy::prelude::*;
-use crate::core::{AlertLevel, TimeOfDay, GlobalData};
+use crate::core::*;
+use rand::{thread_rng, Rng};
 
 // === MISSION BRIEFING ===
 #[derive(Clone)]
@@ -204,194 +205,199 @@ impl Priority {
 }
 
 // === BRIEFING CACHE ===
+// Update the cache to use city_id instead of region_idx
 #[derive(Resource, Default)]
 pub struct MissionBriefingCache {
-    cached_briefings: std::collections::HashMap<(usize, u32), MissionBriefing>, // (region, day) -> briefing
+    pub cached_briefings: std::collections::HashMap<String, MissionBriefing>, // Changed from usize to String
+    pub last_day_generated: u32,
 }
 
 impl MissionBriefingCache {
-    pub fn get_or_generate(&mut self, global_data: &GlobalData, region_idx: usize) -> &MissionBriefing {
-        let cache_key = (region_idx, global_data.current_day);
-        
-        if !self.cached_briefings.contains_key(&cache_key) {
-            let briefing = generate_mission_briefing(global_data, region_idx);
-            self.cached_briefings.insert(cache_key, briefing);
+    pub fn get_or_generate_for_city(
+        &mut self,
+        city_id: &str,
+        current_day: u32,
+        global_data: &GlobalData,
+        cities_db: &CitiesDatabase,
+        cities_progress: &CitiesProgress,
+    ) -> &MissionBriefing {
+        // Invalidate cache if day changed
+        if self.last_day_generated != current_day {
+            self.cached_briefings.clear();
+            self.last_day_generated = current_day;
         }
         
-        &self.cached_briefings[&cache_key]
-    }
-    
-    pub fn clear_old_briefings(&mut self, current_day: u32) {
-        // Remove briefings older than 3 days
-        self.cached_briefings.retain(|(_, day), _| current_day - day <= 3);
+        // Get or generate briefing for this city
+        self.cached_briefings.entry(city_id.to_string()).or_insert_with(|| {
+            generate_mission_briefing_for_city(global_data, cities_db, cities_progress, city_id)
+        })
     }
 }
 
-// === HELPER FUNCTIONS ===
-pub fn generate_mission_briefing(global_data: &GlobalData, region_idx: usize) -> MissionBriefing {
-    let region = &global_data.regions[region_idx];
-    let difficulty_mod = region.mission_difficulty_modifier();
+pub fn generate_mission_briefing_for_city(
+    global_data: &GlobalData,
+    cities_db: &CitiesDatabase,
+    cities_progress: &CitiesProgress,
+    city_id: &str,
+) -> MissionBriefing {
+    let city = cities_db.get_city(city_id).expect("City not found");
     
-    // Generate objectives based on region
-    let objectives = match region_idx {
-        0 => vec![
-            MissionObjective {
-                name: "Access Corporate Terminal".to_string(),
-                description: "Infiltrate the secured data terminal and extract financial records".to_string(),
-                objective_type: ObjectiveType::Hack,
-                required: true,
-                difficulty: 2,
-            },
-            MissionObjective {
-                name: "Minimize Casualties".to_string(),
-                description: "Complete mission with minimal enemy engagement".to_string(),
-                objective_type: ObjectiveType::Infiltrate,
-                required: false,
-                difficulty: 3,
-            },
-        ],
-        1 => vec![
-            MissionObjective {
-                name: "Eliminate Security Chief".to_string(),
-                description: "Neutralize the target and secure their access codes".to_string(),
-                objective_type: ObjectiveType::Eliminate,
-                required: true,
-                difficulty: 4,
-            },
-            MissionObjective {
-                name: "Extract Intel Documents".to_string(),
-                description: "Recover classified research data from secure servers".to_string(),
-                objective_type: ObjectiveType::Extract,
-                required: true,
-                difficulty: 3,
-            },
-        ],
-        2 => vec![
-            MissionObjective {
-                name: "Survive the Underground".to_string(),
-                description: "Navigate hostile territory and reach extraction point".to_string(),
-                objective_type: ObjectiveType::Survive,
-                required: true,
-                difficulty: 5,
-            },
-            MissionObjective {
-                name: "Destroy Research Equipment".to_string(),
-                description: "Sabotage experimental neurovector prototypes".to_string(),
-                objective_type: ObjectiveType::Eliminate,
-                required: false,
-                difficulty: 4,
-            },
-        ],
-        _ => vec![],
+    let city_state = cities_progress.get_city_state(city_id);
+    
+    // Use a simple hash-based random generation for consistency
+    let seed = city_id.len() + global_data.current_day as usize + city.corruption_level as usize;
+    let pseudo_random = (seed * 1103515245 + 12345) % (1 << 31);
+    let random_f32 = (pseudo_random as f32) / (1u32 << 31) as f32;
+    
+    // Convert city data to mission parameters
+    let base_difficulty = city.corruption_level as f32 / 10.0; // 0.1 to 1.0
+    let alert_modifier = match city_state.alert_level {
+        AlertLevel::Green => 0.8,
+        AlertLevel::Yellow => 1.0,
+        AlertLevel::Orange => 1.3,
+        AlertLevel::Red => 1.6,
     };
     
-    // Generate resistance profile
+    let effective_difficulty = (base_difficulty * alert_modifier).clamp(0.1, 2.0);
+    
+    // Generate objectives based on city traits and corporation
+    let objectives = generate_city_objectives(&city, effective_difficulty, seed);
+    
+    // Enemy resistance based on city properties
+    let enemy_count = (8.0 + (city.population as f32 * 0.5) + (effective_difficulty * 10.0)) as u32;
+    let security_level = ((city.corruption_level as f32 * 0.4) + (effective_difficulty * 3.0)) as u8;
+    
     let resistance = ResistanceProfile {
-        enemy_count: (3.0 + (region.threat_level as f32 * 2.0 * difficulty_mod)) as u8,
-        patrol_density: 0.3 + (region.threat_level as f32 * 0.2),
-        security_level: region.threat_level.min(5),
-        enemy_types: match region.threat_level {
-            1 => vec![EnemyType::Guard, EnemyType::Patrol],
-            2 => vec![EnemyType::Guard, EnemyType::Patrol, EnemyType::Elite],
-            3 => vec![EnemyType::Patrol, EnemyType::Elite, EnemyType::Cyborg],
-            _ => vec![EnemyType::Elite, EnemyType::Cyborg],
-        },
-        alert_sensitivity: match region.alert_level {
-            AlertLevel::Green => 0.3,
-            AlertLevel::Yellow => 0.5,
-            AlertLevel::Orange => 0.7,
-            AlertLevel::Red => 0.9,
-        },
+        enemy_count: enemy_count.clamp(5, 25) as u8,
+        security_level: security_level.clamp(1, 5),
+        alert_sensitivity: 0.3 + (effective_difficulty * 0.4),
+        patrol_density: 0.2 + (effective_difficulty * 0.3),
+        enemy_types: vec![EnemyType::Guard, EnemyType::Patrol], // Use existing enemy types only
     };
     
-    // Generate environment
+    // Environment based on city traits  
     let environment = EnvironmentData {
-        terrain: match region_idx {
-            0 => TerrainType::Urban,
-            1 => TerrainType::Corporate,
-            2 => TerrainType::Underground,
-            _ => TerrainType::Industrial,
+        terrain: TerrainType::Urban, // Keep it simple for now
+        cover_density: 0.4 + random_f32 * 0.4,
+        visibility: 0.6 + random_f32 * 0.3,
+        civilian_presence: (city.population / 3).clamp(0, 5) as u8, // Civilians are separate from enemies
+        time_of_day: match (pseudo_random % 4) {
+            0 => TimeOfDay::Dawn,
+            1 => TimeOfDay::Day,
+            2 => TimeOfDay::Dusk,
+            _ => TimeOfDay::Night,
         },
-        visibility: match region_idx {
-            2 => 0.4, // Underground has poor visibility
-            _ => 0.8,
-        },
-        cover_density: match region_idx {
-            0 => 0.6, // Urban has good cover
-            1 => 0.3, // Corporate is more open
-            2 => 0.7, // Underground has lots of cover
-            _ => 0.5,
-        },
-        civilian_presence: match region_idx {
-            0 => 4, // High civilian presence in urban
-            1 => 2, // Some in corporate
-            2 => 0, // None underground
-            _ => 1,
-        },
-        time_of_day: TimeOfDay::Night, // Most missions are at night
     };
     
-    // Calculate risks
-    let avg_agent_level = global_data.agent_levels.iter().sum::<u8>() as f32 / 3.0;
-    let level_gap = (region.threat_level as f32) - avg_agent_level;
-    
-    let casualty_risk = match level_gap {
-        x if x <= -1.0 => RiskLevel::Low,
-        x if x <= 0.5 => RiskLevel::Medium,
-        x if x <= 1.5 => RiskLevel::High,
+    // Risk assessment
+    let casualty_risk = match (effective_difficulty * 4.0) as u32 {
+        0 => RiskLevel::Low,
+        1 => RiskLevel::Medium,
+        2 => RiskLevel::High,
         _ => RiskLevel::Extreme,
     };
-    
-    let detection_risk = match (resistance.alert_sensitivity, environment.cover_density) {
-        (s, c) if s > 0.7 && c < 0.4 => RiskLevel::Extreme,
-        (s, c) if s > 0.5 || c < 0.5 => RiskLevel::High,
-        (s, _) if s > 0.3 => RiskLevel::Medium,
-        _ => RiskLevel::Low,
-    };
-    
-    let equipment_loss_risk = match difficulty_mod {
-        x if x >= 2.0 => RiskLevel::High,
-        x if x >= 1.5 => RiskLevel::Medium,
-        _ => RiskLevel::Low,
-    };
-    
-    let recommended_loadout = match detection_risk {
-        RiskLevel::High | RiskLevel::Extreme => vec![
-            "Suppressed Weapons".to_string(),
-            "Scanner Tool".to_string(),
-            "Stealth Cybernetics".to_string(),
-        ],
-        _ => vec![
-            "Combat Rifle".to_string(),
-            "Medkit".to_string(),
-            "Hacker Tool".to_string(),
-        ],
-    };
+    let casualty_risk_val = casualty_risk.clone();
     
     let risks = RiskAssessment {
         casualty_risk,
-        detection_risk,
-        equipment_loss_risk,
-        mission_failure_chance: (level_gap * 0.2 + difficulty_mod * 0.1).clamp(0.05, 0.8),
-        recommended_agent_level: region.threat_level + 1,
-        recommended_loadout,
+        detection_risk: match city_state.alert_level {
+            AlertLevel::Green => RiskLevel::Low,
+            AlertLevel::Yellow => RiskLevel::Medium,
+            AlertLevel::Orange => RiskLevel::High,
+            AlertLevel::Red => RiskLevel::Extreme,
+        },
+        equipment_loss_risk: casualty_risk_val,
+        mission_failure_chance: (0.1 + effective_difficulty * 0.3).clamp(0.05, 0.8),
+        recommended_agent_level: (1 + (effective_difficulty * 4.0) as u8).clamp(1, 8),
+        recommended_loadout: generate_city_loadout_recommendations(&city, &environment),
     };
     
-    // Generate rewards
+    // Rewards scaled by difficulty and city wealth
+    let base_credits = ((200.0 * effective_difficulty) as u32).clamp(100, 800);
+    
     let rewards = MissionRewards {
-        base_credits: 1000 + (region.threat_level as u32 * 500),
-        bonus_credits: 500,
-        equipment_chance: 0.2 + (region.threat_level as f32 * 0.1),
-        intel_value: region.threat_level.min(5),
-        experience_modifier: difficulty_mod,
+        base_credits,
+        bonus_credits: ((100.0 * effective_difficulty) as u32).clamp(50, 300),
+        equipment_chance: (0.1 + effective_difficulty * 0.2).clamp(0.05, 0.4),
+        experience_modifier: 1.0 + (effective_difficulty * 0.3),
+        intel_value: ((effective_difficulty * 3.0) as u8).clamp(1, 5),
     };
     
     MissionBriefing {
-        region_id: region_idx,
         objectives,
         resistance,
         environment,
-        rewards,
         risks,
+        rewards,
+        region_id: city_id.len() + seed, // Use city_id as region_id for now
     }
+}
+
+/*
+    Eliminate,
+    Extract,
+    Hack,
+    Infiltrate,
+    Survive,
+    */
+fn generate_city_objectives(city: &City, difficulty: f32, seed: usize) -> Vec<MissionObjective> {
+    let mut objectives = vec![
+        MissionObjective {
+            name: "Infiltrate Target Building".to_string(),
+            description: format!("Gain access to {:?} corporate facility", city.controlling_corp),
+            required: true,
+            difficulty: (1 + (difficulty * 3.0) as u8).clamp(1, 5),
+            objective_type: ObjectiveType::Infiltrate, // Add required field
+        }
+    ];
+    
+    // Use seed for deterministic randomness
+    let random_chance = ((seed * 31) % 100) as f32 / 100.0;
+    
+    // Add optional data extraction objective
+    if random_chance > 0.3 {
+        objectives.push(MissionObjective {
+            name: "Download Corporate Data".to_string(),
+            description: "Access secure servers and extract intelligence".to_string(),
+            required: false,
+            difficulty: (2 + (difficulty * 2.0) as u8).clamp(1, 4),
+            objective_type: ObjectiveType::Extract,
+        });
+    }
+    
+    // Add elimination objective for high corruption cities
+    if city.corruption_level >= 7 && random_chance > 0.6 {
+        objectives.push(MissionObjective {
+            name: "Eliminate High-Value Target".to_string(),
+            description: "Remove key corporate operative".to_string(),
+            required: false,
+            difficulty: (3 + (difficulty * 2.0) as u8).clamp(2, 5),
+            objective_type: ObjectiveType::Eliminate,
+        });
+    }
+    
+    objectives
+}
+
+fn generate_city_loadout_recommendations(city: &City, environment: &EnvironmentData) -> Vec<String> {
+    let mut recommendations = vec!["Basic Combat Gear".to_string()];
+    
+    // Simple recommendations based on corruption level
+    if city.corruption_level >= 7 {
+        recommendations.push("Heavy Armor - High security expected".to_string());
+        recommendations.push("Advanced Weapons".to_string());
+    } else if city.corruption_level >= 4 {
+        recommendations.push("Stealth Equipment - Moderate security".to_string());
+    }
+    
+    // High population means more civilians
+    if city.population >= 4 {
+        recommendations.push("Non-Lethal Options - High civilian presence".to_string());
+    }
+    
+    if environment.visibility < 0.5 {
+        recommendations.push("Night Vision Equipment".to_string());
+    }
+    
+    recommendations
 }

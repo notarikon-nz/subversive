@@ -82,6 +82,22 @@ pub fn get_world_mouse_position(
     let cursor_pos = window.cursor_position()?;
     
     // Flip Y coordinate to match UI coordinate system
+    let flipped_cursor = Vec2::new(cursor_pos.x, cursor_pos.y);
+    
+    camera.viewport_to_world_2d(camera_transform, flipped_cursor).ok()
+        
+    // camera.viewport_to_world_2d(camera_transform, cursor_pos).ok()
+}
+
+pub fn get_global_map_mouse_position(
+    windows: &Query<&Window>,
+    cameras: &Query<(&Camera, &GlobalTransform)>,
+) -> Option<Vec2> {
+    let window = windows.single().ok()?;
+    let (camera, camera_transform) = cameras.single().ok()?;
+    let cursor_pos = window.cursor_position()?;
+    
+    // Flip Y coordinate to match UI coordinate system
     let flipped_cursor = Vec2::new(cursor_pos.x, window.height() - cursor_pos.y);
     
     camera.viewport_to_world_2d(camera_transform, flipped_cursor).ok()

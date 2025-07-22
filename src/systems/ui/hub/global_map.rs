@@ -52,7 +52,7 @@ pub fn handle_input(
 
     // Handle mouse interaction with cities
     if mouse.just_pressed(MouseButton::Left) {
-        if let Some(world_pos) = get_world_mouse_position(windows, cameras) {
+        if let Some(world_pos) = get_global_map_mouse_position(windows, cameras) {
             // Find clicked city
             for (entity, transform, interactive_city) in city_query.iter() {
                 let city_pos = transform.translation.truncate();
@@ -75,7 +75,7 @@ pub fn handle_input(
     }
 
     // Handle mouse hover for tooltips
-    if let Some(world_pos) = get_world_mouse_position(windows, cameras) {
+    if let Some(world_pos) = get_global_map_mouse_position(windows, cameras) {
         let mut new_hovered = None;
         
         for (entity, transform, interactive_city) in city_query.iter() {
@@ -295,9 +295,9 @@ fn create_world_map_section(
                 TextColor(text_color),
                 Node {
                     position_type: PositionType::Absolute,
-                    left: Val::Px(pixel_pos.x - 30.0),
-                    top: Val::Px(pixel_pos.y - 35.0),
-                    width: Val::Px(60.0),
+                    left: Val::Px(pixel_pos.x - 40.0),
+                    top: Val::Px(pixel_pos.y - 25.0),
+                    width: Val::Px(80.0),
                     justify_content: JustifyContent::Center,
                     ..default()
                 },

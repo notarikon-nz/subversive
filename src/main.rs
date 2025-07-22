@@ -9,6 +9,8 @@ use leafwing_input_manager::prelude::*;
 use systems::ui::hub::{AgentManagementState, CyberneticsDatabase, HubStates, HubDatabases, HubProgress};
 use testing_spawn::*;
 
+use systems::ui::hub::missions::{MissionLaunchData};
+
 mod core;
 mod systems;
 
@@ -65,6 +67,7 @@ fn main() {
         .insert_resource(GameConfig::load())
         .insert_resource(global_data)
         .insert_resource(research_progress)
+
         .insert_resource(ResearchDatabase::load())
         .insert_resource(CyberneticsDatabase::load())
         .insert_resource(TraitsDatabase::load())
@@ -188,8 +191,6 @@ fn main() {
 
         // Mission management systems
         .add_systems(Update, (            
-            mission::timer_system,
-            mission::check_completion,
             mission::restart_system_optimized,
             cover::cover_management_system,
             cover::cover_exit_system,
@@ -286,7 +287,11 @@ fn main() {
             hacking_feedback::hack_status_indicator_system,
             hacking_feedback::device_visual_feedback_system,
             hacking_feedback::hack_interruption_system,
-            hacking_feedback::hack_notification_system,            
+            hacking_feedback::hack_notification_system,
+            
+            mission::timer_system,
+            mission::check_completion,
+            
         ).run_if(in_state(GameState::Mission)))
 
         // Post mission
@@ -306,11 +311,13 @@ pub fn setup_mission_scene_optimized(
     mut commands: Commands,
     sprites: Res<GameSprites>,
     global_data: Res<GlobalData>,
-    cities_db: Res<CitiesDatabase>,           // NEW
+    launch_data: Option<Res<MissionLaunchData>>,
+    cities_db: Res<CitiesDatabase>,
     cities_progress: Res<CitiesProgress>,     // Resource Does Not Exist
     mut scene_cache: ResMut<SceneCache>,
     agents: Query<Entity, With<Agent>>,
 ) {
+
     // Clean up existing agents
     for entity in agents.iter() {
         if agents.get(entity).is_ok() {
@@ -318,15 +325,20 @@ pub fn setup_mission_scene_optimized(
         }
     }
 
-    // Get selected city context
-    let selected_city = if !cities_progress.current_city.is_empty() {
-        cities_db.get_city(&cities_progress.current_city)
+    let selected_city = if let Some(launch_data) = launch_data {
+        info!("Looking for city: '{}'", launch_data.city_id); // Fix this
+        let city = cities_db.get_city(&launch_data.city_id);
+        if city.is_none() {
+            info!("City '{}' not found in database!", launch_data.city_id); // Fix this too
+            info!("Available cities: {:?}", cities_db.get_all_cities().iter().map(|c| &c.id).take(5).collect::<Vec<_>>());
+        }
+        city
     } else {
+        info!("Launch data not available");
         None
     };
 
     let scene_name = if let Some(city) = selected_city {
-        // Map cities to appropriate scenes
         match city.traits.first() {
             Some(CityTrait::FinancialHub) => "mission_corporate",
             Some(CityTrait::DrugCartels) => "mission_syndicate", 

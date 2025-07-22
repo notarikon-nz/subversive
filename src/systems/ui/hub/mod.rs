@@ -242,7 +242,8 @@ pub fn hub_system(
             &input, 
             &mut commands, 
             &mut next_state, 
-            &global_data
+            &global_data,
+            cities_progress,
         ),
     };
 
@@ -324,7 +325,12 @@ fn create_hub_ui(
                 &hub_databases.attachment_db, 
                 &hub_progress.unlocked
             ),
-            HubTab::Missions => missions::create_content(parent, global_data, &hub_states.hub_state),
+            HubTab::Missions => missions::create_content(
+                parent, 
+                global_data, 
+                &hub_databases.cities_db,
+                &hub_progress.cities_progress,
+            ),
         }
         
         create_footer(parent, hub_states.hub_state.active_tab, fonts); 
