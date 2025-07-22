@@ -50,7 +50,7 @@ impl ResearchProject {
     }
 }
 
-#[derive(Resource, Serialize, Deserialize)]
+#[derive(Resource, Default, Clone, Serialize, Deserialize)]
 pub struct ResearchDatabase {
     pub projects: Vec<ResearchProject>,
 }

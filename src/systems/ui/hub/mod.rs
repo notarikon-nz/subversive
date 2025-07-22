@@ -24,7 +24,7 @@ pub struct HubState {
     pub selected_research_project: usize,
 }
 
-#[derive(Resource, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Resource, Serialize, Deserialize)]
 pub struct CyberneticsDatabase {
     pub cybernetics: Vec<CyberneticUpgrade>,
 }
@@ -88,27 +88,74 @@ pub fn reset_hub_to_global_map(mut hub_state: ResMut<HubState>) {
     hub_state.active_tab = HubTab::GlobalMap;
 }
 
-// Main hub coordination system
+// Group related resources together
+#[derive(Resource)]
+pub struct HubDatabases {
+    pub research_db: ResearchDatabase,
+    pub cybernetics_db: CyberneticsDatabase,
+    pub attachment_db: AttachmentDatabase,
+    pub cities_db: CitiesDatabase,
+}
+impl Default for HubDatabases {
+    fn default() -> Self {
+        Self {
+            research_db: ResearchDatabase::default(),
+            cybernetics_db: CyberneticsDatabase::default(),
+            attachment_db: AttachmentDatabase::default(),
+            cities_db: CitiesDatabase::default(),
+        }
+    }
+}
+
+
+#[derive(Resource)]
+pub struct HubStates {
+    pub hub_state: HubState,
+    pub manufacture_state: ManufactureState,
+    pub agent_state: AgentManagementState,
+    pub map_state: GlobalMapState,
+}
+
+impl Default for HubStates {
+    fn default() -> Self {
+        Self {
+            hub_state: HubState::default(),
+            agent_state: AgentManagementState::default(),
+            map_state: GlobalMapState::default(),
+            manufacture_state: ManufactureState::default(),
+        }
+    }
+}
+
+#[derive(Resource)]
+pub struct HubProgress {
+    pub research_progress: ResearchProgress,
+    pub cities_progress: CitiesProgress,
+    pub unlocked: UnlockedAttachments,
+}
+
+impl Default for HubProgress {
+    fn default() -> Self {
+        Self {
+            research_progress: ResearchProgress::default(),
+            cities_progress: CitiesProgress::default(),
+            unlocked: UnlockedAttachments::default(),
+        }
+    }
+}
+
+// Main hub coordination system - now under 16 parameters
 pub fn hub_system(
     mut commands: Commands,
     mut next_state: ResMut<NextState<GameState>>,
     mut global_data: ResMut<GlobalData>,
-    mut hub_state: ResMut<HubState>,
-    mut manufacture_state: ResMut<ManufactureState>,
-    mut agent_state: ResMut<AgentManagementState>,
-    mut research_progress: ResMut<ResearchProgress>,
-    research_db: Res<ResearchDatabase>,
-    cybernetics_db: Res<CyberneticsDatabase>,
-    mut unlocked: ResMut<UnlockedAttachments>,
+    mut hub_states: ResMut<HubStates>,
+    mut hub_progress: ResMut<HubProgress>,
+    hub_databases: Res<HubDatabases>,
     input: Res<ButtonInput<KeyCode>>,
     screen_query: Query<Entity, With<HubScreen>>,
-    attachment_db: Res<AttachmentDatabase>,
     agent_query: Query<&mut Inventory, With<Agent>>,
     fonts: Option<Res<GameFonts>>,
-    // NEW: Cities system resources
-    cities_db: Res<CitiesDatabase>,
-    mut cities_progress: ResMut<CitiesProgress>,
-    mut map_state: ResMut<GlobalMapState>,
     windows: Query<&Window>,
     cameras: Query<(&Camera, &GlobalTransform)>,
     mouse: Res<ButtonInput<MouseButton>>,
@@ -118,12 +165,12 @@ pub fn hub_system(
     let mut tab_changed = false;
     
     if input.just_pressed(KeyCode::KeyQ) {
-        hub_state.active_tab = hub_state.active_tab.previous();
+        hub_states.hub_state.active_tab = hub_states.hub_state.active_tab.previous();
         tab_changed = true;
     }
     
     if input.just_pressed(KeyCode::KeyE) {
-        hub_state.active_tab = hub_state.active_tab.next();
+        hub_states.hub_state.active_tab = hub_states.hub_state.active_tab.next();
         tab_changed = true;
     }
     
@@ -133,29 +180,36 @@ pub fn hub_system(
             &mut commands, 
             &screen_query, 
             &global_data, 
-            &hub_state, 
-            &manufacture_state, 
-            &agent_state, 
-            &research_progress, 
-            &research_db, 
-            &attachment_db, 
-            &unlocked, 
-            &cybernetics_db, 
-            fonts_ref,
-            &cities_db,
-            &cities_progress,
-            &mut map_state);
+            &hub_states, 
+            &hub_progress, 
+            &hub_databases, 
+            fonts_ref);
     }
+
+    let HubStates {
+        hub_state,
+        agent_state,
+        map_state,
+        manufacture_state,
+        ..
+    } = &mut *hub_states;
+
+    let HubProgress {
+        cities_progress,
+        unlocked,
+        research_progress,
+        ..
+    } = &mut *hub_progress;
 
     // Delegate input handling to appropriate tab
     let needs_rebuild = match hub_state.active_tab {
         HubTab::GlobalMap => global_map::handle_input(
             &input, 
             &mut global_data, 
-            &mut hub_state,
-            &cities_db,
-            &mut cities_progress,
-            &mut map_state,
+            hub_state,
+            &hub_databases.cities_db,
+            cities_progress,
+            map_state,
             &windows,
             &cameras,
             &mouse,
@@ -164,25 +218,25 @@ pub fn hub_system(
         HubTab::Research => research::handle_input(
             &input, 
             &mut global_data, 
-            &mut research_progress, 
-            &research_db, 
-            &mut unlocked,
-            &mut hub_state.selected_research_project
+            research_progress, 
+            &hub_databases.research_db, 
+            unlocked,
+            &mut hub_states.hub_state.selected_research_project
         ),
         HubTab::Agents => agents::handle_input(
             &input, 
-            &mut hub_state,
-            &mut agent_state,
+            hub_state,
+            agent_state,
             &mut global_data,
-            &cybernetics_db.cybernetics
+            &hub_databases.cybernetics_db.cybernetics
         ),
         HubTab::Manufacture => manufacture::handle_input(
             &input, 
-            &mut hub_state, 
-            &mut manufacture_state, 
+            hub_state, 
+            manufacture_state, 
             &mut global_data, 
             agent_query, 
-            &attachment_db
+            &hub_databases.attachment_db
         ),
         HubTab::Missions => missions::handle_input(
             &input, 
@@ -197,13 +251,10 @@ pub fn hub_system(
         std::process::exit(0);
     }
 
-    // Update rebuild_hub function call to include cities data:
     if screen_query.is_empty() || needs_rebuild {
         let fonts_ref = fonts.as_ref().map(|f| f.as_ref());
-        rebuild_hub(&mut commands, &screen_query, &global_data, &hub_state, 
-                   &manufacture_state, &agent_state, &research_progress, 
-                   &research_db, &attachment_db, &unlocked, &cybernetics_db,
-                   fonts_ref, &cities_db, &cities_progress, &mut map_state);  
+        rebuild_hub(&mut commands, &screen_query, &global_data, &hub_states, 
+                   &hub_progress, &hub_databases, fonts_ref);  
     }
 }
 
@@ -211,42 +262,25 @@ fn rebuild_hub(
     commands: &mut Commands,
     screen_query: &Query<Entity, With<HubScreen>>,
     global_data: &GlobalData,
-    hub_state: &HubState,
-    manufacture_state: &ManufactureState,
-    agent_state: &AgentManagementState,
-    research_progress: &ResearchProgress,
-    research_db: &ResearchDatabase,
-    attachment_db: &AttachmentDatabase,
-    unlocked: &UnlockedAttachments,
-    cybernetics_db: &CyberneticsDatabase,
+    hub_states: &HubStates,
+    hub_progress: &HubProgress,
+    hub_databases: &HubDatabases,
     fonts: Option<&GameFonts>,
-    cities_db: &CitiesDatabase,              // NEW
-    cities_progress: &CitiesProgress,        // NEW
-    map_state: &mut GlobalMapState,          // NEW
 ) {
     for entity in screen_query.iter() {
         commands.safe_despawn(entity);
     }
-    create_hub_ui(commands, global_data, hub_state, manufacture_state, agent_state,
-        research_progress, research_db, attachment_db, unlocked, cybernetics_db, 
-        fonts, cities_db, cities_progress, map_state);
+    create_hub_ui(commands, global_data, hub_states, hub_progress, 
+                  hub_databases, fonts);
 }
 
 fn create_hub_ui(
     commands: &mut Commands, 
     global_data: &GlobalData, 
-    hub_state: &HubState,
-    manufacture_state: &ManufactureState,
-    agent_state: &AgentManagementState,
-    research_progress: &ResearchProgress,
-    research_db: &ResearchDatabase,
-    attachment_db: &AttachmentDatabase,
-    unlocked: &UnlockedAttachments,
-    cybernetics_db: &CyberneticsDatabase,
+    hub_states: &HubStates,
+    hub_progress: &HubProgress,
+    hub_databases: &HubDatabases,
     fonts: Option<&GameFonts>,
-    cities_db: &CitiesDatabase,              // NEW
-    cities_progress: &CitiesProgress,        // NEW  
-    map_state: &mut GlobalMapState,          // NEW
 ) {
     commands.spawn((
         Node {
@@ -259,36 +293,41 @@ fn create_hub_ui(
         HubScreen,
     )).with_children(|parent| {
         create_header(parent, global_data, fonts);
-        create_tab_bar(parent, hub_state.active_tab, fonts);
+        create_tab_bar(parent, hub_states.hub_state.active_tab, fonts);
         
-        match hub_state.active_tab {
+        match hub_states.hub_state.active_tab {
             HubTab::GlobalMap => global_map::create_content(
                 parent, 
                 global_data, 
-                hub_state, 
-                cities_db, 
-                cities_progress, 
-                map_state
+                &hub_states.hub_state, 
+                &hub_databases.cities_db, 
+                &hub_progress.cities_progress, 
+                &mut hub_states.map_state.clone() // Clone for immutable access
             ),
             HubTab::Research => research::create_content(
                 parent, 
                 global_data, 
-                &research_progress, 
-                &research_db,
-                hub_state.selected_research_project
+                &hub_progress.research_progress, 
+                &hub_databases.research_db,
+                hub_states.hub_state.selected_research_project
             ),
             HubTab::Agents => agents::create_content(
                 parent, 
                 global_data, 
-                agent_state,
-                &cybernetics_db.cybernetics,
-                // fonts  // You can add this parameter later
+                &hub_states.agent_state,
+                &hub_databases.cybernetics_db.cybernetics,
             ),
-            HubTab::Manufacture => manufacture::create_content(parent, global_data, manufacture_state, attachment_db, unlocked),
-            HubTab::Missions => missions::create_content(parent, global_data, hub_state),
+            HubTab::Manufacture => manufacture::create_content(
+                parent, 
+                global_data, 
+                &hub_states.manufacture_state, 
+                &hub_databases.attachment_db, 
+                &hub_progress.unlocked
+            ),
+            HubTab::Missions => missions::create_content(parent, global_data, &hub_states.hub_state),
         }
         
-        create_footer(parent, hub_state.active_tab, fonts); 
+        create_footer(parent, hub_states.hub_state.active_tab, fonts); 
     });
 }
 

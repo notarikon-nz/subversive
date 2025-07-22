@@ -70,7 +70,7 @@ impl Default for CityState {
 }
 
 // === CITIES DATABASE ===
-#[derive(Resource, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Resource, Serialize, Deserialize)]
 pub struct CitiesDatabase {
     pub cities: Vec<City>,
     pub starting_city: String,
@@ -182,6 +182,7 @@ impl CitiesProgress {
 }
 
 // === COORDINATE CONVERSION ===
+#[derive(Clone, )]
 pub struct MapProjection {
     pub map_width: f32,
     pub map_height: f32,

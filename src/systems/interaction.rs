@@ -1,7 +1,5 @@
 use bevy::prelude::*;
 use crate::core::*;
-use crate::core::lore::*;
-use crate::core::hackable::*;
 
 pub fn system(
     mut gizmos: Gizmos,

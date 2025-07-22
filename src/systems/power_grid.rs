@@ -1,8 +1,6 @@
 // src/systems/power_grid.rs - Complete power grid implementation
 use bevy::prelude::*;
 use crate::core::*;
-use crate::core::hackable::*;
-use std::collections::{HashMap, HashSet};
 
 // === POWER GRID SPAWNING ===
 pub fn spawn_power_station(

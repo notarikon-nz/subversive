@@ -22,7 +22,7 @@ pub enum AgentViewMode {
 pub fn handle_input(
     input: &ButtonInput<KeyCode>, 
     hub_state: &mut super::HubState,
-    agent_state: &mut ResMut<AgentManagementState>,
+    agent_state: &mut AgentManagementState,
     global_data: &mut ResMut<GlobalData>,
     cybernetics_db: &[CyberneticUpgrade],
 ) -> bool {

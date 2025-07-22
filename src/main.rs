@@ -6,7 +6,7 @@ use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 use bevy_light_2d::prelude::*;
 use leafwing_input_manager::prelude::*;
-use systems::ui::hub::{AgentManagementState, CyberneticsDatabase};
+use systems::ui::hub::{AgentManagementState, CyberneticsDatabase, HubStates, HubDatabases, HubProgress};
 use testing_spawn::*;
 
 mod core;
@@ -19,11 +19,6 @@ use pool::*;
 use systems::scenes::*;
 use systems::police_escalation::*;
 use systems::explosions::*;
-
-
-// temp
-use std::path::Path;
-//
 
 fn main() {
 
@@ -68,7 +63,10 @@ fn main() {
         .init_resource::<DayNightCycle>()
         .init_resource::<PoliceEscalation>()
         .init_resource::<CombatTextSettings>()
-
+        .init_resource::<AgentManagementState>()
+        .init_resource::<CitiesDatabase>()
+        .init_resource::<CitiesProgress>()
+        
         .insert_resource(GameConfig::load())
         .insert_resource(global_data)
         .insert_resource(research_progress)
@@ -96,6 +94,11 @@ fn main() {
         .init_resource::<PowerGrid>()
         .insert_resource(CyberneticsDatabase::load())
         .insert_resource(AgentManagementState::default())
+        
+        .insert_resource(HubStates::default())
+        .insert_resource(HubDatabases::default())
+        .insert_resource(HubProgress::default())
+
         .init_resource::<SceneCache>()
 
         .add_event::<ActionEvent>()
@@ -308,7 +311,7 @@ pub fn setup_mission_scene_optimized(
     sprites: Res<GameSprites>,
     global_data: Res<GlobalData>,
     cities_db: Res<CitiesDatabase>,           // NEW
-    cities_progress: Res<CitiesProgress>,     // NEW
+    cities_progress: Res<CitiesProgress>,     // Resource Does Not Exist
     mut scene_cache: ResMut<SceneCache>,
     agents: Query<Entity, With<Agent>>,
 ) {

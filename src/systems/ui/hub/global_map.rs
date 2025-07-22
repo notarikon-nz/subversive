@@ -1,7 +1,6 @@
 // src/systems/ui/hub/global_map.rs - Updated with interactive city map
 use bevy::prelude::*;
 use crate::core::*;
-use crate::core::cities::*;
 use super::HubTab;
 
 // Components for interactive cities
@@ -14,7 +13,7 @@ pub struct InteractiveCity {
 #[derive(Component)]
 pub struct CityTooltip;
 
-#[derive(Resource, Default)]
+#[derive(Clone, Resource, Default)]
 pub struct GlobalMapState {
     pub selected_city: Option<String>,
     pub hovered_city: Option<String>,
@@ -147,7 +146,7 @@ pub fn create_content(
         ..default()
     }).with_children(|content| {
         // Agent status section
-        create_agent_status_section(content, global_data);
+        // create_agent_status_section(content, global_data);
         
         // World map section
         create_world_map_section(content, cities_db, cities_progress, map_state);
@@ -199,12 +198,6 @@ fn create_world_map_section(
     cities_progress: &CitiesProgress,
     map_state: &mut GlobalMapState,
 ) {
-    parent.spawn((
-        Text::new("\nWORLD MAP:"),
-        TextFont { font_size: 20.0, ..default() },
-        TextColor(Color::WHITE),
-    ));
-    
     // Create map container
     parent.spawn((
         Node {

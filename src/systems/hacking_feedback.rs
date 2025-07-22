@@ -1,8 +1,7 @@
 // src/systems/hacking_feedback.rs - Visual feedback for hacking process
 use bevy::prelude::*;
 use crate::core::*;
-use crate::core::hackable::*;
-use std::time::{Duration, SystemTime};
+use std::time::{SystemTime};
 
 // === HACKING PROGRESS COMPONENT ===
 #[derive(Component)]

@@ -86,9 +86,9 @@ impl BarkType {
 // Monitor GOAP state changes and trigger barks
 pub fn goap_bark_system(
     mut bark_events: EventWriter<BarkEvent>,
-    mut goap_query: Query<(Entity, &mut GoapAgent, Option<&mut BarkCooldown>), (With<Enemy>, Without<Dead>)>,
+    goap_query: Query<(Entity, &mut GoapAgent, Option<&mut BarkCooldown>), (With<Enemy>, Without<Dead>)>,
     mut commands: Commands,
-    mut last_goals: Local<std::collections::HashMap<Entity, String>>,
+    last_goals: Local<std::collections::HashMap<Entity, String>>,
 ) {
     for (entity, goap_agent, bark_cooldown) in goap_query.iter() {
 
@@ -140,7 +140,7 @@ pub fn goap_bark_system(
 pub fn combat_bark_system(
     mut bark_events: EventWriter<BarkEvent>,
     mut combat_events: EventReader<CombatEvent>,
-    mut commands: Commands,
+    commands: Commands,
     enemy_query: Query<Entity, (With<Enemy>, Without<Dead>)>,
 ) {
     for event in combat_events.read() {
