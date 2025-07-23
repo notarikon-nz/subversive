@@ -114,6 +114,8 @@ fn main() {
             apply_loaded_research_benefits,
             fonts::check_fonts_loaded,
             setup_urban_areas,
+
+            sprites::load_sprites,
         ))
         .add_systems(PostStartup, (
             preload_common_scenes,
@@ -127,6 +129,7 @@ fn main() {
             save::save_input_system,
             audio::audio_system,
             scene_cache_debug_system,
+
         ))
 
         .add_systems(OnEnter(GameState::PostMission), (
@@ -144,13 +147,13 @@ fn main() {
         ))
 
         .add_systems(OnEnter(GameState::Mission), (
-            sprites::load_sprites
-                .before(setup_mission_scene_optimized),
-            health_bars::spawn_health_bar_system,
-            factions::setup_factions_system,
-            factions::faction_color_system,
-            message_window::setup_message_window,
-            
+            setup_mission_scene_optimized, // Spawn entities FIRST
+            (
+                health_bars::spawn_health_bar_system,
+                factions::setup_factions_system,
+                factions::faction_color_system,
+                message_window::setup_message_window,
+            ).after(setup_mission_scene_optimized), // Run these AFTER scene setup
         ))
 
         .add_systems(Update, (
@@ -379,7 +382,14 @@ pub fn setup_mission_scene_optimized(
 
 fn setup_camera_and_input(mut commands: Commands) {
     // FIXED: Proper 2D camera setup for Bevy 0.16.1
-    commands.spawn(Camera2d);
+    commands.spawn((
+        Camera2d,
+        Camera {
+            clear_color: ClearColorConfig::Custom(Color::srgb(0.1, 0.1, 0.2)), // Dark blue background
+            ..default()
+        },
+        Transform::from_xyz(0.0, 0.0, 1000.0), // Ensure camera is above sprites
+    ));
     
     let input_map = InputMap::default()
         .with(PlayerAction::Pause, KeyCode::Space)

@@ -63,28 +63,49 @@ pub fn check_completion(
 pub fn restart_system_optimized(
     mut commands: Commands,
     restart_check: Option<Res<ShouldRestart>>,
-    entities: Query<Entity, (Without<Camera>, Without<Window>)>,
-    sprites: Res<GameSprites>,
-    // constants: Res<GameConstants>,              // NEW: Constants resource
-    mut scene_cache: ResMut<SceneCache>,        // NEW: Scene cache resource
+    // CHANGED: Only query game entities, not ALL entities
+    agents: Query<Entity, With<Agent>>,
+    enemies: Query<Entity, With<Enemy>>,
+    civilians: Query<Entity, With<Civilian>>,
+    terminals: Query<Entity, With<Terminal>>,
+    vehicles: Query<Entity, With<Vehicle>>,
+    ui_entities: Query<Entity, Or<(With<Node>, With<Text>)>>,
+    sprites: Option<Res<GameSprites>>,
+    mut scene_cache: ResMut<SceneCache>,
     mut mission_data: ResMut<MissionData>,
     mut game_mode: ResMut<GameMode>,
     mut selection: ResMut<SelectionState>,
     mut inventory_state: ResMut<InventoryState>,
     global_data: Res<GlobalData>,
 ) {
+    // Early return if sprites not loaded yet
+    let Some(sprites) = sprites else {
+        warn!("Sprites not loaded yet, skipping mission restart");
+        return;
+    };
+
 
     if restart_check.is_none() { return; }
     
-    let entity_list: Vec<Entity> = entities.iter().collect();
-    info!("Restarting mission - despawning {} entities", entity_list.len());
+    let mut despawn_count = 0;
     
-    for entity in entity_list {
-        // Guard: only despawn if entity still exists
+    // Despawn game entities
+    for entity in agents.iter().chain(enemies.iter()).chain(civilians.iter()).chain(terminals.iter()).chain(vehicles.iter()) {
         if let Ok(mut entity_commands) = commands.get_entity(entity) {
-            entity_commands.despawn();
+            entity_commands.despawn_recursive();
+            despawn_count += 1;
         }
     }
+    
+    // Despawn UI entities
+    for entity in ui_entities.iter() {
+        if let Ok(mut entity_commands) = commands.get_entity(entity) {
+            entity_commands.despawn_recursive();
+            despawn_count += 1;
+        }
+    }
+    
+    info!("Restarting mission - despawned {} game entities", despawn_count);
 
     // Reset game state (same as before)
     *mission_data = MissionData::default();

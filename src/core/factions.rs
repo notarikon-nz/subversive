@@ -48,6 +48,15 @@ pub fn setup_factions_system(
     police_query: Query<Entity, (With<Police>, Without<Faction>)>,
     civilian_query: Query<Entity, (With<Civilian>, Without<Faction>)>,
 ) {
+
+    let missing_factions = agent_query.iter().count() + enemy_query.iter().count() + 
+                          police_query.iter().count() + civilian_query.iter().count();
+    
+    if missing_factions > 0 {
+        warn!("Found {} entities without factions - this shouldn't happen", missing_factions);
+    }
+    
+
     // Assign factions to existing entities
     for entity in agent_query.iter() {
         commands.entity(entity).insert(Faction::Player);
@@ -70,6 +79,7 @@ pub fn setup_factions_system(
     for entity in civilian_query.iter() {
         commands.entity(entity).insert(Faction::Civilian);
     }
+
 }
 
 // Update sprite colors based on faction

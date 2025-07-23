@@ -195,6 +195,7 @@ fn spawn_urban_civilian(commands: &mut Commands, pos: Vec2, sprites: &GameSprite
         sprite,
         Transform::from_translation(pos.extend(1.0)),
         Civilian,
+        Faction::Civilian,
         create_base_unit_bundle(50.0, 80.0 + rand::random::<f32>() * 40.0),
         Morale::new(80.0, panic_threshold),
         Controllable,
@@ -219,6 +220,7 @@ pub fn spawn_civilian_with_config(commands: &mut Commands, pos: Vec2, sprites: &
         sprite,
         Transform::from_translation(pos.extend(1.0)),
         Civilian,
+        Faction::Civilian,
         Health(50.0),
         Morale::new(config.civilians.base_morale, config.civilians.panic_threshold),
         PanicSpreader::default(),
@@ -245,7 +247,7 @@ fn spawn_enemy(commands: &mut Commands, pos: Vec2, patrol: Vec<Vec2>, global_dat
         faction,
         create_base_unit_bundle(100.0 * difficulty, 120.0 * difficulty),
         Morale::new(100.0 * difficulty, 25.0),
-        Vision::new(120.0 * difficulty, 45.0),
+        Vision::new(120.0 * difficulty, 60.0),
         Patrol::new(patrol),
         AIState::default(),
         GoapAgent::default(),
@@ -336,7 +338,7 @@ fn create_base_unit_bundle(health: f32, speed: f32) -> impl Bundle {
 
 fn create_physics_bundle(radius: f32) -> impl Bundle {
     (
-        RigidBody::Dynamic,
+        RigidBody::KinematicPositionBased,
         Collider::ball(radius),
         Velocity::default(),
         Damping { linear_damping: 10.0, angular_damping: 10.0 },

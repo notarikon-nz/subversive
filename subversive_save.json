@@ -1,6 +1,6 @@
 {
   "credits": 11400,
-  "current_day": 219,
+  "current_day": 316,
   "agent_levels": [
     6,
     6,
@@ -12,16 +12,16 @@
     76465
   ],
   "agent_recovery": [
-    196,
-    196,
-    196
+    293,
+    293,
+    293
   ],
   "regions": [
     {
       "name": "Neo-Tokyo Central",
       "threat_level": 1,
       "alert_level": 0,
-      "alert_decay_timer": 198
+      "alert_decay_timer": 314
     },
     {
       "name": "Corporate District",

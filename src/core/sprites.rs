@@ -10,8 +10,14 @@ pub struct GameSprites {
     pub terminal_intel: Handle<Image>,
 }
 
-pub fn load_sprites(mut commands: Commands, asset_server: Res<AssetServer>) {
+pub fn load_sprites(mut commands: Commands, asset_server: Res<AssetServer>, existing_sprites: Option<Res<GameSprites>>) {
     info!("Loading sprites...");
+    
+    // Debug: Check if we're overwriting existing sprites
+    if let Some(existing) = existing_sprites {
+        warn!("GameSprites resource already exists! This might invalidate existing handles.");
+        warn!("Existing agent handle: {:?}", existing.agent);
+    }
     
     let sprites = GameSprites {
         agent: asset_server.load("sprites/agent.png"),
@@ -22,11 +28,10 @@ pub fn load_sprites(mut commands: Commands, asset_server: Res<AssetServer>) {
         terminal_intel: asset_server.load("sprites/terminal_green.png"),
     };
     
+    info!("New agent handle: {:?}", sprites.agent);
     commands.insert_resource(sprites);
     info!("Sprites resource created!");
-
 }
-
 
 // FIXED: Much more visible fallback sprites with borders
 pub fn create_agent_sprite(sprites: &GameSprites) -> (Sprite, Transform) {
