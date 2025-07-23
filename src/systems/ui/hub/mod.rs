@@ -1,18 +1,14 @@
-// src/systems/ui/hub/mod.rs - Updated with agent state integration
+// src/systems/ui/hub/mod.rs - Simplified and consolidated
 use bevy::prelude::*;
 use crate::core::*;
-use crate::systems::*;
+use crate::systems::ui::builder::*;
 use serde::{Deserialize, Serialize};
 
-// Re-export all tab modules
-pub mod global_map;
-pub mod research;
 pub mod agents;
+pub mod research;
 pub mod manufacture;
 pub mod missions;
-
-pub use agents::*;
-pub use global_map::*;
+pub mod global_map;
 
 #[derive(Component)]
 pub struct HubScreen;
@@ -31,35 +27,16 @@ pub struct CyberneticsDatabase {
 
 impl CyberneticsDatabase {
     pub fn load() -> Self {
-        match std::fs::read_to_string("data/cybernetics.json") {
-            Ok(content) => {
-                match serde_json::from_str::<CyberneticsDatabase>(&content) {  // Add type annotation
-                    Ok(data) => {
-                        info!("Loaded {} cybernetics from data/cybernetics.json", data.cybernetics.len());
-                        data
-                    },
-                    Err(e) => {
-                        error!("Failed to parse cybernetics.json: {}", e);
-                        Self { cybernetics: Vec::new() }
-                    }
-                }
-            },
-            Err(e) => {
-                error!("Failed to load data/cybernetics.json: {}", e);
-                Self { cybernetics: Vec::new() }
-            }
-        }
+        std::fs::read_to_string("data/cybernetics.json")
+            .ok()
+            .and_then(|content| serde_json::from_str(&content).ok())
+            .unwrap_or_else(|| Self { cybernetics: Vec::new() })
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub enum HubTab {
-    #[default]
-    GlobalMap,
-    Research,
-    Agents,
-    Manufacture,
-    Missions,
+    #[default] GlobalMap, Research, Agents, Manufacture, Missions,
 }
 
 impl HubTab {
@@ -84,11 +61,6 @@ impl HubTab {
     }
 }
 
-pub fn reset_hub_to_global_map(mut hub_state: ResMut<HubState>) {
-    hub_state.active_tab = HubTab::GlobalMap;
-}
-
-// Group related resources together
 #[derive(Resource)]
 pub struct HubDatabases {
     pub research_db: ResearchDatabase,
@@ -96,6 +68,7 @@ pub struct HubDatabases {
     pub attachment_db: AttachmentDatabase,
     pub cities_db: CitiesDatabase,
 }
+
 impl Default for HubDatabases {
     fn default() -> Self {
         Self {
@@ -107,21 +80,20 @@ impl Default for HubDatabases {
     }
 }
 
-
 #[derive(Resource)]
 pub struct HubStates {
     pub hub_state: HubState,
     pub manufacture_state: ManufactureState,
-    pub agent_state: AgentManagementState,
-    pub map_state: GlobalMapState,
+    pub agent_state: agents::AgentManagementState,
+    pub map_state: global_map::GlobalMapState,
 }
 
 impl Default for HubStates {
     fn default() -> Self {
         Self {
             hub_state: HubState::default(),
-            agent_state: AgentManagementState::default(),
-            map_state: GlobalMapState::default(),
+            agent_state: agents::AgentManagementState::default(),
+            map_state: global_map::GlobalMapState::default(),
             manufacture_state: ManufactureState::default(),
         }
     }
@@ -144,7 +116,10 @@ impl Default for HubProgress {
     }
 }
 
-// Main hub coordination system - now under 16 parameters
+pub fn reset_hub_to_global_map(mut hub_state: ResMut<HubState>) {
+    hub_state.active_tab = HubTab::GlobalMap;
+}
+
 pub fn hub_system(
     mut commands: Commands,
     mut next_state: ResMut<NextState<GameState>>,
@@ -159,9 +134,8 @@ pub fn hub_system(
     windows: Query<&Window>,
     cameras: Query<(&Camera, &GlobalTransform)>,
     mouse: Res<ButtonInput<MouseButton>>,
-    city_query: Query<(Entity, &Transform, &InteractiveCity)>,
+    city_query: Query<(Entity, &Transform, &global_map::InteractiveCity)>,
 ) {
-    // Global tab switching with Q/E
     let mut tab_changed = false;
     
     if input.just_pressed(KeyCode::KeyQ) {
@@ -175,87 +149,58 @@ pub fn hub_system(
     }
     
     if tab_changed {
-        let fonts_ref = fonts.as_ref().map(|f| f.as_ref());
-        rebuild_hub(
-            &mut commands, 
-            &screen_query, 
-            &global_data, 
-            &hub_states, 
-            &hub_progress, 
-            &hub_databases, 
-            fonts_ref);
+        rebuild_hub(&mut commands, &screen_query, &global_data, &hub_states, 
+                   &hub_progress, &hub_databases, fonts.as_deref());
     }
 
-    let HubStates {
-        hub_state,
-        agent_state,
-        map_state,
-        manufacture_state,
-        ..
-    } = &mut *hub_states;
+let active_tab = hub_states.hub_state.active_tab;
 
-    let HubProgress {
-        cities_progress,
-        unlocked,
-        research_progress,
-        ..
-    } = &mut *hub_progress;
+// Destructure to get separate mutable references
+let HubStates {
+    ref mut hub_state,
+    ref mut manufacture_state,
+    ref mut agent_state,
+    ref mut map_state,
+} = &mut *hub_states;
 
-    // Delegate input handling to appropriate tab
-    let needs_rebuild = match hub_state.active_tab {
-        HubTab::GlobalMap => global_map::handle_input(
-            &input, 
-            &mut global_data, 
-            hub_state,
-            &hub_databases.cities_db,
-            cities_progress,
-            map_state,
-            &windows,
-            &cameras,
-            &mouse,
-            &city_query,
-        ),
-        HubTab::Research => research::handle_input(
-            &input, 
-            &mut global_data, 
-            research_progress, 
-            &hub_databases.research_db, 
-            unlocked,
-            &mut hub_states.hub_state.selected_research_project
-        ),
-        HubTab::Agents => agents::handle_input(
-            &input, 
-            hub_state,
-            agent_state,
-            &mut global_data,
-            &hub_databases.cybernetics_db.cybernetics
-        ),
-        HubTab::Manufacture => manufacture::handle_input(
-            &input, 
-            hub_state, 
-            manufacture_state, 
-            &mut global_data, 
-            agent_query, 
-            &hub_databases.attachment_db
-        ),
-        HubTab::Missions => missions::handle_input(
-            &input, 
-            &mut commands, 
-            &mut next_state, 
-            &global_data,
-            cities_progress,
-        ),
-    };
+let HubProgress {
+    ref mut research_progress,
+    ref mut cities_progress,
+    ref mut unlocked,
+} = &mut *hub_progress;
 
-    // Global escape
+let needs_rebuild = match active_tab {
+    HubTab::GlobalMap => global_map::handle_input(
+        &input, &mut global_data, hub_state,
+        &hub_databases.cities_db, cities_progress,
+        map_state, &windows, &cameras, &mouse, &city_query,
+    ),
+    HubTab::Research => research::handle_input(
+        &input, &mut global_data, research_progress,
+        &hub_databases.research_db, unlocked,
+        &mut hub_state.selected_research_project
+    ),
+    HubTab::Agents => agents::handle_input(
+        &input, hub_state, agent_state,
+        &mut global_data, &hub_databases.cybernetics_db.cybernetics
+    ),
+    HubTab::Manufacture => manufacture::handle_input(
+        &input, hub_state, manufacture_state,
+        &mut global_data, agent_query, &hub_databases.attachment_db
+    ),
+    HubTab::Missions => missions::handle_input(
+        &input, &mut commands, &mut next_state, 
+        &global_data, cities_progress,
+    ),
+};
+
     if input.just_pressed(KeyCode::Escape) {
         std::process::exit(0);
     }
 
     if screen_query.is_empty() || needs_rebuild {
-        let fonts_ref = fonts.as_ref().map(|f| f.as_ref());
         rebuild_hub(&mut commands, &screen_query, &global_data, &hub_states, 
-                   &hub_progress, &hub_databases, fonts_ref);  
+                   &hub_progress, &hub_databases, fonts.as_deref());
     }
 }
 
@@ -271,8 +216,7 @@ fn rebuild_hub(
     for entity in screen_query.iter() {
         commands.safe_despawn(entity);
     }
-    create_hub_ui(commands, global_data, hub_states, hub_progress, 
-                  hub_databases, fonts);
+    create_hub_ui(commands, global_data, hub_states, hub_progress, hub_databases, fonts);
 }
 
 fn create_hub_ui(
@@ -298,50 +242,32 @@ fn create_hub_ui(
         
         match hub_states.hub_state.active_tab {
             HubTab::GlobalMap => global_map::create_content(
-                parent, 
-                global_data, 
-                &hub_states.hub_state, 
-                &hub_databases.cities_db, 
-                &hub_progress.cities_progress, 
-                &mut hub_states.map_state.clone() // Clone for immutable access
+                parent, global_data, &hub_states.hub_state, 
+                &hub_databases.cities_db, &hub_progress.cities_progress, 
+                &mut hub_states.map_state.clone()
             ),
             HubTab::Research => research::create_content(
-                parent, 
-                global_data, 
-                &hub_progress.research_progress, 
-                &hub_databases.research_db,
-                hub_states.hub_state.selected_research_project
+                parent, global_data, &hub_progress.research_progress, 
+                &hub_databases.research_db, hub_states.hub_state.selected_research_project
             ),
             HubTab::Agents => agents::create_content(
-                parent, 
-                global_data, 
-                &hub_states.agent_state,
+                parent, global_data, &hub_states.agent_state,
                 &hub_databases.cybernetics_db.cybernetics,
             ),
             HubTab::Manufacture => manufacture::create_content(
-                parent, 
-                global_data, 
-                &hub_states.manufacture_state, 
-                &hub_databases.attachment_db, 
-                &hub_progress.unlocked
+                parent, global_data, &hub_states.manufacture_state, 
+                &hub_databases.attachment_db, &hub_progress.unlocked
             ),
             HubTab::Missions => missions::create_content(
-                parent, 
-                global_data, 
-                &hub_databases.cities_db,
-                &hub_progress.cities_progress,
+                parent, global_data, &hub_databases.cities_db, &hub_progress.cities_progress,
             ),
         }
         
-        create_footer(parent, hub_states.hub_state.active_tab, fonts); 
+        create_footer(parent, hub_states.hub_state.active_tab); 
     });
 }
 
-fn create_header(
-    parent: &mut ChildSpawnerCommands, 
-    global_data: &GlobalData,
-    fonts: Option<&GameFonts>,  
-) {
+fn create_header(parent: &mut ChildSpawnerCommands, global_data: &GlobalData, fonts: Option<&GameFonts>) {
     parent.spawn((
         Node {
             width: Val::Percent(100.0),
@@ -354,68 +280,16 @@ fn create_header(
         },
         BackgroundColor(Color::srgb(0.15, 0.15, 0.25)),
     )).with_children(|header| {
-        // Title with custom font
-        if let Some(fonts) = fonts {
-            let (text, font, color) = create_text_with_font(
-                "SUBVERSIVE",
-                fonts.main_font.clone(), 
-                32.0,
-                Color::WHITE,
-            );
-            header.spawn((text, font, color));
-        } else {
-            // Fallback
-            header.spawn((
-                Text::new("SUBVERSIVE"),
-                TextFont { font_size: 32.0, ..default() },
-                TextColor(Color::WHITE),
-            ));
-        }
+        header.spawn(UIBuilder::text("SUBVERSIVE", 32.0, Color::WHITE));
         
-        header.spawn(Node {
-            flex_direction: FlexDirection::Row,
-            column_gap: Val::Px(30.0),
-            ..default()
-        }).with_children(|info| {
-            // Day counter with custom font
-            if let Some(fonts) = fonts {
-                let (day_text, day_font, day_color) = create_text_with_font(
-                    &format!("Day {}", global_data.current_day),
-                    fonts.ui_font.clone(),
-                    18.0,
-                    Color::WHITE,
-                );
-                info.spawn((day_text, day_font, day_color));
-                
-                let (credits_text, credits_font, credits_color) = create_text_with_font(
-                    &format!("Credits: {}", global_data.credits),
-                    fonts.ui_font.clone(),
-                    18.0,
-                    Color::srgb(0.8, 0.8, 0.2),
-                );
-                info.spawn((credits_text, credits_font, credits_color));
-            } else {
-                // Fallback
-                info.spawn((
-                    Text::new(format!("Day {}", global_data.current_day)),
-                    TextFont { font_size: 18.0, ..default() },
-                    TextColor(Color::WHITE),
-                ));
-                info.spawn((
-                    Text::new(format!("Credits: {}", global_data.credits)),
-                    TextFont { font_size: 18.0, ..default() },
-                    TextColor(Color::srgb(0.8, 0.8, 0.2)),
-                ));
-            }
+        header.spawn(UIBuilder::row(30.0)).with_children(|info| {
+            info.spawn(UIBuilder::text(&format!("Day {}", global_data.current_day), 18.0, Color::WHITE));
+            info.spawn(UIBuilder::text(&UIBuilder::credits_display(global_data.credits), 18.0, Color::srgb(0.8, 0.8, 0.2)));
         });
     });
 }
 
-fn create_tab_bar(
-    parent: &mut ChildSpawnerCommands, 
-    active_tab: HubTab,
-    fonts: Option<&GameFonts>,
-) {
+fn create_tab_bar(parent: &mut ChildSpawnerCommands, active_tab: HubTab, fonts: Option<&GameFonts>) {
     parent.spawn((
         Node {
             width: Val::Percent(100.0),
@@ -426,65 +300,35 @@ fn create_tab_bar(
         },
         BackgroundColor(Color::srgb(0.08, 0.08, 0.15)),
     )).with_children(|tabs| {
-        let tab_configs = [
+        // Q/E navigation indicators
+        tabs.spawn((
+            Node {
+                width: Val::Percent(5.0),
+                height: Val::Percent(100.0),
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                ..default()
+            },
+            BackgroundColor(Color::srgb(0.12, 0.12, 0.2)),
+        )).with_children(|tab_button| {
+            tab_button.spawn(UIBuilder::text("Q", 14.0, Color::WHITE));
+        });
+
+        let tabs_config = [
             (HubTab::GlobalMap, "GLOBAL MAP"),
             (HubTab::Research, "RESEARCH"),
             (HubTab::Agents, "AGENTS"),
             (HubTab::Manufacture, "MANUFACTURE"),
             (HubTab::Missions, "MISSIONS"),
         ];
-        
-        // Q
-        tabs.spawn((
-            Node {
-                width: Val::Percent(5.0),
-                height: Val::Percent(100.0),
-                justify_content: JustifyContent::Center,
-                align_items: AlignItems::Center,
-                ..default()
-            },
-            BackgroundColor(Color::srgb(0.12, 0.12, 0.2)),
-        )).with_children(|tab_button| {
-            tab_button.spawn((
-                Text::new("Q"),
-                TextFont { font_size: 14.0, ..default() },
-                TextColor(Color::WHITE),
-            ));
-        });
 
-        // MAIN TABS
-        for (tab, title) in tab_configs {
-            let is_active = tab == active_tab;
-            let bg_color = if is_active { Color::srgb(0.2, 0.6, 0.8) } else { Color::srgb(0.12, 0.12, 0.2) };
-            let text_color = if is_active { Color::WHITE } else { Color::srgb(0.7, 0.7, 0.7) };
-            tabs.spawn((
-                Node {
-                    width: Val::Percent(18.0),
-                    height: Val::Percent(100.0),
-                    justify_content: JustifyContent::Center,
-                    align_items: AlignItems::Center,
-                    ..default()
-                },
-                BackgroundColor(bg_color),
-            )).with_children(|tab_button| {
-                if let Some(fonts) = fonts {
-                    let (text, font, color) = create_text_with_font(
-                        title,
-                        fonts.ui_font.clone(),  
-                        14.0,
-                        text_color,
-                    );
-                    tab_button.spawn((text, font, color));
-                } else {
-                    tab_button.spawn((
-                        Text::new(title),
-                        TextFont { font_size: 14.0, ..default() },
-                        TextColor(text_color),
-                    ));
-                }
+        for (tab, title) in tabs_config {
+            let (node, bg, text) = UIBuilder::tab_button(title, tab == active_tab);
+            tabs.spawn((node, bg)).with_children(|tab_button| {
+                tab_button.spawn(text);
             });
         }
-        // E
+
         tabs.spawn((
             Node {
                 width: Val::Percent(5.0),
@@ -495,20 +339,12 @@ fn create_tab_bar(
             },
             BackgroundColor(Color::srgb(0.12, 0.12, 0.2)),
         )).with_children(|tab_button| {
-            tab_button.spawn((
-                Text::new("E"),
-                TextFont { font_size: 14.0, ..default() },
-                TextColor(Color::WHITE),
-            ));
+            tab_button.spawn(UIBuilder::text("E", 14.0, Color::WHITE));
         });        
     });
 }
 
-fn create_footer(
-    parent: &mut ChildSpawnerCommands, 
-    active_tab: HubTab,
-    fonts: Option<&GameFonts>
-) {
+fn create_footer(parent: &mut ChildSpawnerCommands, active_tab: HubTab) {
     parent.spawn((
         Node {
             width: Val::Percent(100.0),
@@ -522,17 +358,13 @@ fn create_footer(
         BackgroundColor(Color::srgb(0.08, 0.08, 0.15)),
     )).with_children(|footer| {
         let controls = match active_tab {
-            HubTab::GlobalMap => "UP/DOWN: Select | W: Wait Day | ENTER: Mission | Q/E: Switch Tabs",
-            HubTab::Research => "Navigation: Arrow Keys | Purchase: ENTER | Q/E: Switch Tabs",
-            HubTab::Agents => "←→: Agent | 1-3: View | ↑↓: Navigate | ENTER: Install | Q/E: Switch Tabs",
-            HubTab::Manufacture => "1-3: Agent | ↑↓: Slots | ←→: Attachments | ENTER: Attach/Detach | Q/E: Switch Tabs",
-            HubTab::Missions => "Launch: ENTER | Q/E: Switch Tabs | ESC: Quit",
+            HubTab::GlobalMap => "Click Cities | W: Wait Day | ENTER: Mission | Q/E: Tabs",
+            HubTab::Research => "↑↓: Navigate | ENTER: Purchase | Q/E: Tabs",
+            HubTab::Agents => "←→: Agent | 1-3: View | ↑↓: Navigate | ENTER: Install | Q/E: Tabs",
+            HubTab::Manufacture => "1-3: Agent | ↑↓: Slots | ←→: Attachments | ENTER: Modify | Q/E: Tabs",
+            HubTab::Missions => "ENTER: Launch | Q/E: Tabs | ESC: Quit",
         };
         
-        footer.spawn((
-            Text::new(controls),
-            TextFont { font_size: 14.0, ..default() },
-            TextColor(Color::srgb(0.7, 0.7, 0.7)),
-        ));
+        footer.spawn(UIBuilder::nav_controls(controls));
     });
 }

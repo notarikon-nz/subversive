@@ -1,10 +1,11 @@
-// src/systems/ui/hub/manufacture.rs - Updated for Bevy 0.16
+// src/systems/ui/hub/manufacture.rs - Simplified using UIBuilder
 use bevy::prelude::*;
 use crate::core::*;
+use crate::systems::ui::builder::*;
 
 pub fn handle_input(
     input: &ButtonInput<KeyCode>,
-    hub_state: &mut HubState,
+    hub_state: &mut super::HubState,
     manufacture_state: &mut ManufactureState,
     global_data: &mut GlobalData,
     mut agent_query: Query<&mut Inventory, With<Agent>>,
@@ -12,14 +13,12 @@ pub fn handle_input(
 ) -> bool {
     let mut needs_rebuild = false;
     
-    // Navigate agents with 1-3 keys
     if input.just_pressed(KeyCode::Digit1) {
         manufacture_state.selected_agent_idx = 0;
         manufacture_state.selected_weapon_idx = 0;
         manufacture_state.selected_slot = None;
         manufacture_state.selected_attachments.clear();
         needs_rebuild = true;
-        info!("Selected Agent 1");
     }
     if input.just_pressed(KeyCode::Digit2) {
         manufacture_state.selected_agent_idx = 1;
@@ -27,7 +26,6 @@ pub fn handle_input(
         manufacture_state.selected_slot = None;
         manufacture_state.selected_attachments.clear();
         needs_rebuild = true;
-        info!("Selected Agent 2");
     }
     if input.just_pressed(KeyCode::Digit3) {
         manufacture_state.selected_agent_idx = 2;
@@ -35,29 +33,23 @@ pub fn handle_input(
         manufacture_state.selected_slot = None;
         manufacture_state.selected_attachments.clear();
         needs_rebuild = true;
-        info!("Selected Agent 3");
     }
     
-    // Navigate weapon slots with UP/DOWN
     if input.just_pressed(KeyCode::ArrowUp) || input.just_pressed(KeyCode::ArrowDown) {
         cycle_selection(manufacture_state, input.just_pressed(KeyCode::ArrowDown));
         needs_rebuild = true;
     }
     
-    // Navigate attachments within slot with LEFT/RIGHT
     if input.just_pressed(KeyCode::ArrowLeft) || input.just_pressed(KeyCode::ArrowRight) {
         cycle_attachment_selection(manufacture_state, input.just_pressed(KeyCode::ArrowRight), attachment_db, &UnlockedAttachments::default());
         needs_rebuild = true;
     }
     
-    // Attach/Detach with Enter
     if input.just_pressed(KeyCode::Enter) {
         execute_attachment_action(manufacture_state, global_data, &mut agent_query, attachment_db);
         needs_rebuild = true;
-        info!("Processing attachment action");
     }
     
-    // Back to agents with Backspace
     if input.just_pressed(KeyCode::Backspace) {
         hub_state.active_tab = super::HubTab::Agents;
         needs_rebuild = true;
@@ -73,58 +65,25 @@ pub fn create_content(
     attachment_db: &AttachmentDatabase,
     unlocked: &UnlockedAttachments,
 ) {
-    parent.spawn(Node {
-        width: Val::Percent(100.0),
-        flex_grow: 1.0,
-        padding: UiRect::all(Val::Px(20.0)),
-        flex_direction: FlexDirection::Column,
-        row_gap: Val::Px(15.0),
-        ..default()
-    }).with_children(|content| {
-        content.spawn((
-            Text::new("WEAPON MANUFACTURE"),
-            TextFont { font_size: 24.0, ..default() },
-            TextColor(Color::srgb(0.8, 0.6, 0.2)),
-        ));
+    parent.spawn(UIBuilder::content_area()).with_children(|content| {
+        content.spawn(UIBuilder::title("WEAPON MANUFACTURE"));
         
-        // Agent selection display
-        content.spawn(Node {
-            flex_direction: FlexDirection::Row,
-            column_gap: Val::Px(20.0),
-            margin: UiRect::top(Val::Px(10.0)),
-            ..default()
-        }).with_children(|agents| {
+        // Agent selection
+        content.spawn(UIBuilder::row(20.0)).with_children(|agents| {
             for i in 0..3 {
                 let is_selected = i == manufacture_state.selected_agent_idx;
                 let color = if is_selected { Color::srgb(0.2, 0.8, 0.2) } else { Color::srgb(0.6, 0.6, 0.6) };
-                let prefix = if is_selected { "> " } else { "  " };
-                
-                agents.spawn((
-                    Text::new(format!("{}Agent {} (Lv{})", prefix, i + 1, global_data.agent_levels[i])),
-                    TextFont { font_size: 16.0, ..default() },
-                    TextColor(color),
-                ));
+                let text = UIBuilder::selection_item(is_selected, "", &format!("Agent {} (Lv{})", i + 1, global_data.agent_levels[i]));
+                agents.spawn(UIBuilder::text(&text, 16.0, color));
             }
         });
         
-        // Weapon slots display
-        content.spawn((
-            Node {
-                flex_direction: FlexDirection::Column,
-                margin: UiRect::top(Val::Px(20.0)),
-                padding: UiRect::all(Val::Px(10.0)),
-                row_gap: Val::Px(8.0),
-                ..default()
-            },
-            BackgroundColor(Color::srgba(0.2, 0.2, 0.3, 0.3)),
-        )).with_children(|weapon_panel| {
-            weapon_panel.spawn((
-                Text::new("CURRENT WEAPON: Rifle"),
-                TextFont { font_size: 18.0, ..default() },
-                TextColor(Color::WHITE),
-            ));
+        // Weapon slots
+        let (panel_node, panel_bg) = UIBuilder::section_panel();
+        content.spawn((panel_node, BackgroundColor(Color::srgba(0.2, 0.2, 0.3, 0.3)))).with_children(|weapon_panel| {
+            weapon_panel.spawn(UIBuilder::subtitle("CURRENT WEAPON: Rifle"));
             
-            let slots = vec![
+            let slots = [
                 ("Sight", AttachmentSlot::Sight),
                 ("Barrel", AttachmentSlot::Barrel),
                 ("Magazine", AttachmentSlot::Magazine),
@@ -135,33 +94,16 @@ pub fn create_content(
             for (slot_name, slot) in slots {
                 let is_selected = manufacture_state.selected_slot.as_ref() == Some(&slot);
                 let color = if is_selected { Color::srgb(0.8, 0.8, 0.2) } else { Color::WHITE };
-                let prefix = if is_selected { "> " } else { "  " };
-                
-                weapon_panel.spawn((
-                    Text::new(format!("{}{}: None equipped", prefix, slot_name)),
-                    TextFont { font_size: 14.0, ..default() },
-                    TextColor(color),
-                ));
+                let text = UIBuilder::selection_item(is_selected, "", &format!("{}: None equipped", slot_name));
+                weapon_panel.spawn(UIBuilder::text(&text, 14.0, color));
             }
         });
         
-        // Available attachments for selected slot
+        // Available attachments
         if let Some(selected_slot) = &manufacture_state.selected_slot {
-            content.spawn((
-                Node {
-                    flex_direction: FlexDirection::Column,
-                    margin: UiRect::top(Val::Px(20.0)),
-                    padding: UiRect::all(Val::Px(10.0)),
-                    row_gap: Val::Px(5.0),
-                    ..default()
-                },
-                BackgroundColor(Color::srgba(0.3, 0.2, 0.2, 0.3)),
-            )).with_children(|attachments_panel| {
-                attachments_panel.spawn((
-                    Text::new(format!("AVAILABLE {:?} ATTACHMENTS:", selected_slot)),
-                    TextFont { font_size: 16.0, ..default() },
-                    TextColor(Color::srgb(0.8, 0.6, 0.2)),
-                ));
+            let (panel_node, panel_bg) = UIBuilder::section_panel();
+            content.spawn((panel_node, BackgroundColor(Color::srgba(0.3, 0.2, 0.2, 0.3)))).with_children(|attachments_panel| {
+                attachments_panel.spawn(UIBuilder::text(&format!("AVAILABLE {:?} ATTACHMENTS:", selected_slot), 16.0, Color::srgb(0.8, 0.6, 0.2)));
                 
                 let available_attachments = attachment_db.get_by_slot(selected_slot);
                 let mut found_any = false;
@@ -171,64 +113,43 @@ pub fn create_content(
                         found_any = true;
                         
                         let is_selected = manufacture_state.selected_attachments.get(selected_slot) == Some(&attachment.id);
-                        let base_color = match attachment.rarity {
-                            AttachmentRarity::Common => Color::srgb(0.8, 0.8, 0.8),
-                            AttachmentRarity::Rare => Color::srgb(0.6, 0.6, 1.0),
-                            AttachmentRarity::Epic => Color::srgb(1.0, 0.6, 1.0),
-                        };
                         let color = if is_selected { 
                             Color::srgb(1.0, 1.0, 0.2)
                         } else { 
-                            base_color 
+                            match attachment.rarity {
+                                AttachmentRarity::Common => Color::srgb(0.8, 0.8, 0.8),
+                                AttachmentRarity::Rare => Color::srgb(0.6, 0.6, 1.0),
+                                AttachmentRarity::Epic => Color::srgb(1.0, 0.6, 1.0),
+                            }
                         };
-                        let prefix = if is_selected { "> " } else { "  " };
                         
-                        attachments_panel.spawn((
-                            Text::new(format!("{}• {} (Acc{:+} Rng{:+} Noise{:+})", 
-                                    prefix,
+                        let text = UIBuilder::selection_item(
+                            is_selected,
+                            "• ",
+                            &format!("{} (Acc{:+} Rng{:+} Noise{:+})", 
                                     attachment.name,
                                     attachment.stats.accuracy,
                                     attachment.stats.range,
-                                    attachment.stats.noise)),
-                            TextFont { font_size: 12.0, ..default() },
-                            TextColor(color),
-                        ));
+                                    attachment.stats.noise)
+                        );
+                        
+                        attachments_panel.spawn(UIBuilder::text(&text, 12.0, color));
                     }
                 }
                 
                 if !found_any {
-                    attachments_panel.spawn((
-                        Text::new("No unlocked attachments for this slot"),
-                        TextFont { font_size: 12.0, ..default() },
-                        TextColor(Color::srgb(0.6, 0.6, 0.6)),
-                    ));
+                    attachments_panel.spawn(UIBuilder::text("No unlocked attachments for this slot", 12.0, Color::srgb(0.6, 0.6, 0.6)));
                 }
             });
         }
         
-        // Controls help
-        content.spawn((
-            Text::new("\n1-3: Select Agent | ↑↓: Navigate Slots | ←→: Select Attachment | ENTER: Attach/Detach"),
-            TextFont { font_size: 12.0, ..default() },
-            TextColor(Color::srgb(0.7, 0.7, 0.7)),
-        ));
-        
-        content.spawn((
-            Text::new(format!("Credits: {}", global_data.credits)),
-            TextFont { font_size: 14.0, ..default() },
-            TextColor(Color::srgb(0.8, 0.8, 0.2)),
-        ));
+        content.spawn(UIBuilder::nav_controls("1-3: Agent | ↑↓: Slots | ←→: Attachments | ENTER: Modify"));
+        content.spawn(UIBuilder::text(&UIBuilder::credits_display(global_data.credits), 14.0, Color::srgb(0.8, 0.8, 0.2)));
     });
 }
 
 fn cycle_selection(manufacture_state: &mut ManufactureState, forward: bool) {
-    let slots = vec![
-        AttachmentSlot::Sight,
-        AttachmentSlot::Barrel, 
-        AttachmentSlot::Magazine,
-        AttachmentSlot::Grip,
-        AttachmentSlot::Stock,
-    ];
+    let slots = [AttachmentSlot::Sight, AttachmentSlot::Barrel, AttachmentSlot::Magazine, AttachmentSlot::Grip, AttachmentSlot::Stock];
     
     let current_idx = if let Some(slot) = &manufacture_state.selected_slot {
         slots.iter().position(|s| s == slot).unwrap_or(0)
@@ -243,7 +164,6 @@ fn cycle_selection(manufacture_state: &mut ManufactureState, forward: bool) {
     };
     
     manufacture_state.selected_slot = Some(slots[new_idx].clone());
-    info!("Selected slot: {:?}", slots[new_idx]);
 }
 
 fn cycle_attachment_selection(
@@ -275,7 +195,6 @@ fn cycle_attachment_selection(
     };
     
     manufacture_state.selected_attachments.insert(selected_slot.clone(), available[new_idx].clone());
-    info!("Selected {} for {:?} slot", available[new_idx], selected_slot);
 }
 
 fn execute_attachment_action(
@@ -299,22 +218,14 @@ fn execute_attachment_action(
     
     if let Some(current_name) = current_attachment_name {
         weapon_config.detach(selected_slot);
-        let refund = 0;
-        global_data.credits += refund;
         info!("Detached {} from {:?} slot", current_name, selected_slot);
         manufacture_state.selected_attachments.remove(selected_slot);
         config_changed = true;
     } else if let Some(attachment_id) = manufacture_state.selected_attachments.get(selected_slot) {
         if let Some(attachment) = attachment_db.get(attachment_id) {
-            let cost = 0;
-            if global_data.credits >= cost {
-                weapon_config.attach(attachment.clone());
-                global_data.credits -= cost;
-                info!("Attached {} to {:?} slot", attachment.name, selected_slot);
-                config_changed = true;
-            } else {
-                info!("Insufficient credits to attach {}", attachment.name);
-            }
+            weapon_config.attach(attachment.clone());
+            info!("Attached {} to {:?} slot", attachment.name, selected_slot);
+            config_changed = true;
         }
     }
     

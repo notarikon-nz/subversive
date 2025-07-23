@@ -6,8 +6,8 @@ use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 use bevy_light_2d::prelude::*;
 use leafwing_input_manager::prelude::*;
-use systems::ui::hub::{AgentManagementState, CyberneticsDatabase, HubStates, HubDatabases, HubProgress};
-
+use systems::ui::hub::{CyberneticsDatabase, HubStates, HubDatabases, HubProgress};
+use systems::ui::hub::agents::AgentManagementState;
 use systems::ui::hub::missions::{MissionLaunchData};
 
 mod core;

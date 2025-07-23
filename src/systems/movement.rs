@@ -124,9 +124,10 @@ pub fn system(
     // Phase 5: NOW insert new patrol targets (after target_query operations are done)
     for (entity, patrol_target) in entities_needing_patrol {
         if target_query.get(entity).is_ok() {
-            commands.entity(entity).insert(MoveTarget { position: patrol_target });
-        } else {
-            warn!("Skipping patrol target insert; entity {:?} despawned", entity);
+            // Check entity still exists before inserting
+            if let Ok(mut entity_commands) = commands.get_entity(entity) {
+                entity_commands.insert(MoveTarget { position: patrol_target });
+            }
         }
     }
 

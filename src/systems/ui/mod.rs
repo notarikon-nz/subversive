@@ -1,16 +1,16 @@
-// src/systems/ui/mod.rs - Just split the big file, nothing fancy
+// src/systems/ui/mod.rs - Updated with UIBuilder
 use bevy::prelude::*;
 use crate::core::*;
 
-pub mod world;      // Gizmos and world-space UI (selection, vision cones)
-pub mod screens;    // All fullscreen UIs (inventory, global map, post-mission, pause)
+pub mod world;
+pub mod screens;
 pub mod hub;
+pub mod builder; // Add the builder module
 
 pub use screens::*;
 pub use hub::*;
+pub use builder::UIBuilder; // Export for convenience
 
-// handle state transitions
-// otherwise our UI tends to stay open on the hub
 pub fn cleanup_mission_ui(
     mut commands: Commands,
     mut inventory_state: ResMut<InventoryState>,
@@ -18,15 +18,11 @@ pub fn cleanup_mission_ui(
     inventory_ui_query: Query<Entity, With<InventoryUI>>,
     pause_ui_query: Query<Entity, With<PauseScreen>>,
 ) {
-    // Close inventory
     inventory_state.ui_open = false;
     inventory_state.selected_agent = None;
-    
-    // Clear targeting modes
     game_mode.targeting = None;
     game_mode.paused = false;
     
-    // Safe despawn UI windows
     for entity in inventory_ui_query.iter() {
         commands.safe_despawn(entity);
     }
@@ -45,7 +41,6 @@ pub fn cleanup_global_map_ui(
     inventory_state.ui_open = false;
     inventory_state.selected_agent = None;
     
-    // Safe despawn lingering UI
     for entity in inventory_ui_query.iter() {
         commands.safe_despawn(entity);
     }
