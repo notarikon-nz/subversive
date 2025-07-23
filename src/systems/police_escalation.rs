@@ -386,7 +386,7 @@ fn spawn_police_unit(
         } else { 
             GoapAgent::default() // All get GOAP but legacy AI for basic units
         },
-        WeaponState::new(&weapon),
+        WeaponState::new_from_type(&weapon),
         inventory,
         RigidBody::Dynamic,
         Collider::ball(9.0),

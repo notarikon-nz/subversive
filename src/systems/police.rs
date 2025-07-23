@@ -88,7 +88,7 @@ fn spawn_police_unit(commands: &mut Commands, position: Vec2, sprites: &GameSpri
         Patrol::new(patrol_points),
         AIState::default(),
         GoapAgent::default(),
-        WeaponState::new(&WeaponType::Rifle),
+        WeaponState::new_from_type(&WeaponType::Rifle),
         inventory,
         RigidBody::Dynamic,
         Collider::ball(9.0),

@@ -117,8 +117,8 @@ fn execute_attack(
 fn get_weapon_range(inventory: &Inventory, weapon_state: Option<&WeaponState>) -> f32 {
     let base_range = 150.0;
     if let Some(weapon_config) = &inventory.equipped_weapon {
-        let stats = weapon_config.calculate_total_stats();
-        (base_range * (1.0 + stats.range as f32 * 0.1)).max(50.0)
+        let stats = weapon_config.stats();
+        (base_range * (1.0_f32 + stats.range as f32 * 0.1_f32)).max(50.0_f32)
     } else {
         base_range
     }

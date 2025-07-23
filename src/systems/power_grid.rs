@@ -128,7 +128,7 @@ pub fn spawn_automated_turret(
             target: None,
         },
         Vision::new(150.0, 90.0),
-        WeaponState::new(&WeaponType::Rifle),
+        WeaponState::new_from_type(&WeaponType::Rifle),
     )).id();
     
     if let (Some(network_id), Some(power_grid)) = (network_id, power_grid) {

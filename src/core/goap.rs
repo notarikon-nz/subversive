@@ -3,6 +3,7 @@ use bevy::prelude::*;
 use std::collections::{HashMap, VecDeque};
 use crate::systems::ai::AIMode;
 use crate::core::factions::Faction;
+use crate::core::weapons::*;
 
 macro_rules! world_state {
     ( $( $key:expr => $value:expr ),* $(,)? ) => {{

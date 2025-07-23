@@ -116,11 +116,7 @@ pub fn create_content(
                         let color = if is_selected { 
                             Color::srgb(1.0, 1.0, 0.2)
                         } else { 
-                            match attachment.rarity {
-                                AttachmentRarity::Common => Color::srgb(0.8, 0.8, 0.8),
-                                AttachmentRarity::Rare => Color::srgb(0.6, 0.6, 1.0),
-                                AttachmentRarity::Epic => Color::srgb(1.0, 0.6, 1.0),
-                            }
+                            Color::srgb(0.8, 0.8, 0.8)
                         };
                         
                         let text = UIBuilder::selection_item(
@@ -211,7 +207,6 @@ fn execute_attachment_action(
     let Some(weapon_config) = inventory.weapons.get_mut(0) else { return; };
     
     let current_attachment_name = weapon_config.attachments.get(selected_slot)
-        .and_then(|opt| opt.as_ref())
         .map(|att| att.name.clone());
     
     let mut config_changed = false;

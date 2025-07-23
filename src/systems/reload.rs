@@ -9,6 +9,7 @@ pub fn reload_system(
     time: Res<Time>,
     game_mode: Res<GameMode>,
 ) {
+    debug!("reload_system");
     if game_mode.paused { return; }
     
     // Update reload timers for all entities

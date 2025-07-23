@@ -249,7 +249,7 @@ fn spawn_enemy(commands: &mut Commands, pos: Vec2, patrol: Vec<Vec2>, global_dat
         Patrol::new(patrol),
         AIState::default(),
         GoapAgent::default(),
-        WeaponState::new(&weapon),
+        WeaponState::new_from_type(&weapon),
         inventory,
         create_physics_bundle(9.0),
     ));
@@ -300,7 +300,7 @@ fn spawn_police(commands: &mut Commands, pos: Vec2, patrol: Vec<Vec2>, unit_type
         patrol,
         ai_state,
         GoapAgent::default(),
-        WeaponState::new(&weapon),
+        WeaponState::new_from_type(&weapon),
         inventory,
         create_physics_bundle(9.0),
     ));
@@ -362,7 +362,7 @@ fn create_inventory_from_loadout(loadout: &AgentLoadout) -> Inventory {
 
 fn create_weapon_state_from_loadout(loadout: &AgentLoadout) -> WeaponState {
     if let Some(weapon_config) = loadout.weapon_configs.get(loadout.equipped_weapon_idx) {
-        let mut state = WeaponState::new(&weapon_config.base_weapon);
+        let mut state = WeaponState::new_from_type(&weapon_config.base_weapon);
         state.apply_attachment_modifiers(weapon_config);
         state
     } else {

@@ -1,0 +1,56 @@
+{
+  "weapons": {
+    "Pistol": {
+      "name": "Combat Pistol",
+      "max_ammo": 12,
+      "reload_time": 1.5,
+      "damage": 25.0,
+      "behavior": {
+        "preferred_range": 80.0,
+        "burst_fire": false,
+        "requires_cover": false,
+        "area_effect": false,
+        "reload_retreat": false
+      }
+    },
+    "Rifle": {
+      "name": "Assault Rifle",
+      "max_ammo": 30,
+      "reload_time": 2.0,
+      "damage": 35.0,
+      "behavior": {
+        "preferred_range": 150.0,
+        "burst_fire": true,
+        "requires_cover": true,
+        "area_effect": false,
+        "reload_retreat": true
+      }
+    },
+    "Minigun": {
+      "name": "Heavy Minigun",
+      "max_ammo": 100,
+      "reload_time": 4.0,
+      "damage": 20.0,
+      "behavior": {
+        "preferred_range": 200.0,
+        "burst_fire": true,
+        "requires_cover": false,
+        "area_effect": true,
+        "reload_retreat": false
+      }
+    },
+    "Flamethrower": {
+      "name": "Plasma Flamethrower",
+      "max_ammo": 50,
+      "reload_time": 3.0,
+      "damage": 45.0,
+      "behavior": {
+        "preferred_range": 60.0,
+        "burst_fire": false,
+        "requires_cover": false,
+        "area_effect": true,
+        "reload_retreat": true
+      }
+    }
+  }
+}

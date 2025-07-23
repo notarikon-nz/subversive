@@ -1,6 +1,7 @@
 // src/systems/ui/screens.rs - All the screen UIs updated for Bevy 0.16
 use bevy::prelude::*;
 use crate::core::*;
+use crate::systems::ui::*;
 use bevy::diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin};
 
 // Re-export components for compatibility
@@ -196,68 +197,69 @@ fn create_inventory_ui(commands: &mut Commands, inventory: Option<&Inventory>, w
             TextFont { font_size: 24.0, ..default() },
             TextColor(Color::WHITE),
         ));
-        
+
+
         if let Some(inv) = inventory {
             parent.spawn((
                 Text::new(format!("Credits: {}", inv.currency)),
                 TextFont { font_size: 18.0, ..default() },
                 TextColor(Color::srgb(0.8, 0.8, 0.2)),
             ));
+
+
+    // Weapon display with ammo info
+    if let Some(weapon_config) = &inv.equipped_weapon {
+        let stats = weapon_config.stats();
+        
+        parent.spawn((
+            Text::new(format!("EQUIPPED: {:?}", weapon_config.base_weapon)),
+            TextFont { font_size: 16.0, ..default() },
+            TextColor(Color::srgb(0.9, 0.5, 0.2)),
+        ));
+        
+        if stats.accuracy != 0 || stats.range != 0 || stats.noise != 0 || 
+           stats.reload_speed != 0 || stats.ammo_capacity != 0 {
+            parent.spawn((
+                Text::new(format!("Stats: Acc{:+} Rng{:+} Noise{:+} Reload{:+} Ammo{:+}", 
+                        stats.accuracy, stats.range, stats.noise, stats.reload_speed, stats.ammo_capacity)),
+                TextFont { font_size: 14.0, ..default() },
+                TextColor(Color::srgb(0.6, 0.8, 0.6)),
+            ));
+        }
+        
+        let attached_count = weapon_config.attachments.len();
+        
+        if attached_count > 0 {
+            parent.spawn((
+                Text::new(format!("Attachments: {}/{}", 
+                        attached_count, weapon_config.supported_slots().len())),
+                TextFont { font_size: 14.0, ..default() },
+                TextColor(Color::srgb(0.7, 0.7, 0.9)),
+            ));
             
-            // Weapon display with ammo info
-            if let Some(weapon_config) = &inv.equipped_weapon {
-                let stats = weapon_config.calculate_total_stats();
-                
+            for (slot, attachment) in &weapon_config.attachments {
                 parent.spawn((
-                    Text::new(format!("EQUIPPED: {:?}", weapon_config.base_weapon)),
-                    TextFont { font_size: 16.0, ..default() },
-                    TextColor(Color::srgb(0.9, 0.5, 0.2)),
-                ));
-                
-                if stats.accuracy != 0 || stats.range != 0 || stats.noise != 0 || 
-                   stats.reload_speed != 0 || stats.ammo_capacity != 0 {
-                    parent.spawn((
-                        Text::new(format!("Stats: Acc{:+} Rng{:+} Noise{:+} Reload{:+} Ammo{:+}", 
-                                stats.accuracy, stats.range, stats.noise, stats.reload_speed, stats.ammo_capacity)),
-                        TextFont { font_size: 14.0, ..default() },
-                        TextColor(Color::srgb(0.6, 0.8, 0.6)),
-                    ));
-                }
-                
-                let attached_count = weapon_config.attachments.values()
-                    .filter(|att| att.is_some())
-                    .count();
-                
-                if attached_count > 0 {
-                    parent.spawn((
-                        Text::new(format!("Attachments: {}/{}", attached_count, weapon_config.supported_slots.len())),
-                        TextFont { font_size: 14.0, ..default() },
-                        TextColor(Color::srgb(0.7, 0.7, 0.9)),
-                    ));
-                    
-                    for (slot, attachment_opt) in &weapon_config.attachments {
-                        if let Some(attachment) = attachment_opt {
-                            parent.spawn((
-                                Text::new(format!("  {:?}: {}", slot, attachment.name)),
-                                TextFont { font_size: 12.0, ..default() },
-                                TextColor(Color::srgb(0.8, 0.8, 0.8)),
-                            ));
-                        }
-                    }
-                } else {
-                    parent.spawn((
-                        Text::new("No attachments equipped"),
-                        TextFont { font_size: 14.0, ..default() },
-                        TextColor(Color::srgb(0.5, 0.5, 0.5)),
-                    ));
-                }
-            } else {
-                parent.spawn((
-                    Text::new("EQUIPPED WEAPON: None"),
-                    TextFont { font_size: 16.0, ..default() },
-                    TextColor(Color::srgb(0.8, 0.3, 0.3)),
+                    Text::new(format!("  {:?}: {}", slot, attachment.name)),
+                    TextFont { font_size: 12.0, ..default() },
+                    TextColor(Color::srgb(0.8, 0.8, 0.8)),
                 ));
             }
+        } else {
+            parent.spawn((
+                Text::new("No attachments equipped"),
+                TextFont { font_size: 14.0, ..default() },
+                TextColor(Color::srgb(0.5, 0.5, 0.5)),
+            ));
+        }
+
+    } else {
+        parent.spawn((
+            Text::new("EQUIPPED WEAPON: None"),
+            TextFont { font_size: 16.0, ..default() },
+            TextColor(Color::srgb(0.8, 0.3, 0.3)),
+        ));
+    }
+                
             
             // Add ammo display
             if let Some(weapon_state) = weapon_state {

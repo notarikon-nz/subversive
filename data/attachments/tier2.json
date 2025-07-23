@@ -1,197 +1,77 @@
 {
   "acog_scope": {
-    "id": "acog_scope",
     "name": "ACOG 4x Scope",
     "slot": "Sight",
-    "rarity": "Rare",
-    "stats": {
-      "accuracy": 4,
-      "range": 3,
-      "noise": 0,
-      "reload_speed": -1,
-      "ammo_capacity": 0
-    }
+    "stats": { "accuracy": 4, "range": 3, "reload_speed": -1 }
   },
   "holographic": {
-    "id": "holographic", 
     "name": "Holographic Sight",
     "slot": "Sight",
-    "rarity": "Rare",
-    "stats": {
-      "accuracy": 3,
-      "range": 1,
-      "noise": 0,
-      "reload_speed": 0,
-      "ammo_capacity": 0
-    }
+    "stats": { "accuracy": 3, "range": 1 }
   },
   "reflex_sight": {
-    "id": "reflex_sight",
     "name": "Reflex Sight",
-    "slot": "Sight", 
-    "rarity": "Rare",
-    "stats": {
-      "accuracy": 2,
-      "range": 0,
-      "noise": 0,
-      "reload_speed": 1,
-      "ammo_capacity": 0
-    }
+    "slot": "Sight",
+    "stats": { "accuracy": 2, "reload_speed": 1 }
   },
   "compensator": {
-    "id": "compensator",
     "name": "Muzzle Compensator",
     "slot": "Barrel",
-    "rarity": "Rare",
-    "stats": {
-      "accuracy": 3,
-      "range": 1,
-      "noise": 1,
-      "reload_speed": 0,
-      "ammo_capacity": 0
-    }
+    "stats": { "accuracy": 3, "range": 1, "noise": 1 }
   },
   "heavy_barrel": {
-    "id": "heavy_barrel",
     "name": "Heavy Barrel",
     "slot": "Barrel",
-    "rarity": "Rare", 
-    "stats": {
-      "accuracy": 2,
-      "range": 4,
-      "noise": 0,
-      "reload_speed": -2,
-      "ammo_capacity": 0
-    }
+    "stats": { "accuracy": 2, "range": 4, "reload_speed": -2 }
   },
   "ported_barrel": {
-    "id": "ported_barrel",
     "name": "Ported Barrel",
     "slot": "Barrel",
-    "rarity": "Rare",
-    "stats": {
-      "accuracy": 1,
-      "range": -1,
-      "noise": -3,
-      "reload_speed": 1,
-      "ammo_capacity": 0
-    }
+    "stats": { "accuracy": 1, "range": -1, "noise": -3, "reload_speed": 1 }
   },
   "drum_magazine": {
-    "id": "drum_magazine",
     "name": "Drum Magazine",
     "slot": "Magazine",
-    "rarity": "Epic",
-    "stats": {
-      "accuracy": -1,
-      "range": 0,
-      "noise": 0,
-      "reload_speed": -4,
-      "ammo_capacity": 6
-    }
+    "stats": { "accuracy": -1, "reload_speed": -4, "ammo_capacity": 6 }
   },
   "quick_mag": {
-    "id": "quick_mag",
     "name": "Quick-Change Magazine",
     "slot": "Magazine",
-    "rarity": "Rare",
-    "stats": {
-      "accuracy": 0,
-      "range": 0,
-      "noise": 0,
-      "reload_speed": 4,
-      "ammo_capacity": 1
-    }
+    "stats": { "reload_speed": 4, "ammo_capacity": 1 }
   },
   "polymer_mag": {
-    "id": "polymer_mag",
     "name": "Polymer Magazine",
     "slot": "Magazine",
-    "rarity": "Rare",
-    "stats": {
-      "accuracy": 0,
-      "range": 0,
-      "noise": -1,
-      "reload_speed": 2,
-      "ammo_capacity": 2
-    }
+    "stats": { "noise": -1, "reload_speed": 2, "ammo_capacity": 2 }
   },
   "foregrip": {
-    "id": "foregrip",
     "name": "Vertical Foregrip",
     "slot": "Grip",
-    "rarity": "Rare",
-    "stats": {
-      "accuracy": 2,
-      "range": 0,
-      "noise": 0,
-      "reload_speed": 0,
-      "ammo_capacity": 0
-    }
+    "stats": { "accuracy": 2 }
   },
   "angled_grip": {
-    "id": "angled_grip",
     "name": "Angled Grip",
     "slot": "Grip",
-    "rarity": "Rare",
-    "stats": {
-      "accuracy": 1,
-      "range": 0,
-      "noise": 0,
-      "reload_speed": 2,
-      "ammo_capacity": 0
-    }
+    "stats": { "accuracy": 1, "reload_speed": 2 }
   },
   "laser_grip": {
-    "id": "laser_grip",
     "name": "Laser-Integrated Grip",
     "slot": "Grip",
-    "rarity": "Epic",
-    "stats": {
-      "accuracy": 3,
-      "range": 0,
-      "noise": 0,
-      "reload_speed": 1,
-      "ammo_capacity": 0
-    }
+    "stats": { "accuracy": 3, "reload_speed": 1 }
   },
   "adjustable_stock": {
-    "id": "adjustable_stock",
     "name": "Adjustable Stock",
     "slot": "Stock",
-    "rarity": "Rare",
-    "stats": {
-      "accuracy": 2,
-      "range": 1,
-      "noise": 0,
-      "reload_speed": 1,
-      "ammo_capacity": 0
-    }
+    "stats": { "accuracy": 2, "range": 1, "reload_speed": 1 }
   },
   "folding_stock": {
-    "id": "folding_stock",
     "name": "Folding Stock",
     "slot": "Stock",
-    "rarity": "Rare", 
-    "stats": {
-      "accuracy": 0,
-      "range": 0,
-      "noise": -1,
-      "reload_speed": 3,
-      "ammo_capacity": 0
-    }
+    "stats": { "noise": -1, "reload_speed": 3 }
   },
   "padded_stock": {
-    "id": "padded_stock",
     "name": "Padded Stock",
     "slot": "Stock",
-    "rarity": "Rare",
-    "stats": {
-      "accuracy": 1,
-      "range": 0,
-      "noise": -2,
-      "reload_speed": 0,
-      "ammo_capacity": 0
-    }
+    "stats": { "accuracy": 1, "noise": -2 }
   }
 }

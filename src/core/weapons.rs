@@ -1,10 +1,10 @@
-// src/core/weapons.rs - Weapon types and state management
+// src/core/weapons.rs - Streamlined weapon system with external data
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
-use crate::core::WeaponConfig;
+use std::collections::HashMap;
+use crate::core::attachments::WeaponConfig;
 
-// === WEAPON TYPES ===
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum WeaponType {
     Pistol,
     Rifle,
@@ -12,7 +12,15 @@ pub enum WeaponType {
     Flamethrower,
 }
 
-// === WEAPON BEHAVIOR ===
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WeaponData {
+    pub name: String,
+    pub max_ammo: u32,
+    pub reload_time: f32,
+    pub damage: f32,
+    pub behavior: WeaponBehavior,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WeaponBehavior {
     pub preferred_range: f32,
@@ -57,7 +65,40 @@ impl WeaponBehavior {
     }
 }
 
-// === WEAPON STATE ===
+#[derive(Resource, Default, Deserialize)]
+pub struct WeaponDatabase {
+    pub weapons: HashMap<WeaponType, WeaponData>,
+}
+
+impl WeaponDatabase {
+    pub fn load() -> Self {
+        match std::fs::read_to_string("data/weapons.json") {
+            Ok(content) => {
+                match serde_json::from_str::<WeaponDatabase>(&content) {
+                    Ok(db) => db,
+                    Err(e) => {
+                        error!("Failed to parse weapons.json: {}", e);
+                        Self::fallback()
+                    }
+                }
+            },
+            Err(_) => {
+                warn!("weapons.json not found, using fallback data");
+                Self::fallback()
+            }
+        }
+    }
+    
+    fn fallback() -> Self {
+        let mut weapons = HashMap::new();
+        Self { weapons }
+    }
+    
+    pub fn get(&self, weapon_type: &WeaponType) -> Option<&WeaponData> {
+        self.weapons.get(weapon_type)
+    }
+}
+
 #[derive(Component)]
 pub struct WeaponState {
     pub current_ammo: u32,
@@ -67,20 +108,18 @@ pub struct WeaponState {
     pub reload_timer: f32,
 }
 
-impl Default for WeaponState {
-    fn default() -> Self {
+impl WeaponState {
+    pub fn new(weapon_data: &WeaponData) -> Self {
         Self {
-            current_ammo: 30,
-            max_ammo: 30,
-            reload_time: 2.0, // 2 seconds base reload time
+            current_ammo: weapon_data.max_ammo,
+            max_ammo: weapon_data.max_ammo,
+            reload_time: weapon_data.reload_time,
             is_reloading: false,
             reload_timer: 0.0,
         }
     }
-}
-
-impl WeaponState {
-    pub fn new(weapon_type: &WeaponType) -> Self {
+    
+    pub fn new_from_type(weapon_type: &WeaponType) -> Self {
         let (max_ammo, reload_time) = match weapon_type {
             WeaponType::Pistol => (12, 1.5),
             WeaponType::Rifle => (30, 2.0),
@@ -102,11 +141,11 @@ impl WeaponState {
     }
     
     pub fn needs_reload(&self) -> bool {
-        self.current_ammo == 0 || (self.current_ammo < self.max_ammo / 4) // Reload when < 25%
+        self.current_ammo < self.max_ammo / 4
     }
     
     pub fn start_reload(&mut self) {
-        if !self.is_reloading && self.current_ammo < self.max_ammo {
+        if self.current_ammo < self.max_ammo {
             self.is_reloading = true;
             self.reload_timer = self.reload_time;
         }
@@ -128,11 +167,11 @@ impl WeaponState {
     }
     
     pub fn apply_attachment_modifiers(&mut self, weapon_config: &WeaponConfig) {
-        let stats = weapon_config.calculate_total_stats();
+        let stats = weapon_config.stats();
         
         // Apply reload speed modifier (negative values = faster reload)
-        let reload_modifier = 1.0 + (stats.reload_speed as f32 * -0.1); // Each point = 10% faster
-        self.reload_time = (self.reload_time * reload_modifier).max(0.5); // Minimum 0.5s reload
+        let reload_modifier = 1.0 + (stats.reload_speed as f32 * -0.1);
+        self.reload_time = (self.reload_time * reload_modifier).max(0.5);
         
         // Apply ammo capacity modifier
         let base_ammo = match weapon_config.base_weapon {
@@ -142,11 +181,16 @@ impl WeaponState {
             WeaponType::Flamethrower => 50,
         };
         
-        self.max_ammo = (base_ammo as f32 * (1.0 + stats.ammo_capacity as f32 * 0.2)) as u32; // Each point = 20% more ammo
+        self.max_ammo = (base_ammo as f32 * (1.0 + stats.ammo_capacity as f32 * 0.2)) as u32;
         
-        // If current ammo exceeds new max, don't reduce it (until next reload)
         if self.current_ammo == base_ammo && self.max_ammo > base_ammo {
-            self.current_ammo = self.max_ammo; // Give immediate benefit if at full ammo
+            self.current_ammo = self.max_ammo;
         }
+    }
+}
+
+impl Default for WeaponState {
+    fn default() -> Self {
+        Self::new_from_type(&WeaponType::Pistol)
     }
 }

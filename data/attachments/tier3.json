@@ -1,223 +1,87 @@
 {
   "thermal_scope": {
-    "id": "thermal_scope",
     "name": "Thermal Scope",
     "slot": "Sight",
-    "rarity": "Epic",
-    "stats": {
-      "accuracy": 5,
-      "range": 5,
-      "noise": 0,
-      "reload_speed": -2,
-      "ammo_capacity": 0
-    }
+    "stats": { "accuracy": 5, "range": 5, "reload_speed": -2 }
   },
   "sniper_scope": {
-    "id": "sniper_scope", 
     "name": "8x Sniper Scope",
     "slot": "Sight",
-    "rarity": "Epic",
-    "stats": {
-      "accuracy": 6,
-      "range": 6,
-      "noise": 0,
-      "reload_speed": -3,
-      "ammo_capacity": 0
-    }
+    "stats": { "accuracy": 6, "range": 6, "reload_speed": -3 }
   },
   "smart_sight": {
-    "id": "smart_sight",
     "name": "Smart Target Sight",
     "slot": "Sight",
-    "rarity": "Epic",
-    "stats": {
-      "accuracy": 4,
-      "range": 2,
-      "noise": 0,
-      "reload_speed": 0,
-      "ammo_capacity": 0
-    }
+    "stats": { "accuracy": 4, "range": 2 }
   },
   "night_vision": {
-    "id": "night_vision",
     "name": "Night Vision Scope",
-    "slot": "Sight", 
-    "rarity": "Epic",
-    "stats": {
-      "accuracy": 3,
-      "range": 3,
-      "noise": 0,
-      "reload_speed": -1,
-      "ammo_capacity": 0
-    }
+    "slot": "Sight",
+    "stats": { "accuracy": 3, "range": 3, "reload_speed": -1 }
   },
   "integrated_suppressor": {
-    "id": "integrated_suppressor",
     "name": "Integrated Suppressor",
     "slot": "Barrel",
-    "rarity": "Epic",
-    "stats": {
-      "accuracy": 2,
-      "range": 0,
-      "noise": -7,
-      "reload_speed": 0,
-      "ammo_capacity": 0
-    }
+    "stats": { "accuracy": 2, "noise": -7 }
   },
   "cyber_barrel": {
-    "id": "cyber_barrel",
     "name": "Cyber-Enhanced Barrel",
     "slot": "Barrel",
-    "rarity": "Epic", 
-    "stats": {
-      "accuracy": 4,
-      "range": 3,
-      "noise": -2,
-      "reload_speed": 1,
-      "ammo_capacity": 0
-    }
+    "stats": { "accuracy": 4, "range": 3, "noise": -2, "reload_speed": 1 }
   },
   "plasma_vent": {
-    "id": "plasma_vent",
     "name": "Plasma Vent System",
     "slot": "Barrel",
-    "rarity": "Epic",
-    "stats": {
-      "accuracy": 3,
-      "range": 2,
-      "noise": 2,
-      "reload_speed": 0,
-      "ammo_capacity": 0
-    }
+    "stats": { "accuracy": 3, "range": 2, "noise": 2 }
   },
   "neural_feed": {
-    "id": "neural_feed",
     "name": "Neural Feed Magazine",
     "slot": "Magazine",
-    "rarity": "Epic",
-    "stats": {
-      "accuracy": 1,
-      "range": 0,
-      "noise": 0,
-      "reload_speed": 6,
-      "ammo_capacity": 4
-    }
+    "stats": { "accuracy": 1, "reload_speed": 6, "ammo_capacity": 4 }
   },
   "infinite_mag": {
-    "id": "infinite_mag",
     "name": "Auto-Fabricator Magazine",
     "slot": "Magazine",
-    "rarity": "Epic",
-    "stats": {
-      "accuracy": 0,
-      "range": 0,
-      "noise": 1,
-      "reload_speed": -2,
-      "ammo_capacity": 8
-    }
+    "stats": { "noise": 1, "reload_speed": -2, "ammo_capacity": 8 }
   },
   "smart_mag": {
-    "id": "smart_mag",
     "name": "Smart-Load Magazine",
     "slot": "Magazine",
-    "rarity": "Epic",
-    "stats": {
-      "accuracy": 2,
-      "range": 0,
-      "noise": 0,
-      "reload_speed": 3,
-      "ammo_capacity": 3
-    }
+    "stats": { "accuracy": 2, "reload_speed": 3, "ammo_capacity": 3 }
   },
   "neural_grip": {
-    "id": "neural_grip",
     "name": "Neural Interface Grip",
     "slot": "Grip",
-    "rarity": "Epic",
-    "stats": {
-      "accuracy": 4,
-      "range": 1,
-      "noise": 0,
-      "reload_speed": 2,
-      "ammo_capacity": 0
-    }
+    "stats": { "accuracy": 4, "range": 1, "reload_speed": 2 }
   },
   "cyber_grip": {
-    "id": "cyber_grip",
     "name": "Cybernetic Grip",
     "slot": "Grip",
-    "rarity": "Epic",
-    "stats": {
-      "accuracy": 3,
-      "range": 0,
-      "noise": -1,
-      "reload_speed": 3,
-      "ammo_capacity": 0
-    }
+    "stats": { "accuracy": 3, "noise": -1, "reload_speed": 3 }
   },
   "shock_grip": {
-    "id": "shock_grip",
     "name": "Shock-Absorbing Grip",
     "slot": "Grip",
-    "rarity": "Epic",
-    "stats": {
-      "accuracy": 5,
-      "range": 0,
-      "noise": -2,
-      "reload_speed": 0,
-      "ammo_capacity": 0
-    }
+    "stats": { "accuracy": 5, "noise": -2 }
   },
   "nano_stock": {
-    "id": "nano_stock",
     "name": "Nano-Composite Stock",
     "slot": "Stock",
-    "rarity": "Epic",
-    "stats": {
-      "accuracy": 3,
-      "range": 2,
-      "noise": -1,
-      "reload_speed": 2,
-      "ammo_capacity": 0
-    }
+    "stats": { "accuracy": 3, "range": 2, "noise": -1, "reload_speed": 2 }
   },
   "adaptive_stock": {
-    "id": "adaptive_stock",
     "name": "Adaptive Stock System",
     "slot": "Stock",
-    "rarity": "Epic", 
-    "stats": {
-      "accuracy": 4,
-      "range": 1,
-      "noise": 0,
-      "reload_speed": 1,
-      "ammo_capacity": 0
-    }
+    "stats": { "accuracy": 4, "range": 1, "reload_speed": 1 }
   },
   "recoil_stock": {
-    "id": "recoil_stock",
     "name": "Zero-Recoil Stock",
     "slot": "Stock",
-    "rarity": "Epic",
-    "stats": {
-      "accuracy": 6,
-      "range": 0,
-      "noise": 0,
-      "reload_speed": -1,
-      "ammo_capacity": 0
-    }
+    "stats": { "accuracy": 6, "reload_speed": -1 }
   },
   "stealth_stock": {
-    "id": "stealth_stock",
     "name": "Stealth-Pattern Stock",
     "slot": "Stock",
-    "rarity": "Epic",
-    "stats": {
-      "accuracy": 2,
-      "range": 0,
-      "noise": -4,
-      "reload_speed": 1,
-      "ammo_capacity": 0
-    }
+    "stats": { "accuracy": 2, "noise": -4, "reload_speed": 1 }
   }
 }

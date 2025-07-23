@@ -55,7 +55,7 @@ pub fn weapon_pickup_system(
             
             if dropped_value > current_value {
                 inventory.equipped_weapon = Some(dropped_weapon.weapon_config.clone());
-                *weapon_state = WeaponState::new(&dropped_weapon.weapon_config.base_weapon);
+                *weapon_state = WeaponState::new_from_type(&dropped_weapon.weapon_config.base_weapon);
                 weapon_state.current_ammo = dropped_weapon.ammo_remaining;
                 weapon_state.apply_attachment_modifiers(&dropped_weapon.weapon_config);
                 
@@ -146,10 +146,8 @@ fn weapon_value(weapon_config: &Option<WeaponConfig>) -> u32 {
         WeaponType::Flamethrower => 40,
     };
     
-    let attachment_bonus = config.attachments.values()
-        .filter(|att| att.is_some())
-        .count() as u32 * 5;
-    
+    let attachment_bonus = config.attachments.len() as u32 * 5;
+
     base_value + attachment_bonus
 }
 

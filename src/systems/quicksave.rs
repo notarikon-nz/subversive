@@ -25,6 +25,7 @@ pub fn quicksave_system(
     sprites: Res<GameSprites>,
     global_data: Res<GlobalData>,
 ) {
+    debug!("quicksave_system");
     if *game_state.get() != GameState::Mission || game_mode.paused {
         return;
     }

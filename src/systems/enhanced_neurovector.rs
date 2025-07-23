@@ -159,7 +159,7 @@ pub fn controlled_civilian_behavior_system(
                         action: Action::Attack(enemy_entity),
                     });
                     
-                    commands.entity(civilian_entity).insert(WeaponState::new(&WeaponType::Pistol));
+                    commands.entity(civilian_entity).insert(WeaponState::new_from_type(&WeaponType::Pistol));
                     continue;
                 }
             }
