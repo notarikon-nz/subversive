@@ -62,6 +62,7 @@ fn main() {
         .init_resource::<AgentManagementState>()
         .init_resource::<CitiesDatabase>()
         .init_resource::<CitiesProgress>()
+        .init_resource::<MessageLog>()
 
         .insert_resource(GameConfig::load())
         .insert_resource(global_data)
@@ -78,7 +79,6 @@ fn main() {
         .init_resource::<PostMissionProcessed>()
         .init_resource::<EntityPool>()
         .init_resource::<SelectionDrag>()
-        .init_resource::<GoapConfig>()
         .init_resource::<HubState>()
         .init_resource::<UnlockedAttachments>()
         .init_resource::<ManufactureState>()
@@ -110,7 +110,6 @@ fn main() {
             fonts::load_fonts,
             setup_camera_and_input,
             audio::setup_audio,
-            sprites::load_sprites,
             setup_attachments,
             apply_loaded_research_benefits,
             fonts::check_fonts_loaded,
@@ -128,8 +127,6 @@ fn main() {
             save::save_input_system,
             audio::audio_system,
             scene_cache_debug_system,
-
-            
         ))
 
         .add_systems(OnEnter(GameState::PostMission), (
@@ -142,33 +139,44 @@ fn main() {
             ui::reset_hub_to_global_map,
         ))
 
+        .add_systems(OnExit(GameState::GlobalMap), (
+            mission::restart_system_optimized
+        ))
+
         .add_systems(OnEnter(GameState::Mission), (
-            ui::cleanup_global_map_ui,
-            setup_mission_scene_optimized,
+            sprites::load_sprites
+                .before(setup_mission_scene_optimized),
             health_bars::spawn_health_bar_system,
             factions::setup_factions_system,
             factions::faction_color_system,
+            message_window::setup_message_window,
+            
         ))
 
         .add_systems(Update, (
             ui::hub::hub_system,
         ).run_if(in_state(GameState::GlobalMap)))
 
+
         // Core mission systems
         .add_systems(Update, (
             camera::movement,
             selection::system,
             movement::system,
+
             goap::goap_ai_system,
+
             ai::goap_sound_detection_system,
             ai::alert_system,
             ai::legacy_enemy_ai_system,
             ai::sound_detection_system,
+
             morale::morale_system,
             morale::civilian_morale_system,
             morale::flee_system,
         ).run_if(in_state(GameState::Mission)))
 
+        
         // Combat and interaction systems
         .add_systems(Update, (            
             weapon_swap::weapon_drop_system,
@@ -177,34 +185,46 @@ fn main() {
             interaction::system,
             combat::system,
             combat::death_system,
-            goap::goap_config_system,
-            goap::goap_debug_system,
+
             ui::world::system,
             ui::screens::inventory_system,
             ui::screens::pause_system,
+
         ).run_if(in_state(GameState::Mission)))
 
         // Mission management systems
         .add_systems(Update, (            
-            mission::restart_system_optimized,
+
             cover::cover_management_system,
             cover::cover_exit_system,
+
             quicksave::quicksave_system,
+
             reload::reload_system,
+
             panic_spread::panic_spread_system,
             panic_spread::panic_morale_reduction_system,
+
             police::police_tracking_system,
             police::police_spawn_system,
+
         ).run_if(in_state(GameState::Mission)))
 
+        // agents visible and controllable
+
         // Area control and formations
-        .add_systems(Update, (            
+        .add_systems(Update, (
+            
+            // CRASH RISK
             area_control::weapon_area_control_system,
+            
             area_control::area_effect_system,
             area_control::suppression_movement_system,
+            
             formations::formation_input_system,
             formations::formation_movement_system,
             formations::formation_visual_system,
+
             enhanced_neurovector::enhanced_neurovector_system,
             enhanced_neurovector::controlled_civilian_behavior_system,
             enhanced_neurovector::controlled_civilian_visual_system,
@@ -216,9 +236,11 @@ fn main() {
             vehicles::explosion_damage_system,
             vehicles::vehicle_cover_system,
             vehicles::vehicle_spawn_system,
+
             day_night::day_night_system,
             day_night::lighting_system,
             day_night::time_ui_system,
+
             health_bars::update_health_bars_system,
         ).run_if(in_state(GameState::Mission)))
 
@@ -229,10 +251,15 @@ fn main() {
             urban_simulation::daily_routine_system,
             urban_simulation::urban_cleanup_system,
             urban_simulation::urban_debug_system,
-            civilian_spawn::civilian_wander_system,
-            civilian_spawn::civilian_cleanup_system,
-        ).run_if(in_state(GameState::Mission)))
 
+            // civilian_spawn::civilian_wander_system,
+
+            message_window::update_message_window,
+            message_window::message_scroll_system,
+            civilian_spawn::civilian_cleanup_system,
+
+        ).run_if(in_state(GameState::Mission)))
+        
         // Police escalation
         .add_systems(Update, (
             police_escalation::police_incident_tracking_system,
@@ -269,6 +296,7 @@ fn main() {
             npc_barks::bark_handler_system,
             npc_barks::chat_bubble_system,
             npc_barks::bark_cooldown_system,
+
             hacking_feedback::hack_progress_visualization,
             hacking_feedback::hack_status_indicator_system,
             hacking_feedback::device_visual_feedback_system,
@@ -287,10 +315,6 @@ fn main() {
         ).run_if(in_state(GameState::PostMission)))
         
         .run();
-}
-
-pub fn dummy_fn() {
-
 }
 
 pub fn setup_mission_scene_optimized(
@@ -354,6 +378,7 @@ pub fn setup_mission_scene_optimized(
 }
 
 fn setup_camera_and_input(mut commands: Commands) {
+    // FIXED: Proper 2D camera setup for Bevy 0.16.1
     commands.spawn(Camera2d);
     
     let input_map = InputMap::default()
@@ -442,3 +467,4 @@ pub fn preload_common_scenes(mut scene_cache: ResMut<SceneCache>) {
 fn setup_urban_areas(mut commands: Commands) {
     commands.insert_resource(UrbanAreas::default());
 }
+

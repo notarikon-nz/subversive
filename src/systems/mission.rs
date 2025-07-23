@@ -73,17 +73,19 @@ pub fn restart_system_optimized(
     mut inventory_state: ResMut<InventoryState>,
     global_data: Res<GlobalData>,
 ) {
+
     if restart_check.is_none() { return; }
     
-    info!("Restarting mission - despawning {} entities", entities.iter().count());
+    let entity_list: Vec<Entity> = entities.iter().collect();
+    info!("Restarting mission - despawning {} entities", entity_list.len());
     
-    // Clean up entities (same as before)
-    for entity in entities.iter() {
-        if let Ok(_) = commands.get_entity(entity) {
-            commands.safe_despawn(entity);
+    for entity in entity_list {
+        // Guard: only despawn if entity still exists
+        if let Ok(mut entity_commands) = commands.get_entity(entity) {
+            entity_commands.despawn();
         }
     }
-    
+
     // Reset game state (same as before)
     *mission_data = MissionData::default();
     *game_mode = GameMode::default();

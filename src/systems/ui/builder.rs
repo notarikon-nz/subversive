@@ -1,6 +1,5 @@
 // src/systems/ui/builder.rs - Consolidated UI creation patterns
 use bevy::prelude::*;
-use crate::core::*;
 
 pub struct UIBuilder;
 

@@ -1,4 +1,4 @@
-// src/systems/area_control.rs
+// src/systems/area_control.rs - Hardened version
 use bevy::prelude::*;
 use crate::core::*;
 
@@ -23,38 +23,36 @@ pub fn weapon_area_control_system(
     mut area_weapons_query: Query<(Entity, &Transform, &Inventory, &mut GoapAgent), (With<Enemy>, Without<Dead>)>,
     agent_query: Query<&Transform, With<Agent>>,
     mut action_events: EventWriter<ActionEvent>,
-    time: Res<Time>,
     game_mode: Res<GameMode>,
 ) {
     if game_mode.paused { return; }
 
     for (enemy_entity, enemy_transform, inventory, mut goap_agent) in area_weapons_query.iter_mut() {
-        if let Some(weapon_config) = &inventory.equipped_weapon {
-            let enemy_pos = enemy_transform.translation.truncate();
+        let Some(weapon_config) = &inventory.equipped_weapon else { continue; };
+        let enemy_pos = enemy_transform.translation.truncate();
 
-            match weapon_config.base_weapon {
-                WeaponType::Flamethrower => {
-                    handle_flamethrower_control(
-                        enemy_entity,
-                        enemy_pos,
-                        &agent_query,
-                        &mut goap_agent,
-                        &mut action_events,
-                        &mut commands,
-                    );
-                },
-                WeaponType::Minigun => {
-                    handle_minigun_suppression(
-                        enemy_entity,
-                        enemy_pos,
-                        &agent_query,
-                        &mut goap_agent,
-                        &mut action_events,
-                        &mut commands,
-                    );
-                },
-                _ => {}
-            }
+        match weapon_config.base_weapon {
+            WeaponType::Flamethrower => {
+                handle_flamethrower_control(
+                    enemy_entity,
+                    enemy_pos,
+                    &agent_query,
+                    &mut goap_agent,
+                    &mut action_events,
+                    &mut commands,
+                );
+            },
+            WeaponType::Minigun => {
+                handle_minigun_suppression(
+                    enemy_entity,
+                    enemy_pos,
+                    &agent_query,
+                    &mut goap_agent,
+                    &mut action_events,
+                    &mut commands,
+                );
+            },
+            _ => {}
         }
     }
 }
@@ -72,31 +70,32 @@ fn handle_flamethrower_control(
         .filter(|&pos| enemy_pos.distance(pos) <= 80.0)
         .collect();
 
-    if agents_in_range.len() >= 1 {
-        let target_center = agents_in_range.iter().fold(Vec2::ZERO, |acc, &pos| acc + pos) / agents_in_range.len() as f32;
-        
-        commands.spawn((
-            AreaDenial {
-                weapon_type: WeaponType::Flamethrower,
-                control_radius: 60.0,
-                duration: 8.0,
-                damage_per_second: 15.0,
-            },
-            Transform::from_translation(target_center.extend(0.5)),
-            Sprite {
-                color: Color::srgba(1.0, 0.3, 0.0, 0.4),
-                custom_size: Some(Vec2::new(120.0, 120.0)),
-                ..default()
-            },
-        ));
+    if agents_in_range.is_empty() { return; }
 
-        action_events.write(ActionEvent {
-            entity: enemy_entity,
-            action: Action::Attack(Entity::PLACEHOLDER),
-        });
+    let target_center = agents_in_range.iter().fold(Vec2::ZERO, |acc, &pos| acc + pos) / agents_in_range.len() as f32;
+    
+    commands.spawn((
+        AreaDenial {
+            weapon_type: WeaponType::Flamethrower,
+            control_radius: 60.0,
+            duration: 8.0,
+            damage_per_second: 15.0,
+        },
+        Transform::from_translation(target_center.extend(0.5)),
+        Sprite {
+            color: Color::srgba(1.0, 0.3, 0.0, 0.4),
+            custom_size: Some(Vec2::new(120.0, 120.0)),
+            ..default()
+        },
+    ));
 
-        goap_agent.update_world_state(WorldKey::ControllingArea, true);
-    }
+    // Use the actual enemy entity instead of PLACEHOLDER
+    action_events.write(ActionEvent {
+        entity: enemy_entity,
+        action: Action::Attack(enemy_entity), // Self-targeting for area attacks
+    });
+
+    goap_agent.update_world_state(WorldKey::ControllingArea, true);
 }
 
 fn handle_minigun_suppression(
@@ -107,34 +106,33 @@ fn handle_minigun_suppression(
     action_events: &mut EventWriter<ActionEvent>,
     commands: &mut Commands,
 ) {
-    if let Some(target_transform) = agent_query.iter().next() {
-        let target_pos = target_transform.translation.truncate();
-        let distance = enemy_pos.distance(target_pos);
+    let Some(target_transform) = agent_query.iter().next() else { return; };
+    let target_pos = target_transform.translation.truncate();
+    let distance = enemy_pos.distance(target_pos);
 
-        if distance <= 200.0 && distance >= 100.0 {
-            commands.spawn((
-                SuppressionZone {
-                    center: target_pos,
-                    radius: 40.0,
-                    intensity: 0.8,
-                    duration: 6.0,
-                },
-                Transform::from_translation(target_pos.extend(0.5)),
-                Sprite {
-                    color: Color::srgba(1.0, 1.0, 0.0, 0.3),
-                    custom_size: Some(Vec2::new(80.0, 80.0)),
-                    ..default()
-                },
-            ));
+    if !(100.0..=200.0).contains(&distance) { return; }
 
-            action_events.write(ActionEvent {
-                entity: enemy_entity,
-                action: Action::Attack(Entity::PLACEHOLDER),
-            });
+    commands.spawn((
+        SuppressionZone {
+            center: target_pos,
+            radius: 40.0,
+            intensity: 0.8,
+            duration: 6.0,
+        },
+        Transform::from_translation(target_pos.extend(0.5)),
+        Sprite {
+            color: Color::srgba(1.0, 1.0, 0.0, 0.3),
+            custom_size: Some(Vec2::new(80.0, 80.0)),
+            ..default()
+        },
+    ));
 
-            goap_agent.update_world_state(WorldKey::SuppressingTarget, true);
-        }
-    }
+    action_events.write(ActionEvent {
+        entity: enemy_entity,
+        action: Action::Attack(enemy_entity), // Self-targeting for suppression
+    });
+
+    goap_agent.update_world_state(WorldKey::SuppressingTarget, true);
 }
 
 pub fn area_effect_system(
@@ -147,6 +145,7 @@ pub fn area_effect_system(
 ) {
     if game_mode.paused { return; }
 
+    // Process area denial effects
     for (entity, mut area_denial, area_transform) in area_query.iter_mut() {
         area_denial.duration -= time.delta_secs();
         
@@ -166,6 +165,7 @@ pub fn area_effect_system(
         }
     }
 
+    // Process suppression zones
     for (entity, mut suppression, _) in suppression_query.iter_mut() {
         suppression.duration -= time.delta_secs();
         
@@ -184,20 +184,17 @@ pub fn suppression_movement_system(
 
     for (agent_transform, mut movement_speed) in agent_query.iter_mut() {
         let agent_pos = agent_transform.translation.truncate();
-        let mut suppressed = false;
+        let mut base_speed = 150.0;
 
         for (suppression, _) in suppression_query.iter() {
             let distance = agent_pos.distance(suppression.center);
             
             if distance <= suppression.radius {
-                movement_speed.0 *= 1.0 - suppression.intensity;
-                suppressed = true;
-                break;
+                base_speed *= 1.0 - suppression.intensity;
+                break; // Only apply strongest suppression
             }
         }
 
-        if !suppressed {
-            movement_speed.0 = 150.0;
-        }
+        movement_speed.0 = base_speed;
     }
 }

@@ -24,7 +24,9 @@ pub fn load_sprites(mut commands: Commands, asset_server: Res<AssetServer>) {
     
     commands.insert_resource(sprites);
     info!("Sprites resource created!");
+
 }
+
 
 // FIXED: Much more visible fallback sprites with borders
 pub fn create_agent_sprite(sprites: &GameSprites) -> (Sprite, Transform) {

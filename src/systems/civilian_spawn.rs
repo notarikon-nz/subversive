@@ -124,24 +124,28 @@ impl CivilianWander {
 
 pub fn civilian_wander_system(
     mut civilian_query: Query<(Entity, &Transform, &mut CivilianWander), (With<Civilian>, Without<FleeTarget>, Without<ControlledCivilian>)>,
-    mut action_events: EventWriter<ActionEvent>,
+    mut commands: Commands,
     time: Res<Time>,
     game_mode: Res<GameMode>,
 ) {
     if game_mode.paused { return; }
 
-    for (entity, transform, mut wander) in civilian_query.iter_mut() {
-        wander.wander_timer -= time.delta_secs();
+    let delta = time.delta_secs();
+    if delta <= 0.0 { return; }
+
+    for (entity, _transform, mut wander) in civilian_query.iter_mut() {
+        wander.wander_timer -= delta;
         
         if wander.wander_timer <= 0.0 {
             let angle = rand::random::<f32>() * std::f32::consts::TAU;
             let distance = rand::random::<f32>() * 120.0;
-            let target = wander.home_position + Vec2::new(angle.cos(), angle.sin()) * distance;
+            let offset = Vec2::new(angle.cos(), angle.sin()) * distance;
+            let target = wander.home_position + offset;
             
-            action_events.write(ActionEvent {
-                entity,
-                action: Action::MoveTo(target),
-            });
+            if target.is_finite() {
+                // Use commands instead of events to avoid despawned entity issues
+                commands.entity(entity).try_insert(MoveTarget { position: target });
+            }
             
             wander.wander_timer = 5.0 + rand::random::<f32>() * 10.0;
         }

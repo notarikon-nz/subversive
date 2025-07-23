@@ -82,7 +82,6 @@ impl BarkType {
 }
 
 // === SYSTEMS ===
-
 // Monitor GOAP state changes and trigger barks
 pub fn goap_bark_system(
     mut bark_events: EventWriter<BarkEvent>,

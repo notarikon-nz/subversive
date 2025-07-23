@@ -4263,6 +4263,7 @@ dependencies = [
  "bevy_light_2d",
  "bevy_mod_imgui",
  "bevy_rapier2d",
+ "fastrand",
  "imgui",
  "leafwing-input-manager",
  "rand",

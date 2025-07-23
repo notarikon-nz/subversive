@@ -1,7 +1,6 @@
 // src/core/missions.rs - Mission briefing and evaluation systems
 use bevy::prelude::*;
 use crate::core::*;
-use rand::{thread_rng, Rng};
 
 // === MISSION BRIEFING ===
 #[derive(Clone)]
