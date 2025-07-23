@@ -1,7 +1,5 @@
-// src/systems/combat.rs - Optimized and streamlined
-
+// src/systems/combat.rs - Streamlined and simplified
 use bevy::prelude::*;
-use bevy::ecs::system::ParamSet;
 use leafwing_input_manager::prelude::*;
 use crate::core::*;
 
@@ -13,10 +11,7 @@ pub fn system(
     mut audio_events: EventWriter<AudioEvent>,
     agent_query: Query<(&Transform, &Inventory), With<Agent>>,
     mut agent_weapon_query: Query<&mut WeaponState, With<Agent>>,
-    mut health_queries: ParamSet<(
-        Query<(Entity, &Transform, &mut Health), (With<Enemy>, Without<Dead>)>,
-        Query<(Entity, &Transform, &mut Health), (With<Vehicle>, Without<Dead>)>,
-    )>,
+    mut target_query: Query<(Entity, &Transform, &mut Health), Or<(With<Enemy>, With<Vehicle>)>>,
     game_mode: Res<GameMode>,
     windows: Query<&Window>,
     cameras: Query<(&Camera, &GlobalTransform)>,
@@ -26,7 +21,7 @@ pub fn system(
     // Handle combat targeting mode
     if let Some(TargetingMode::Combat { agent }) = &game_mode.targeting {
         handle_combat_targeting(*agent, &input, &agent_query, &mut agent_weapon_query, 
-                               &mut health_queries, &mut combat_events, &mut audio_events,
+                               &mut target_query, &mut combat_events, &mut audio_events,
                                &mut gizmos, &windows, &cameras);
     }
 
@@ -34,12 +29,12 @@ pub fn system(
     for event in action_events.read() {
         if let Action::Attack(target) = event.action {
             execute_attack(event.entity, target, &agent_query, &mut agent_weapon_query, 
-                         &mut health_queries, &mut combat_events, &mut audio_events);
+                         &mut target_query, &mut combat_events, &mut audio_events);
         }
     }
 
-    // Draw health bars for damaged enemies
-    draw_health_bars(&mut gizmos, &mut health_queries);
+    // Draw health bars for damaged targets
+    draw_health_bars(&mut gizmos, &target_query);
 }
 
 fn handle_combat_targeting(
@@ -47,10 +42,7 @@ fn handle_combat_targeting(
     input: &Query<&ActionState<PlayerAction>>,
     agent_query: &Query<(&Transform, &Inventory), With<Agent>>,
     agent_weapon_query: &mut Query<&mut WeaponState, With<Agent>>,
-    health_queries: &mut ParamSet<(
-        Query<(Entity, &Transform, &mut Health), (With<Enemy>, Without<Dead>)>,
-        Query<(Entity, &Transform, &mut Health), (With<Vehicle>, Without<Dead>)>,
-    )>,
+    target_query: &mut Query<(Entity, &Transform, &mut Health), Or<(With<Enemy>, With<Vehicle>)>>,
     combat_events: &mut EventWriter<CombatEvent>,
     audio_events: &mut EventWriter<AudioEvent>,
     gizmos: &mut Gizmos,
@@ -65,106 +57,14 @@ fn handle_combat_targeting(
     
     // Draw targeting UI
     gizmos.circle_2d(agent_pos, range, Color::srgba(0.8, 0.2, 0.2, 0.3));
-    draw_targets_in_range(gizmos, health_queries, agent_pos, range);
+    draw_targets_in_range(gizmos, target_query, agent_pos, range);
     
     // Handle mouse click for target selection
     if action_state.just_pressed(&PlayerAction::Select) {
-        if let Some(target) = find_target_at_mouse(health_queries, agent_pos, range, windows, cameras) {
-            execute_attack(agent, target, agent_query, agent_weapon_query, health_queries, combat_events, audio_events);
+        if let Some(target) = find_target_at_mouse(target_query, agent_pos, range, windows, cameras) {
+            execute_attack(agent, target, agent_query, agent_weapon_query, target_query, combat_events, audio_events);
         }
     }
-}
-
-fn get_weapon_range(inventory: &Inventory, weapon_state: Option<&WeaponState>) -> f32 {
-    let base_range = 150.0;
-    if let Some(weapon_config) = &inventory.equipped_weapon {
-        let stats = weapon_config.calculate_total_stats();
-        (base_range * (1.0 + stats.range as f32 * 0.1)).max(50.0)
-    } else {
-        base_range
-    }
-}
-
-fn draw_targets_in_range(
-    gizmos: &mut Gizmos,
-    health_queries: &mut ParamSet<(
-        Query<(Entity, &Transform, &mut Health), (With<Enemy>, Without<Dead>)>,
-        Query<(Entity, &Transform, &mut Health), (With<Vehicle>, Without<Dead>)>,
-    )>,
-    agent_pos: Vec2,
-    range: f32,
-) {
-    // Draw enemy targets
-    {
-        let enemy_query = health_queries.p0();
-        for (_, transform, health) in enemy_query.iter() {
-            if health.0 > 0.0 && agent_pos.distance(transform.translation.truncate()) <= range {
-                let pos = transform.translation.truncate();
-                gizmos.circle_2d(pos, 25.0, Color::srgb(1.0, 0.5, 0.5));
-                draw_crosshair(gizmos, pos, 15.0, Color::srgb(0.8, 0.2, 0.2));
-            }
-        }
-    }
-    
-    // Draw vehicle targets
-    {
-        let vehicle_query = health_queries.p1();
-        for (_, transform, health) in vehicle_query.iter() {
-            if health.0 > 0.0 && agent_pos.distance(transform.translation.truncate()) <= range {
-                let pos = transform.translation.truncate();
-                gizmos.circle_2d(pos, 35.0, Color::srgb(0.8, 0.8, 0.2));
-                draw_crosshair(gizmos, pos, 20.0, Color::srgb(0.8, 0.6, 0.2));
-            }
-        }
-    }
-}
-
-fn find_target_at_mouse(
-    health_queries: &mut ParamSet<(
-        Query<(Entity, &Transform, &mut Health), (With<Enemy>, Without<Dead>)>,
-        Query<(Entity, &Transform, &mut Health), (With<Vehicle>, Without<Dead>)>,
-    )>,
-    agent_pos: Vec2,
-    range: f32,
-    windows: &Query<&Window>,
-    cameras: &Query<(&Camera, &GlobalTransform)>,
-) -> Option<Entity> {
-    let mouse_pos = get_world_mouse_position(windows, cameras)?;
-    let mut closest = (None, f32::INFINITY);
-    
-    // Check enemies (smaller click radius)
-    {
-        let enemy_query = health_queries.p0();
-        for (entity, transform, health) in enemy_query.iter() {
-            if health.0 <= 0.0 { continue; }
-            
-            let pos = transform.translation.truncate();
-            if agent_pos.distance(pos) <= range {
-                let mouse_dist = mouse_pos.distance(pos);
-                if mouse_dist < 30.0 && mouse_dist < closest.1 {
-                    closest = (Some(entity), mouse_dist);
-                }
-            }
-        }
-    }
-    
-    // Check vehicles if no enemy found (larger click radius)
-    if closest.0.is_none() {
-        let vehicle_query = health_queries.p1();
-        for (entity, transform, health) in vehicle_query.iter() {
-            if health.0 <= 0.0 { continue; }
-            
-            let pos = transform.translation.truncate();
-            if agent_pos.distance(pos) <= range {
-                let mouse_dist = mouse_pos.distance(pos);
-                if mouse_dist < 40.0 && mouse_dist < closest.1 {
-                    closest = (Some(entity), mouse_dist);
-                }
-            }
-        }
-    }
-    
-    closest.0
 }
 
 fn execute_attack(
@@ -172,10 +72,7 @@ fn execute_attack(
     target: Entity,
     agent_query: &Query<(&Transform, &Inventory), With<Agent>>,
     agent_weapon_query: &mut Query<&mut WeaponState, With<Agent>>,
-    health_queries: &mut ParamSet<(
-        Query<(Entity, &Transform, &mut Health), (With<Enemy>, Without<Dead>)>,
-        Query<(Entity, &Transform, &mut Health), (With<Vehicle>, Without<Dead>)>,
-    )>,
+    target_query: &mut Query<(Entity, &Transform, &mut Health), Or<(With<Enemy>, With<Vehicle>)>>,
     combat_events: &mut EventWriter<CombatEvent>,
     audio_events: &mut EventWriter<AudioEvent>,
 ) {
@@ -186,18 +83,24 @@ fn execute_attack(
         }
     }
     
-    // Calculate attack parameters
-    let (damage, accuracy, noise) = get_attack_stats(agent_query.get(attacker).ok(), 
-                                                   agent_weapon_query.get(attacker).ok());
+    // Calculate damage and accuracy
+    let (damage, accuracy, noise) = get_attack_stats(
+        agent_query.get(attacker).ok(), 
+        agent_weapon_query.get(attacker).ok()
+    );
     let hit = rand::random::<f32>() < accuracy;
     
-    // Apply damage to target (try enemy first, then vehicle)
-    let final_damage = if apply_damage_to_enemy(&mut health_queries.p0(), target, damage, hit) {
-        damage
-    } else if apply_damage_to_vehicle(&mut health_queries.p1(), target, damage, hit) {
-        damage * 0.5 // Vehicles take reduced damage
+    // Apply damage to target
+    let final_damage = if let Ok((_, _, mut health)) = target_query.get_mut(target) {
+        if hit {
+            let actual_damage = damage; // Simplified: no damage multiplier for now
+            health.0 = (health.0 - actual_damage).max(0.0);
+            actual_damage
+        } else {
+            0.0
+        }
     } else {
-        0.0 // Target not found
+        0.0
     };
     
     // Send events
@@ -209,6 +112,16 @@ fn execute_attack(
     }
     
     combat_events.write(CombatEvent { attacker, target, damage: final_damage, hit });
+}
+
+fn get_weapon_range(inventory: &Inventory, weapon_state: Option<&WeaponState>) -> f32 {
+    let base_range = 150.0;
+    if let Some(weapon_config) = &inventory.equipped_weapon {
+        let stats = weapon_config.calculate_total_stats();
+        (base_range * (1.0 + stats.range as f32 * 0.1)).max(50.0)
+    } else {
+        base_range
+    }
 }
 
 fn get_attack_stats(
@@ -227,47 +140,47 @@ fn get_attack_stats(
     (35.0, 0.8, 1.0) // Default values
 }
 
-fn apply_damage_to_enemy(
-    enemy_query: &mut Query<(Entity, &Transform, &mut Health), (With<Enemy>, Without<Dead>)>,
-    target: Entity,
-    damage: f32,
-    hit: bool,
-) -> bool {
-    if let Ok((_, _, mut health)) = enemy_query.get_mut(target) {
-        if hit {
-            health.0 = (health.0 - damage).max(0.0);
+fn draw_targets_in_range(
+    gizmos: &mut Gizmos,
+    target_query: &mut Query<(Entity, &Transform, &mut Health), Or<(With<Enemy>, With<Vehicle>)>>,
+    agent_pos: Vec2,
+    range: f32,
+) {
+    for (_, transform, health) in target_query.iter() {
+        if health.0 > 0.0 && agent_pos.distance(transform.translation.truncate()) <= range {
+            let pos = transform.translation.truncate();
+            gizmos.circle_2d(pos, 25.0, Color::srgb(1.0, 0.5, 0.5));
+            draw_crosshair(gizmos, pos, 15.0, Color::srgb(0.8, 0.2, 0.2));
         }
-        true
-    } else {
-        false
     }
 }
 
-fn apply_damage_to_vehicle(
-    vehicle_query: &mut Query<(Entity, &Transform, &mut Health), (With<Vehicle>, Without<Dead>)>,
-    target: Entity,
-    damage: f32,
-    hit: bool,
-) -> bool {
-    if let Ok((_, _, mut health)) = vehicle_query.get_mut(target) {
-        if hit {
-            health.0 = (health.0 - damage * 0.5).max(0.0); // Vehicles take 50% damage
-        }
-        true
-    } else {
-        false
-    }
+fn find_target_at_mouse(
+    target_query: &mut Query<(Entity, &Transform, &mut Health), Or<(With<Enemy>, With<Vehicle>)>>,
+    agent_pos: Vec2,
+    range: f32,
+    windows: &Query<&Window>,
+    cameras: &Query<(&Camera, &GlobalTransform)>,
+) -> Option<Entity> {
+    let mouse_pos = get_world_mouse_position(windows, cameras)?;
+    
+    target_query.iter()
+        .filter(|(_, _, health)| health.0 > 0.0)
+        .filter(|(_, transform, _)| agent_pos.distance(transform.translation.truncate()) <= range)
+        .filter(|(_, transform, _)| mouse_pos.distance(transform.translation.truncate()) < 35.0)
+        .min_by(|(_, a_transform, _), (_, b_transform, _)| {
+            let a_dist = mouse_pos.distance(a_transform.translation.truncate());
+            let b_dist = mouse_pos.distance(b_transform.translation.truncate());
+            a_dist.partial_cmp(&b_dist).unwrap_or(std::cmp::Ordering::Equal)
+        })
+        .map(|(entity, _, _)| entity)
 }
 
 fn draw_health_bars(
     gizmos: &mut Gizmos,
-    health_queries: &mut ParamSet<(
-        Query<(Entity, &Transform, &mut Health), (With<Enemy>, Without<Dead>)>,
-        Query<(Entity, &Transform, &mut Health), (With<Vehicle>, Without<Dead>)>,
-    )>,
+    target_query: &Query<(Entity, &Transform, &mut Health), Or<(With<Enemy>, With<Vehicle>)>>,
 ) {
-    let enemy_query = health_queries.p0();
-    for (_, transform, health) in enemy_query.iter() {
+    for (_, transform, health) in target_query.iter() {
         if health.0 <= 100.0 && health.0 > 0.0 {
             draw_health_bar(gizmos, transform.translation.truncate(), health.0, 100.0);
         }
@@ -302,14 +215,19 @@ fn draw_health_bar(gizmos: &mut Gizmos, position: Vec2, current: f32, max: f32) 
 
 pub fn death_system(
     mut commands: Commands,
-    mut enemy_query: Query<(Entity, &mut Health, &mut Sprite), (With<Enemy>, Without<Dead>)>,
+    mut target_query: Query<(Entity, &mut Health, &mut Sprite), Or<(With<Enemy>, With<Vehicle>)>>,
+    enemy_query: Query<Entity, With<Enemy>>, // Separate query to check if entity is an enemy
     mut mission_data: ResMut<MissionData>,
 ) {
-    for (entity, health, mut sprite) in enemy_query.iter_mut() {
+    for (entity, health, mut sprite) in target_query.iter_mut() {
         if health.0 <= 0.0 {
             commands.entity(entity).insert(Dead);
             sprite.color = Color::srgb(0.3, 0.1, 0.1);
-            mission_data.enemies_killed += 1;
+            
+            // Only count enemies for mission stats
+            if enemy_query.contains(entity) {
+                mission_data.enemies_killed += 1;
+            }
         }
     }
 }

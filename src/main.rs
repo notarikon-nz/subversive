@@ -7,7 +7,6 @@ use bevy_rapier2d::prelude::*;
 use bevy_light_2d::prelude::*;
 use leafwing_input_manager::prelude::*;
 use systems::ui::hub::{AgentManagementState, CyberneticsDatabase, HubStates, HubDatabases, HubProgress};
-use testing_spawn::*;
 
 use systems::ui::hub::missions::{MissionLaunchData};
 
@@ -25,7 +24,7 @@ use systems::explosions::*;
 fn main() {
 
     let (global_data, research_progress) = load_global_data_or_default();
-    systems::scenes::ensure_scenes_directory();
+    // systems::scenes::ensure_scenes_directory();
     ensure_data_directories();
 
     App::new()
@@ -74,10 +73,6 @@ fn main() {
         .insert_resource(AttachmentDatabase::load())
         .insert_resource(LoreDatabase::load())
         .insert_resource(CitiesDatabase::load())
-
-        .insert_resource(ImguiState {
-            demo_window_open: true,
-        })
 
         .init_resource::<UIState>()
         .init_resource::<PostMissionProcessed>()
@@ -227,15 +222,6 @@ fn main() {
             health_bars::update_health_bars_system,
         ).run_if(in_state(GameState::Mission)))
 
-        // Debug systems
-        .add_systems(Update, (
-            testing_spawn::goap_debug_display_system,
-            testing_spawn::debug_selection_visual_system,
-            testing_spawn::simple_visual_debug_system,
-            testing_spawn::patrol_debug_system,
-            testing_spawn::faction_visualization_system,
-        ).run_if(in_state(GameState::Mission)))
-
         // Urban simulation
         .add_systems(Update, (
             urban_simulation::urban_civilian_spawn_system,
@@ -357,13 +343,12 @@ pub fn setup_mission_scene_optimized(
     
     match load_scene_cached(&mut scene_cache, scene_name) {
         Some(scene) => {
-            spawn_from_scene_with_city(&mut commands, &scene, &*global_data, &sprites, selected_city);
+            spawn_from_scene(&mut commands, &scene, &*global_data, &sprites);
             info!("Loaded scene: {} for city: {}", scene_name, 
                   selected_city.map_or("None", |c| &c.name));
         },
         None => {
             error!("Failed to load scene: {}. Creating fallback.", scene_name);
-            spawn_fallback_mission(&mut commands, &*global_data, &sprites);
         }
     }
 }
