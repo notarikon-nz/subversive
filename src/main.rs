@@ -300,8 +300,7 @@ fn main() {
             npc_barks::goap_bark_system,
             npc_barks::combat_bark_system,
             npc_barks::bark_handler_system,
-            npc_barks::chat_bubble_system,
-            npc_barks::bark_cooldown_system,
+            npc_barks::update_bubble_system,
 
             hacking_feedback::hack_progress_visualization,
             hacking_feedback::hack_status_indicator_system,
