@@ -114,7 +114,7 @@ pub fn spawn_from_scene(commands: &mut Commands, scene: &SceneData, global_data:
     if let Some(police) = &scene.police {
         for unit in police {
             //let patrol = unit.patrol_points.iter().map(|&p| Vec2::from(p)).collect();
-            spawn_police_unit(commands, Vec2::from(unit.position), EscalationLevel::Patrol, sprites);
+            spawn_police_unit_simple(commands, Vec2::from(unit.position), EscalationLevel::Patrol, sprites);
         }
     }
 
@@ -276,6 +276,8 @@ fn spawn_terminal(commands: &mut Commands, pos: Vec2, terminal_type: &str, sprit
         CollisionGroups::new(TERMINAL_GROUP, Group::ALL),
     ));
 }
+
+/*
 fn spawn_police(commands: &mut Commands, pos: Vec2, patrol: Vec<Vec2>, unit_type: &str, sprites: &GameSprites) {
     let (mut sprite, _) = create_enemy_sprite(sprites);
     let escalation_level = parse_police_unit_type(unit_type);
@@ -311,6 +313,7 @@ fn spawn_police(commands: &mut Commands, pos: Vec2, patrol: Vec<Vec2>, unit_type
         create_physics_bundle(9.0, ENEMY_GROUP),
     ));
 }
+*/
 
 pub fn spawn_cover_points(commands: &mut Commands) {
     let positions = [
@@ -575,3 +578,4 @@ fn create_industrial_areas() -> UrbanAreas {
         ],
     }
 }
+

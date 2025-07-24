@@ -9,6 +9,7 @@ use leafwing_input_manager::prelude::*;
 use systems::ui::hub::{CyberneticsDatabase, HubStates, HubDatabases, HubProgress};
 use systems::ui::hub::agents::AgentManagementState;
 use systems::ui::hub::missions::{MissionLaunchData};
+use systems::police::{load_police_config, PoliceConfig, PoliceResponse, PoliceEscalation};
 
 mod core;
 mod systems;
@@ -114,7 +115,7 @@ fn main() {
             apply_loaded_research_benefits,
             fonts::check_fonts_loaded,
             setup_urban_areas,
-
+            setup_police_system,
             sprites::load_sprites,
         ))
         .add_systems(PostStartup, (
@@ -504,4 +505,14 @@ pub fn collision_feedback_system(
             }
         }
     }
+}
+
+fn setup_police_system(mut commands: Commands) {
+    // Load configuration from file
+    let config = load_police_config();
+    
+    // Insert as resources
+    commands.insert_resource(config);
+    commands.insert_resource(PoliceResponse::default());
+    commands.insert_resource(PoliceEscalation::default());
 }
