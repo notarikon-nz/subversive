@@ -21,7 +21,6 @@ pub mod enhanced_neurovector;
 pub mod civilian_spawn;
 pub mod health_bars;
 pub mod urban_simulation;
-pub mod police_escalation;
 pub mod explosions;
 pub mod npc_barks;
 pub mod power_grid;

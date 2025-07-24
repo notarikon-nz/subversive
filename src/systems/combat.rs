@@ -91,6 +91,7 @@ fn execute_attack(
     let final_damage = if let Ok((_, _, mut health)) = target_query.get_mut(target) {
         if hit {
             let actual_damage = damage; // Simplified: no damage multiplier for now
+            // spawn damage text            
             health.0 = (health.0 - actual_damage).max(0.0);
             actual_damage
         } else {

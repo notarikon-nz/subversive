@@ -9,7 +9,7 @@ use crate::systems::ai::*;
 use crate::systems::vehicles::spawn_vehicle;
 use crate::core::factions::Faction;
 use crate::systems::*;
-use crate::systems::police_escalation::*;
+use crate::systems::police::*;
 
 // === SCENE DATA STRUCTURES ===
 #[derive(Clone, Serialize, Deserialize)]
@@ -113,8 +113,8 @@ pub fn spawn_from_scene(commands: &mut Commands, scene: &SceneData, global_data:
 
     if let Some(police) = &scene.police {
         for unit in police {
-            let patrol = unit.patrol_points.iter().map(|&p| Vec2::from(p)).collect();
-            spawn_police(commands, Vec2::from(unit.position), patrol, &unit.unit_type, sprites);
+            //let patrol = unit.patrol_points.iter().map(|&p| Vec2::from(p)).collect();
+            spawn_police_unit(commands, Vec2::from(unit.position), EscalationLevel::Patrol, sprites);
         }
     }
 

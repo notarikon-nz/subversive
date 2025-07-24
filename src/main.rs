@@ -18,7 +18,7 @@ use core::factions;
 use systems::*;
 use pool::*;
 use systems::scenes::*;
-use systems::police_escalation::*;
+use systems::police::*;
 use systems::explosions::*;
 
 fn main() {
@@ -211,8 +211,6 @@ fn main() {
             panic_spread::panic_spread_system,
             panic_spread::panic_morale_reduction_system,
 
-            police::police_tracking_system,
-            police::police_spawn_system,
 
         ).run_if(in_state(GameState::Mission)))
 
@@ -268,11 +266,15 @@ fn main() {
         
         // Police escalation
         .add_systems(Update, (
-            police_escalation::police_incident_tracking_system,
-            police_escalation::police_spawn_system,
-            police_escalation::police_cleanup_system,
-            police_escalation::police_deescalation_system,
-            police_escalation::police_debug_system,
+            // CORE
+            police::police_tracking_system,
+            police::police_spawn_system,
+            // ESCALATION
+            police::police_incident_tracking_system,
+            police::police_spawn_system,
+            police::police_cleanup_system,
+            police::police_deescalation_system,
+
             explosions::explosion_damage_system,
             explosions::floating_text_system,
             explosions::handle_grenade_events,

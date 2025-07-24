@@ -1,0 +1,114 @@
+// data/config/police_config.ron
+(
+    heat_decay_rate: 2.0,
+    escalation_check_delay: 5.0,
+    escalation_cooldown: 10.0,
+    mass_hysteria_threshold: 5,
+    
+    incident_heat_values: {
+        "Gunshot": 5.0,
+        "CivilianKilled": 25.0,
+        "PoliceKilled": 35.0,
+        "Explosion": 40.0,
+        "MassHysteria": 20.0,
+    },
+    
+    escalation_levels: {
+        "None": (
+            count: 0,
+            response_time: 0.0,
+            health: 100.0,
+            weapon: "Pistol",
+            speed: 100.0,
+            vision: 100.0,
+            color: (0.3, 0.3, 0.3, 1.0),
+            heat_threshold: 15.0,
+            spawn_interval: 0.0,
+        ),
+        "Patrol": (
+            count: 1,
+            response_time: 45.0,
+            health: 80.0,
+            weapon: "Pistol",
+            speed: 100.0,
+            vision: 100.0,
+            color: (0.2, 0.2, 0.8, 1.0),
+            heat_threshold: 35.0,
+            spawn_interval: 60.0,
+        ),
+        "Armed": (
+            count: 2,
+            response_time: 30.0,
+            health: 120.0,
+            weapon: "Rifle",
+            speed: 120.0,
+            vision: 120.0,
+            color: (0.4, 0.4, 0.9, 1.0),
+            heat_threshold: 60.0,
+            spawn_interval: 45.0,
+        ),
+        "Tactical": (
+            count: 3,
+            response_time: 25.0,
+            health: 150.0,
+            weapon: "Rifle",
+            speed: 140.0,
+            vision: 140.0,
+            color: (0.6, 0.6, 1.0, 1.0),
+            heat_threshold: 90.0,
+            spawn_interval: 40.0,
+        ),
+        "Military": (
+            count: 4,
+            response_time: 20.0,
+            health: 180.0,
+            weapon: "Minigun",
+            speed: 130.0,
+            vision: 160.0,
+            color: (0.5, 0.8, 0.5, 1.0),
+            heat_threshold: 120.0,
+            spawn_interval: 35.0,
+        ),
+        "Corporate": (
+            count: 2,
+            response_time: 15.0,
+            health: 200.0,
+            weapon: "Flamethrower",
+            speed: 150.0,
+            vision: 180.0,
+            color: (0.8, 0.2, 0.8, 1.0),
+            heat_threshold: 999999.0, // Effectively infinite
+            spawn_interval: 30.0,
+        ),
+    },
+    
+    patrol_patterns: {
+        "Simple": [
+            (0.0, 0.0),
+            (80.0, 0.0),
+        ],
+        "Tactical": [
+            (0.0, 0.0),
+            (-100.0, 50.0),
+            (-100.0, -50.0),
+            (50.0, -50.0),
+        ],
+        "Aggressive": [
+            (0.0, 0.0),
+            (-200.0, 0.0),
+            (-200.0, -100.0),
+            (-100.0, -100.0),
+            (-100.0, 100.0),
+        ],
+    },
+    
+    // Maps escalation levels to patrol patterns
+    level_patrol_patterns: {
+        "None": "Simple",
+        "Patrol": "Simple",
+        "Armed": "Simple",
+        "Tactical": "Tactical",
+        "Military": "Aggressive",
+        "Corporate": "Aggressive",
+    },
+)

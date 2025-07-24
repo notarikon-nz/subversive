@@ -182,7 +182,7 @@ fn spawn_explosion(
     ));
 }
 
-fn spawn_damage_text(
+pub fn spawn_damage_text(
     commands: &mut Commands,
     position: Vec2,
     damage: f32,
