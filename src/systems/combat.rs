@@ -184,8 +184,8 @@ fn draw_crosshair(gizmos: &mut Gizmos, position: Vec2, size: f32, color: Color) 
 
 pub fn death_system(
     mut commands: Commands,
-    mut target_query: Query<(Entity, &mut Health, &mut Sprite), Or<(With<Enemy>, With<Vehicle>)>>,
-    enemy_query: Query<Entity, With<Enemy>>, // Separate query to check if entity is an enemy
+    mut target_query: Query<(Entity, &mut Health, &mut Sprite), (Or<(With<Enemy>, With<Vehicle>)>, Without<Dead>)>,
+    enemy_query: Query<Entity, (With<Enemy>, Without<Dead>)>,
     mut mission_data: ResMut<MissionData>,
 ) {
     for (entity, health, mut sprite) in target_query.iter_mut() {
@@ -193,7 +193,6 @@ pub fn death_system(
             commands.entity(entity).insert(Dead);
             sprite.color = Color::srgb(0.3, 0.1, 0.1);
             
-            // Only count enemies for mission stats
             if enemy_query.contains(entity) {
                 mission_data.enemies_killed += 1;
             }

@@ -80,7 +80,7 @@ pub fn goap_bark_system(
                 _ => continue,
             };
             
-            bark_events.send(BarkEvent { entity, bark_type: bark });
+            bark_events.write(BarkEvent { entity, bark_type: bark });
             commands.entity(entity).insert(BarkCooldown(3.0));
         } else {
             last_goals.remove(&entity);
@@ -97,7 +97,7 @@ pub fn combat_bark_system(
 ) {
     for event in combat_events.read() {
         if event.hit && enemy_query.contains(event.target) {
-            bark_events.send(BarkEvent {
+            bark_events.write(BarkEvent {
                 entity: event.target,
                 bark_type: if event.damage >= 50.0 { BarkType::Dying } else { BarkType::Hit },
             });
@@ -143,7 +143,7 @@ pub fn bark_handler_system(
                 _ => AudioType::Footstep,
             };
             
-            audio_events.send(AudioEvent {
+            audio_events.write(AudioEvent {
                 sound: audio_type,
                 volume: 0.3,
             });
@@ -170,7 +170,7 @@ pub fn update_bubble_system(
         bubble.lifetime -= dt;
         
         if bubble.lifetime <= 0.0 {
-            commands.entity(entity).despawn_recursive();
+            commands.entity(entity).despawn();
         } else {
             transform.translation.y += 20.0 * dt;
             

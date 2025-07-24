@@ -347,8 +347,6 @@ fn create_post_mission_ui(
     global_data: &GlobalData,
 ) {
 
-    info!("create_post_mission_ui");
-    
     let (title, title_color) = if post_mission.success {
         ("MISSION SUCCESS", Color::srgb(0.2, 0.8, 0.2))
     } else {
@@ -369,6 +367,7 @@ fn create_post_mission_ui(
         ZIndex(200),
         PostMissionScreen,
     )).with_children(|parent| {
+        
         // Title
         parent.spawn((
             Text::new(title),

@@ -1,27 +1,27 @@
 {
-  "credits": 17300,
-  "current_day": 394,
+  "credits": 60400,
+  "current_day": 418,
   "agent_levels": [
-    8,
-    8,
-    8
+    10,
+    10,
+    10
   ],
   "agent_experience": [
-    239225,
-    239225,
-    239225
+    807065,
+    807065,
+    807065
   ],
   "agent_recovery": [
-    374,
-    374,
-    374
+    418,
+    418,
+    418
   ],
   "regions": [
     {
       "name": "Neo-Tokyo Central",
       "threat_level": 1,
-      "alert_level": 0,
-      "alert_decay_timer": 376
+      "alert_level": 3,
+      "alert_decay_timer": 431
     },
     {
       "name": "Corporate District",
@@ -55,7 +55,14 @@
       "tools": [
         "Scanner"
       ],
-      "cybernetics": []
+      "cybernetics": [
+        "CombatEnhancer",
+        "CombatEnhancer",
+        "StealthModule",
+        "TechInterface",
+        "Neurovector",
+        "CombatEnhancer"
+      ]
     },
     {
       "weapon_configs": [

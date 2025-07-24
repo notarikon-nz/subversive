@@ -6,7 +6,6 @@ use std::collections::HashMap;
 use crate::core::*;
 use crate::core::factions::*;
 use crate::systems::*;
-use ron::*;
 
 // === CONFIGURATION ===
 #[derive(Resource, Deserialize, Serialize, Clone)]
@@ -188,8 +187,7 @@ impl PoliceEscalation {
         self.heat_level += incident_type.heat_value(config) * severity;
         self.escalation_timer = config.escalation_check_delay;
         
-        info!("Police incident: {:?} | Heat: {:.1} | Level: {:?}", 
-              incident_type, self.heat_level, self.current_level);
+        // info!("Police incident: {:?} | Heat: {:.1} | Level: {:?}", incident_type, self.heat_level, self.current_level);
     }
     
     fn should_escalate(&self, config: &PoliceConfig) -> bool {

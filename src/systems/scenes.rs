@@ -4,7 +4,6 @@ use bevy_rapier2d::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::core::*;
-use crate::core::collision_groups::*;
 use crate::systems::ai::*;
 use crate::systems::vehicles::spawn_vehicle;
 use crate::core::factions::Faction;
@@ -182,7 +181,7 @@ fn spawn_agent(commands: &mut Commands, pos: Vec2, level: u8, idx: usize, global
         NeurovectorCapability::default(),
         inventory,
         weapon_state,
-        create_physics_bundle(10.0, AGENT_GROUP),
+        create_physics_bundle(16.0, AGENT_GROUP),
     ));
 }
 
@@ -276,44 +275,6 @@ fn spawn_terminal(commands: &mut Commands, pos: Vec2, terminal_type: &str, sprit
         CollisionGroups::new(TERMINAL_GROUP, Group::ALL),
     ));
 }
-
-/*
-fn spawn_police(commands: &mut Commands, pos: Vec2, patrol: Vec<Vec2>, unit_type: &str, sprites: &GameSprites) {
-    let (mut sprite, _) = create_enemy_sprite(sprites);
-    let escalation_level = parse_police_unit_type(unit_type);
-    sprite.color = escalation_level.color();
-    
-    let (health, weapon, speed, vision_range) = get_police_stats(escalation_level);
-    let patrol = if patrol.is_empty() {
-        Patrol::new(vec![pos, pos + Vec2::new(80.0, 0.0)])
-    } else {
-        Patrol::new(patrol)
-    };
-    
-    let mut inventory = Inventory::default();
-    inventory.equipped_weapon = Some(WeaponConfig::new(weapon.clone()));
-    
-    let mut ai_state = AIState::default();
-    ai_state.use_goap = escalation_level >= EscalationLevel::Tactical;
-
-    commands.spawn((
-        sprite,
-        Transform::from_translation(pos.extend(1.0)),
-        Enemy,
-        Police { response_level: escalation_level as u8 },
-        Faction::Police,
-        create_base_unit_bundle(health, speed),
-        Morale::new(health * 1.5, 20.0),
-        Vision::new(vision_range, 50.0),
-        patrol,
-        ai_state,
-        GoapAgent::default(),
-        WeaponState::new_from_type(&weapon),
-        inventory,
-        create_physics_bundle(9.0, ENEMY_GROUP),
-    ));
-}
-*/
 
 pub fn spawn_cover_points(commands: &mut Commands) {
     let positions = [

@@ -9,7 +9,6 @@ pub mod builder; // Add the builder module
 
 pub use screens::*;
 pub use hub::*;
-pub use builder::UIBuilder; // Export for convenience
 
 pub fn cleanup_mission_ui(
     mut commands: Commands,

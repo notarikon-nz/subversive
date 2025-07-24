@@ -92,7 +92,7 @@ pub fn restart_system_optimized(
     // Despawn game entities
     for entity in agents.iter().chain(enemies.iter()).chain(civilians.iter()).chain(terminals.iter()).chain(vehicles.iter()) {
         if let Ok(mut entity_commands) = commands.get_entity(entity) {
-            entity_commands.despawn_recursive();
+            entity_commands.despawn();
             despawn_count += 1;
         }
     }
@@ -100,7 +100,7 @@ pub fn restart_system_optimized(
     // Despawn UI entities
     for entity in ui_entities.iter() {
         if let Ok(mut entity_commands) = commands.get_entity(entity) {
-            entity_commands.despawn_recursive();
+            entity_commands.despawn();
             despawn_count += 1;
         }
     }

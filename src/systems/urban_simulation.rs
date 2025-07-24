@@ -163,7 +163,7 @@ pub fn spawn_urban_civilian(
         Civilian,
         Health(50.0),
         Morale::new(80.0, panic_threshold),
-        MovementSpeed(80.0 + rand::random::<f32>() * 40.0), // Varied walking speeds
+        MovementSpeed(80.0),
         Controllable,
         NeurovectorTarget,
         UrbanCivilian {
@@ -178,6 +178,7 @@ pub fn spawn_urban_civilian(
         bevy_rapier2d::prelude::Collider::ball(7.5),
         bevy_rapier2d::prelude::Velocity::default(),
         bevy_rapier2d::prelude::Damping { linear_damping: 10.0, angular_damping: 10.0 },
+        bevy_rapier2d::prelude::GravityScale(0.0),
     ));
 }
 

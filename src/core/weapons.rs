@@ -90,7 +90,7 @@ impl WeaponDatabase {
     }
     
     fn fallback() -> Self {
-        let mut weapons = HashMap::new();
+        let weapons = HashMap::new();
         Self { weapons }
     }
     

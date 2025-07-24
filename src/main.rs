@@ -9,7 +9,7 @@ use leafwing_input_manager::prelude::*;
 use systems::ui::hub::{CyberneticsDatabase, HubStates, HubDatabases, HubProgress};
 use systems::ui::hub::agents::AgentManagementState;
 use systems::ui::hub::missions::{MissionLaunchData};
-use systems::police::{load_police_config, PoliceConfig, PoliceResponse, PoliceEscalation};
+use systems::police::{load_police_config, PoliceResponse, PoliceEscalation};
 
 mod core;
 mod systems;
@@ -19,7 +19,6 @@ use core::factions;
 use systems::*;
 use pool::*;
 use systems::scenes::*;
-use systems::police::*;
 use systems::explosions::*;
 
 fn main() {
@@ -275,11 +274,18 @@ fn main() {
             police::police_spawn_system,
             police::police_cleanup_system,
             police::police_deescalation_system,
+        ).run_if(in_state(GameState::Mission)))
 
+        .add_systems(Update, (
             explosions::explosion_damage_system,
             explosions::floating_text_system,
             explosions::handle_grenade_events,
             explosions::handle_vehicle_explosions,            
+            // NEW
+            explosions::time_bomb_system,
+            explosions::pending_explosion_system,
+            explosions::status_effect_system,            
+            
         ).run_if(in_state(GameState::Mission)))
 
         // Hacking and infrastructure

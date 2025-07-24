@@ -206,55 +206,6 @@ pub fn legacy_enemy_ai_system(
     }
 }
 
-// Update legacy sound detection system
-pub fn sound_detection_system(
-    mut enemy_query: Query<(Entity, &Transform, &mut AIState), (With<Enemy>, Without<Dead>)>,
-    mut combat_events: EventReader<CombatEvent>,
-    combat_transforms: Query<(&Transform, &Inventory), With<Agent>>,
-) {
-    // React to gunshots with attachment-modified detection range
-    for combat_event in combat_events.read() {
-        if let Ok((shooter_transform, inventory)) = combat_transforms.get(combat_event.attacker) {
-            let gunshot_pos = shooter_transform.translation.truncate();
-            
-            // Calculate noise level from attachments
-            let noise_modifier = if let Some(weapon_config) = &inventory.equipped_weapon {
-                let stats = weapon_config.calculate_total_stats();
-                1.0 + (stats.noise as f32 * 0.1) // Each noise point = 10% modifier
-            } else {
-                1.0
-            };
-            
-            // Base detection range modified by noise
-            let base_range = 200.0;
-            let detection_range = (base_range * noise_modifier).max(50.0); // Minimum 50 units
-            
-            for (_, enemy_transform, mut ai_state) in enemy_query.iter_mut() {
-                let distance = enemy_transform.translation.truncate().distance(gunshot_pos);
-                
-                if distance <= detection_range && ai_state.alert_cooldown <= 0.0 {
-                    match ai_state.mode {
-                        AIMode::Patrol => {
-                            ai_state.mode = AIMode::Investigate { location: gunshot_pos };
-                            ai_state.investigation_timer = 8.0;
-                            ai_state.alert_cooldown = 3.0;
-                            
-                            if noise_modifier < 0.5 {
-                                info!("Enemy heard suppressed gunshot (range: {:.0})", detection_range);
-                            } else {
-                                info!("Enemy heard gunshot (range: {:.0})", detection_range);
-                            }
-                        },
-                        _ => {
-                            // Already in alert state
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
 fn update_vision_direction(vision: &mut Vision, ai_state: &AIState, patrol: &Patrol, transform: &Transform) {
     match &ai_state.mode {
         AIMode::Patrol => {
@@ -304,6 +255,55 @@ fn check_line_of_sight(
     }
     
     None
+}
+
+// Update legacy sound detection system
+pub fn sound_detection_system(
+    mut enemy_query: Query<(Entity, &Transform, &mut AIState), (With<Enemy>, Without<Dead>)>,
+    mut combat_events: EventReader<CombatEvent>,
+    combat_transforms: Query<(&Transform, &Inventory), With<Agent>>,
+) {
+    // React to gunshots with attachment-modified detection range
+    for combat_event in combat_events.read() {
+        if let Ok((shooter_transform, inventory)) = combat_transforms.get(combat_event.attacker) {
+            let gunshot_pos = shooter_transform.translation.truncate();
+            
+            // Calculate noise level from attachments
+            let noise_modifier = if let Some(weapon_config) = &inventory.equipped_weapon {
+                let stats = weapon_config.calculate_total_stats();
+                1.0 + (stats.noise as f32 * 0.1) // Each noise point = 10% modifier
+            } else {
+                1.0
+            };
+            
+            // Base detection range modified by noise
+            let base_range = 200.0;
+            let detection_range = (base_range * noise_modifier).max(50.0); // Minimum 50 units
+            
+            for (_, enemy_transform, mut ai_state) in enemy_query.iter_mut() {
+                let distance = enemy_transform.translation.truncate().distance(gunshot_pos);
+                
+                if distance <= detection_range && ai_state.alert_cooldown <= 0.0 {
+                    match ai_state.mode {
+                        AIMode::Patrol => {
+                            ai_state.mode = AIMode::Investigate { location: gunshot_pos };
+                            ai_state.investigation_timer = 8.0;
+                            ai_state.alert_cooldown = 3.0;
+                            
+                            if noise_modifier < 0.5 {
+                                info!("Enemy heard suppressed gunshot (range: {:.0})", detection_range);
+                            } else {
+                                info!("Enemy heard gunshot (range: {:.0})", detection_range);
+                            }
+                        },
+                        _ => {
+                            // Already in alert state
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 // Update GOAP sound detection system

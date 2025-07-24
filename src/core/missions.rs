@@ -280,7 +280,7 @@ pub fn generate_mission_briefing_for_city(
         cover_density: 0.4 + random_f32 * 0.4,
         visibility: 0.6 + random_f32 * 0.3,
         civilian_presence: (city.population / 3).clamp(0, 5) as u8, // Civilians are separate from enemies
-        time_of_day: match (pseudo_random % 4) {
+        time_of_day: match pseudo_random % 4 {
             0 => TimeOfDay::Dawn,
             1 => TimeOfDay::Day,
             2 => TimeOfDay::Dusk,
