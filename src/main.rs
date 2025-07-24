@@ -134,7 +134,7 @@ fn main() {
 
         .add_systems(OnEnter(GameState::PostMission), (
             ui::cleanup_mission_ui,
-            health_bars::cleanup_health_bars_system,
+            health_bars::cleanup_dead_health_bars,
         ))
 
         .add_systems(OnEnter(GameState::GlobalMap), (
@@ -149,7 +149,7 @@ fn main() {
         .add_systems(OnEnter(GameState::Mission), (
             setup_mission_scene_optimized, // Spawn entities FIRST
             (
-                health_bars::spawn_health_bar_system,
+                health_bars::spawn_health_bars,
                 factions::setup_factions_system,
                 factions::faction_color_system,
                 message_window::setup_message_window,
@@ -185,7 +185,10 @@ fn main() {
             weapon_swap::weapon_drop_system,
             weapon_swap::weapon_pickup_system,
             weapon_swap::weapon_behavior_system,
+            
             interaction::system,
+            collision_feedback_system,
+
             combat::system,
             combat::death_system,
 
@@ -244,7 +247,7 @@ fn main() {
             day_night::lighting_system,
             day_night::time_ui_system,
 
-            health_bars::update_health_bars_system,
+            health_bars::update_health_bars,
         ).run_if(in_state(GameState::Mission)))
 
         // Urban simulation
@@ -478,3 +481,26 @@ fn setup_urban_areas(mut commands: Commands) {
     commands.insert_resource(UrbanAreas::default());
 }
 
+
+// Add this system to your main.rs update systems for mission state
+pub fn collision_feedback_system(
+    mut collision_events: EventReader<CollisionEvent>,
+    mut units: Query<&mut Velocity, Or<(With<Agent>, With<Civilian>, With<Enemy>)>>,
+) {
+    for collision_event in collision_events.read() {
+        if let CollisionEvent::Started(e1, e2, _) = collision_event {
+            // Check if both entities are units before proceeding
+            if units.get(*e1).is_ok() && units.get(*e2).is_ok() {
+                let separation_force = Vec2::new(fastrand::f32() - 0.5, fastrand::f32() - 0.5) * 50.0;
+                
+                // Apply opposite forces to separate the entities
+                if let Ok(mut vel1) = units.get_mut(*e1) {
+                    vel1.linvel += separation_force;
+                }
+                if let Ok(mut vel2) = units.get_mut(*e2) {
+                    vel2.linvel -= separation_force; // Opposite direction
+                }
+            }
+        }
+    }
+}

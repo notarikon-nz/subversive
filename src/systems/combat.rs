@@ -32,9 +32,6 @@ pub fn system(
                          &mut target_query, &mut combat_events, &mut audio_events);
         }
     }
-
-    // Draw health bars for damaged targets
-    draw_health_bars(&mut gizmos, &target_query);
 }
 
 fn handle_combat_targeting(
@@ -60,7 +57,7 @@ fn handle_combat_targeting(
     draw_targets_in_range(gizmos, target_query, agent_pos, range);
     
     // Handle mouse click for target selection
-    if action_state.just_pressed(&PlayerAction::Select) {
+    if action_state.just_pressed(&PlayerAction::Move) {
         if let Some(target) = find_target_at_mouse(target_query, agent_pos, range, windows, cameras) {
             execute_attack(agent, target, agent_query, agent_weapon_query, target_query, combat_events, audio_events);
         }
@@ -176,16 +173,6 @@ fn find_target_at_mouse(
         .map(|(entity, _, _)| entity)
 }
 
-fn draw_health_bars(
-    gizmos: &mut Gizmos,
-    target_query: &Query<(Entity, &Transform, &mut Health), Or<(With<Enemy>, With<Vehicle>)>>,
-) {
-    for (_, transform, health) in target_query.iter() {
-        if health.0 <= 100.0 && health.0 > 0.0 {
-            draw_health_bar(gizmos, transform.translation.truncate(), health.0, 100.0);
-        }
-    }
-}
 
 fn draw_crosshair(gizmos: &mut Gizmos, position: Vec2, size: f32, color: Color) {
     let h = size / 2.0;
@@ -193,25 +180,6 @@ fn draw_crosshair(gizmos: &mut Gizmos, position: Vec2, size: f32, color: Color) 
     gizmos.line_2d(position + Vec2::new(0.0, -h), position + Vec2::new(0.0, h), color);
 }
 
-fn draw_health_bar(gizmos: &mut Gizmos, position: Vec2, current: f32, max: f32) {
-    let bar_pos = position + Vec2::new(0.0, 30.0);
-    let bar_size = Vec2::new(30.0, 4.0);
-    let ratio = current / max;
-    
-    // Background
-    gizmos.rect_2d(bar_pos, bar_size, Color::srgb(0.3, 0.3, 0.3));
-    
-    // Health fill
-    let color = match ratio {
-        r if r > 0.6 => Color::srgb(0.2, 0.8, 0.2),
-        r if r > 0.3 => Color::srgb(0.8, 0.8, 0.2),
-        _ => Color::srgb(0.8, 0.2, 0.2),
-    };
-    
-    let fill_size = Vec2::new(bar_size.x * ratio, bar_size.y);
-    let fill_pos = bar_pos - Vec2::new((bar_size.x - fill_size.x) / 2.0, 0.0);
-    gizmos.rect_2d(fill_pos, fill_size, color);
-}
 
 pub fn death_system(
     mut commands: Commands,

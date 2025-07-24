@@ -120,6 +120,7 @@ pub fn goap_bark_system(
                 "panic_survival" => Some(BarkType::Retreating),
                 "patrol_area" => Some(BarkType::OnPatrol),
                 "taking_fire" => Some(BarkType::TakingFire),
+                "survival" => Some(BarkType::Retreating),
 
                 _ => {
                         info!("Unknown goal: {}", goal_name);

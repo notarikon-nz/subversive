@@ -181,7 +181,7 @@ pub struct FormationState {
 #[derive(Component)]
 pub struct Vehicle {
     pub vehicle_type: VehicleType,
-    pub armor: f32,
+    pub health: f32,
     pub cover_value: f32,
 }
 
@@ -196,7 +196,7 @@ pub enum VehicleType {
 
 impl Vehicle {
     pub fn new(vehicle_type: VehicleType) -> Self {
-        let (armor, cover_value) = match vehicle_type {
+        let (health, cover_value) = match vehicle_type {
             VehicleType::CivilianCar => (50.0, 30.0),
             VehicleType::PoliceCar => (80.0, 40.0),
             VehicleType::APC => (200.0, 60.0),
@@ -206,7 +206,7 @@ impl Vehicle {
         
         Self {
             vehicle_type,
-            armor,
+            health,
             cover_value,
         }
     }

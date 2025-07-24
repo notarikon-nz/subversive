@@ -4,6 +4,7 @@ use bevy_rapier2d::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::core::*;
+use crate::core::collision_groups::*;
 use crate::systems::ai::*;
 use crate::systems::vehicles::spawn_vehicle;
 use crate::core::factions::Faction;
@@ -181,7 +182,7 @@ fn spawn_agent(commands: &mut Commands, pos: Vec2, level: u8, idx: usize, global
         NeurovectorCapability::default(),
         inventory,
         weapon_state,
-        create_physics_bundle(10.0),
+        create_physics_bundle(10.0, AGENT_GROUP),
     ));
 }
 
@@ -208,7 +209,7 @@ fn spawn_urban_civilian(commands: &mut Commands, pos: Vec2, sprites: &GameSprite
             panic_threshold,
             movement_urgency: 0.0,
         },
-        create_physics_bundle(7.5),
+        create_physics_bundle(7.5, CIVILIAN_GROUP),
     ));
 }
 
@@ -227,7 +228,7 @@ pub fn spawn_civilian_with_config(commands: &mut Commands, pos: Vec2, sprites: &
         MovementSpeed(config.civilians.movement_speed),
         Controllable,
         NeurovectorTarget,
-        create_physics_bundle(7.5),
+        create_physics_bundle(7.5, CIVILIAN_GROUP),
     ));
 }
 
@@ -253,7 +254,7 @@ fn spawn_enemy(commands: &mut Commands, pos: Vec2, patrol: Vec<Vec2>, global_dat
         GoapAgent::default(),
         WeaponState::new_from_type(&weapon),
         inventory,
-        create_physics_bundle(9.0),
+        create_physics_bundle(9.0, ENEMY_GROUP),
     ));
 }
 
@@ -269,9 +270,12 @@ fn spawn_terminal(commands: &mut Commands, pos: Vec2, terminal_type: &str, sprit
             accessed: false 
         },
         Selectable { radius: 15.0 },
+        // Terminals are static and should block movement
+        RigidBody::Fixed,
+        Collider::ball(12.0),
+        CollisionGroups::new(TERMINAL_GROUP, Group::ALL),
     ));
 }
-
 fn spawn_police(commands: &mut Commands, pos: Vec2, patrol: Vec<Vec2>, unit_type: &str, sprites: &GameSprites) {
     let (mut sprite, _) = create_enemy_sprite(sprites);
     let escalation_level = parse_police_unit_type(unit_type);
@@ -304,7 +308,7 @@ fn spawn_police(commands: &mut Commands, pos: Vec2, patrol: Vec<Vec2>, unit_type
         GoapAgent::default(),
         WeaponState::new_from_type(&weapon),
         inventory,
-        create_physics_bundle(9.0),
+        create_physics_bundle(9.0, ENEMY_GROUP),
     ));
 }
 
@@ -327,6 +331,10 @@ pub fn spawn_cover_points(commands: &mut Commands) {
                 current_users: 0,
                 cover_direction: Vec2::X,
             },
+            // Cover provides partial collision
+            RigidBody::Fixed,
+            Collider::cuboid(10.0, 20.0), // Half the sprite size
+            CollisionGroups::new(COVER_GROUP, Group::ALL),
         ));
     }
 }
@@ -336,12 +344,17 @@ fn create_base_unit_bundle(health: f32, speed: f32) -> impl Bundle {
     (Health(health), MovementSpeed(speed))
 }
 
-fn create_physics_bundle(radius: f32) -> impl Bundle {
+fn create_physics_bundle(radius: f32, group: Group) -> impl Bundle {
     (
-        RigidBody::KinematicPositionBased,
+        RigidBody::Dynamic,  // Changed from KinematicPositionBased for better collision
         Collider::ball(radius),
         Velocity::default(),
-        Damping { linear_damping: 10.0, angular_damping: 10.0 },
+        Damping { linear_damping: 15.0, angular_damping: 15.0 }, // Higher damping for stability
+        CollisionGroups::new(group, Group::ALL), // This entity belongs to 'group', collides with all
+        Friction::coefficient(0.8), // Prevent sliding
+        Restitution::coefficient(0.1), // Low bounce
+        LockedAxes::ROTATION_LOCKED, // Prevent spinning
+        GravityScale(0.0),
     )
 }
 

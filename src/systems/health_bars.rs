@@ -1,4 +1,4 @@
-// src/systems/health_bars.rs - Efficient health bar rendering
+// src/systems/health_bars.rs - Optimized health bar rendering
 
 use bevy::prelude::*;
 use crate::core::*;
@@ -6,104 +6,94 @@ use crate::core::*;
 #[derive(Component)]
 pub struct HealthBar {
     pub max_health: f32,
+    pub fill: Entity,
 }
 
-#[derive(Component)]
-pub struct HealthBarFill;
+const BAR_SIZE: Vec2 = Vec2::new(32.0, 4.0);
+const BAR_OFFSET: Vec3 = Vec3::new(0.0, 25.0, 0.1);
 
-#[derive(Component)]
-pub struct HealthBarBackground;
-
-// Only show health bars for damaged entities
-pub fn spawn_health_bar_system(
+// Spawn health bars when damaged
+pub fn spawn_health_bars(
     mut commands: Commands,
-    query: Query<(Entity, &Health), (Without<HealthBar>, Without<Dead>)>,
+    query: Query<(Entity, &Health), (Without<HealthBar>, Changed<Health>)>,
 ) {
     for (entity, health) in query.iter() {
-        // Only show health bar if damaged (assuming 100.0 is max health)
         if health.0 < 100.0 && health.0 > 0.0 {
-            let max_health = 100.0;
+            let ratio = health.0 / 100.0;
             
-            // Spawn health bar as child of the entity
-            let health_bar = commands.spawn((
+            // Create fill entity first
+            let fill = commands.spawn((
                 Sprite {
-                        color: Color::srgb(0.2, 0.2, 0.2),
-                        custom_size: Some(Vec2::new(32.0, 4.0)),
-                        ..default()
-                    },
-                Transform::from_translation(Vec3::new(0.0, 25.0, 0.1)),
-                HealthBarBackground,
-            )).with_children(|parent| {
-                parent.spawn((
-                    Sprite {
-                            color: Color::srgb(0.2, 0.8, 0.2),
-                            custom_size: Some(Vec2::new(32.0, 4.0)),
-                            ..default()
-                        },
-                    Transform::from_translation(Vec3::new(0.0, 0.0, 0.1)),
-                    HealthBarFill,
-                ));
-            }).id();
+                    color: health_color(ratio),
+                    custom_size: Some(Vec2::new(BAR_SIZE.x * ratio, BAR_SIZE.y)),
+                    anchor: bevy::sprite::Anchor::CenterLeft,
+                    ..default()
+                },
+                Transform::from_translation(
+                    BAR_OFFSET + Vec3::new(-BAR_SIZE.x * 0.5, 0.0, 0.1)
+                ),
+            )).id();
             
-            // Add health bar component to the original entity
+            // Background
+            let bg = commands.spawn((
+                Sprite {
+                    color: Color::srgb(0.2, 0.2, 0.2),
+                    custom_size: Some(BAR_SIZE),
+                    ..default()
+                },
+                Transform::from_translation(BAR_OFFSET),
+            )).id();
+            
+            // Add component and children to entity
             commands.entity(entity)
-                .insert(HealthBar { max_health })
-                .add_child(health_bar);
+                .insert(HealthBar { max_health: 100.0, fill })
+                .add_child(bg)
+                .add_child(fill);
         }
     }
 }
 
-pub fn update_health_bars_system(
-    mut health_bar_query: Query<(&mut Transform, &mut Sprite), (With<HealthBarFill>, Without<Health>)>,
-    health_query: Query<(&Health, &HealthBar, &Children), Changed<Health>>,
-    background_query: Query<&Children, With<HealthBarBackground>>,
-) {
-    for (health, health_bar, children) in health_query.iter() {
-        // Find the health bar background
-        for child in children.iter() {
-            if let Ok(bg_children) = background_query.get(child) {
-                // Find the fill bar
-                for fill_child in bg_children.iter() {
-                    if let Ok((mut transform, mut sprite)) = health_bar_query.get_mut(fill_child) {
-                        let ratio = (health.0 / health_bar.max_health).clamp(0.0, 1.0);
-                        
-                        // Update fill width
-                        if let Some(ref mut size) = sprite.custom_size {
-                            size.x = 32.0 * ratio;
-                        }
-                        
-                        // Update fill position (anchor to left)
-                        transform.translation.x = -16.0 + (16.0 * ratio);
-                        
-                        // Update color based on health ratio
-                        sprite.color = match ratio {
-                            r if r > 0.6 => Color::srgb(0.2, 0.8, 0.2),
-                            r if r > 0.3 => Color::srgb(0.8, 0.8, 0.2),
-                            _ => Color::srgb(0.8, 0.2, 0.2),
-                        };
-                        
-                        break;
-                    }
-                }
-                break;
-            }
-        }
-    }
-}
-
-// Clean up health bars when entities die
-pub fn cleanup_health_bars_system(
+// Update and cleanup in one system
+pub fn update_health_bars(
     mut commands: Commands,
-    dead_query: Query<(Entity, &Children), (With<Dead>, With<HealthBar>)>,
-    health_bar_query: Query<Entity, With<HealthBarBackground>>,
+    mut sprites: Query<&mut Sprite>,
+    query: Query<(Entity, &Health, &HealthBar, &Children), Changed<Health>>,
 ) {
-    for (entity, children) in dead_query.iter() {
-        // Remove health bar components
-        for child in children.iter() {
-            if health_bar_query.contains(child) {
+    for (entity, health, bar, children) in query.iter() {
+        // Remove if dead or healed
+        if health.0 <= 0.0 || health.0 >= 100.0 {
+            for child in children.iter() {
                 commands.entity(child).despawn();
             }
+            commands.entity(entity).remove::<HealthBar>();
+            continue;
+        }
+        
+        // Update fill bar
+        if let Ok(mut sprite) = sprites.get_mut(bar.fill) {
+            let ratio = (health.0 / bar.max_health).clamp(0.0, 1.0);
+            sprite.custom_size = Some(Vec2::new(BAR_SIZE.x * ratio, BAR_SIZE.y));
+            sprite.color = health_color(ratio);
+        }
+    }
+}
+
+// Cleanup dead entities
+pub fn cleanup_dead_health_bars(
+    mut commands: Commands,
+    query: Query<(Entity, &Children), (With<HealthBar>, With<Dead>)>,
+) {
+    for (entity, children) in query.iter() {
+        for child in children.iter() {
+            commands.entity(child).despawn();
         }
         commands.entity(entity).remove::<HealthBar>();
     }
+}
+
+#[inline]
+fn health_color(ratio: f32) -> Color {
+    if ratio > 0.6 { Color::srgb(0.2, 0.8, 0.2) }
+    else if ratio > 0.3 { Color::srgb(0.8, 0.8, 0.2) }
+    else { Color::srgb(0.8, 0.2, 0.2) }
 }

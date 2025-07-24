@@ -10,6 +10,7 @@ pub mod research;
 pub mod attachments;
 pub mod agent_upgrades;
 pub mod fonts;
+pub mod collision_groups;
 
 // NEW: Split out focused modules
 pub mod input;
@@ -35,6 +36,7 @@ pub use research::*;
 pub use attachments::*;
 pub use agent_upgrades::*;
 pub use fonts::*;
+pub use collision_groups::*;
 
 pub use input::*;
 pub use game_state::*;
