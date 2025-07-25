@@ -26,7 +26,7 @@ pub mod factions;
 pub mod lore;
 pub mod hackable;
 pub mod cities;
-
+pub mod despawn;
 pub mod spawn_damage_text;
 
 // Re-exports for convenience
@@ -53,6 +53,7 @@ pub use lore::*;
 pub use hackable::*;
 pub use cities::*;
 pub use spawn_damage_text::*;
+pub use despawn::*;
 
 pub use crate::systems::ui::hub::{HubState};
 
@@ -113,17 +114,4 @@ pub fn get_global_map_mouse_position(
 
 pub fn experience_for_level(level: u8) -> u32 {
     (level as u32) * 100
-}
-
-// === SAFE DESPAWNING ===
-pub trait SafeDespawn {
-    fn safe_despawn(&mut self, entity: Entity);
-}
-
-impl SafeDespawn for Commands<'_, '_> {
-    fn safe_despawn(&mut self, entity: Entity) {
-        if let Ok(mut entity_commands) = self.get_entity(entity) {
-            entity_commands.despawn();
-        }
-    }
 }

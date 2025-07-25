@@ -112,7 +112,8 @@ pub fn enhanced_hacking_system(
     
     // Clean up completed hacks
     for entity in completed_hacks {
-        commands.entity(entity).despawn();
+        // commands.entity(entity).despawn();
+        commands.entity(entity).insert(MarkedForDespawn);
     }
 }
 
@@ -172,14 +173,17 @@ pub fn hack_status_indicator_system(
                 
                 // Remove indicator after a while
                 if transform.translation.y > 100.0 {
-                    commands.entity(entity).despawn();
+                    //commands.entity(entity).despawn();
+                    commands.entity(entity).insert(MarkedForDespawn);
                 }
             } else {
                 // Device no longer exists or hack failed
-                commands.entity(entity).despawn();
+                //commands.entity(entity).despawn();
+                commands.entity(entity).insert(MarkedForDespawn);
             }
         } else {
-            commands.entity(entity).despawn();
+            //commands.entity(entity).despawn();
+            commands.entity(entity).insert(MarkedForDespawn);
         }
     }
 }
@@ -232,7 +236,8 @@ pub fn hack_interruption_system(
                 .distance(target_transform.translation.truncate());
             
             if distance > 50.0 { // Max hack range
-                commands.entity(progress_entity).despawn();
+                // commands.entity(progress_entity).despawn();
+                commands.entity(progress_entity).insert(MarkedForDespawn);
                 info!("Hack interrupted: Too far from target");
             }
         }
@@ -332,7 +337,8 @@ pub fn hack_notification_system(
         notification.lifetime -= time.delta_secs();
         
         if notification.lifetime <= 0.0 {
-            commands.entity(entity).despawn();
+            // commands.entity(entity).despawn();
+            commands.entity(entity).insert(MarkedForDespawn);
         } else {
             // Fade out effect
             transform.translation.y += 30.0 * time.delta_secs();

@@ -23,11 +23,11 @@ pub fn cleanup_mission_ui(
     game_mode.paused = false;
     
     for entity in inventory_ui_query.iter() {
-        commands.safe_despawn(entity);
+        commands.entity(entity).insert(MarkedForDespawn);
     }
     
     for entity in pause_ui_query.iter() {
-        commands.safe_despawn(entity);
+        commands.entity(entity).insert(MarkedForDespawn);
     }
 }
 
@@ -41,10 +41,10 @@ pub fn cleanup_global_map_ui(
     inventory_state.selected_agent = None;
     
     for entity in inventory_ui_query.iter() {
-        commands.safe_despawn(entity);
+        commands.entity(entity).insert(MarkedForDespawn);
     }
     
     for entity in post_mission_ui_query.iter() {
-        commands.safe_despawn(entity);
+        commands.entity(entity).insert(MarkedForDespawn);
     }
 }

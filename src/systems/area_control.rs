@@ -150,7 +150,7 @@ pub fn area_effect_system(
         area_denial.duration -= time.delta_secs();
         
         if area_denial.duration <= 0.0 {
-            commands.entity(entity).despawn();
+            commands.entity(entity).insert(MarkedForDespawn);
             continue;
         }
 
@@ -170,7 +170,7 @@ pub fn area_effect_system(
         suppression.duration -= time.delta_secs();
         
         if suppression.duration <= 0.0 {
-            commands.entity(entity).despawn();
+            commands.entity(entity).insert(MarkedForDespawn);
         }
     }
 }

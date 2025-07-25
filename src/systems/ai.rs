@@ -68,8 +68,7 @@ pub fn alert_system(
                         goap_agent.update_world_state(WorldKey::IsAlert, true);
                         goap_agent.abort_plan(); // Force immediate replanning
                         
-                        info!("Enemy {} responding to call for help from {} (distance: {:.1})", 
-                              enemy_entity.index(), alert_event.alerter.index(), distance);
+                        info!("Enemy {} responding to call for help from {} (distance: {:.1})", enemy_entity.index(), alert_event.alerter.index(), distance);
                     },
                     _ => {
                         // Handle other alert types in future expansions
@@ -289,12 +288,6 @@ pub fn sound_detection_system(
                             ai_state.mode = AIMode::Investigate { location: gunshot_pos };
                             ai_state.investigation_timer = 8.0;
                             ai_state.alert_cooldown = 3.0;
-                            
-                            if noise_modifier < 0.5 {
-                                info!("Enemy heard suppressed gunshot (range: {:.0})", detection_range);
-                            } else {
-                                info!("Enemy heard gunshot (range: {:.0})", detection_range);
-                            }
                         },
                         _ => {
                             // Already in alert state
@@ -335,12 +328,6 @@ pub fn goap_sound_detection_system(
                 if distance <= detection_range {
                     goap_agent.update_world_state(WorldKey::HeardSound, true);
                     goap_agent.abort_plan(); // Force replanning
-                    
-                    if noise_modifier < 0.5 {
-                        info!("GOAP Enemy heard suppressed gunshot (range: {:.0})", detection_range);
-                    } else {
-                        info!("GOAP Enemy heard gunshot (range: {:.0})", detection_range);
-                    }
                 }
             }
         }

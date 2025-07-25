@@ -15,6 +15,10 @@ impl Default for Agent {
     }
 }
 
+// BETTER (?) DESPAWN HANDLING
+#[derive(Component)]
+pub struct MarkedForDespawn;
+
 #[derive(Component)]
 pub struct Civilian;
 

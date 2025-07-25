@@ -30,7 +30,7 @@ pub fn fps_system(
     if !ui_state.fps_visible {
         // Clean up FPS text if it exists and should be hidden
         for (entity, _) in fps_text_query.iter() {
-            commands.entity(entity).despawn();
+            commands.entity(entity).insert(MarkedForDespawn);
         }
         return;
     }
@@ -93,7 +93,7 @@ pub fn pause_system(
         
         // Clear pause UI
         for entity in screen_query.iter() {
-            commands.safe_despawn(entity);
+            commands.entity(entity).insert(MarkedForDespawn);
         }
         
         // Go to post-mission to handle agent recovery properly
@@ -135,7 +135,7 @@ pub fn pause_system(
         });
     } else if !should_show && ui_exists {
         for entity in screen_query.iter() {
-            commands.safe_despawn(entity);
+            commands.entity(entity).insert(MarkedForDespawn);
         }
     }
 }
@@ -151,7 +151,7 @@ pub fn inventory_system(
     if !inventory_state.ui_open {
         if !inventory_ui_query.is_empty() {
             for entity in inventory_ui_query.iter() {
-                commands.safe_despawn(entity);
+                commands.entity(entity).insert(MarkedForDespawn);
             }
         }
         return;
@@ -163,7 +163,7 @@ pub fn inventory_system(
     
     if needs_update {
         for entity in inventory_ui_query.iter() {
-            commands.safe_despawn(entity);
+            commands.entity(entity).insert(MarkedForDespawn);
         }
         
         let (inventory, weapon_state) = inventory_state.selected_agent
@@ -325,7 +325,7 @@ pub fn post_mission_ui_system(
 ) {
     if input.just_pressed(KeyCode::KeyR) {
         for entity in screen_query.iter() {
-            commands.safe_despawn(entity);
+            commands.entity(entity).insert(MarkedForDespawn);
         }
         processed.0 = false;
         next_state.set(GameState::GlobalMap);

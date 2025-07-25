@@ -11,7 +11,7 @@ pub struct Explosion {
     pub explosion_type: ExplosionType,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum ExplosionType {
     Grenade,
     Vehicle,
@@ -175,7 +175,8 @@ pub fn explosion_damage_system(
         }
         
         if explosion.duration <= 0.0 {
-            commands.entity(explosion_entity).despawn();
+            // commands.entity(explosion_entity).despawn();
+            commands.entity(explosion_entity).insert(MarkedForDespawn);
         }
     }
 }
@@ -202,7 +203,8 @@ pub fn time_bomb_system(
                 bomb.damage,
                 ExplosionType::TimeBomb,
             );
-            commands.entity(entity).despawn();
+            // commands.entity(entity).despawn();
+            commands.entity(entity).insert(MarkedForDespawn);
         }
     }
 }
@@ -369,6 +371,8 @@ fn spawn_explosion(
         ExplosionType::Cascading => (Color::srgba(0.9, 0.7, 0.1, 0.25), 1.5),
     };
     
+    let xt = explosion_type.clone();
+
     commands.spawn((
         Explosion {
             radius,
@@ -383,6 +387,8 @@ fn spawn_explosion(
             ..default()
         },
     ));
+
+    info!("Explosion type: {:?}", xt);
 }
 
 fn spawn_fire_text(commands: &mut Commands, position: Vec2, damage: f32) {
@@ -415,7 +421,8 @@ pub fn floating_text_system(
         floating_text.lifetime -= time.delta_secs();
         
         if floating_text.lifetime <= 0.0 {
-            commands.entity(entity).despawn();
+            // commands.entity(entity).despawn();
+            commands.entity(entity).insert(MarkedForDespawn);
         } else {
             // Move text upward and fade
             transform.translation += floating_text.velocity.extend(0.0) * time.delta_secs();
@@ -458,6 +465,7 @@ pub fn handle_vehicle_explosions(
             ExplosionType::Vehicle,
         );
         
-        commands.entity(entity).despawn();
+        // commands.entity(entity).despawn();
+        commands.entity(entity).insert(MarkedForDespawn);
     }
 }

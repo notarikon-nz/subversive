@@ -250,7 +250,7 @@ pub fn lore_notification_system(
     for (entity, mut notification) in notifications.iter_mut() {
         notification.lifetime -= time.delta_secs();
         if notification.lifetime <= 0.0 {
-            commands.entity(entity).despawn();
+            commands.entity(entity).insert(MarkedForDespawn);
         }
     }
 }

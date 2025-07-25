@@ -52,7 +52,7 @@ pub fn quicksave_system(
             if let Ok(save) = serde_json::from_str::<QuickSave>(&content) {
                 // Clear current mission
                 for entity in entities.iter() {
-                    commands.entity(entity).despawn();
+                    commands.entity(entity).insert(MarkedForDespawn);
                 }
                 
                 // Restart with saved progress

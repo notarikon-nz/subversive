@@ -52,7 +52,8 @@ pub fn formation_input_system(
             commands.entity(entity).remove::<FormationMember>();
         }
         if let Some(formation_entity) = formation_state.active_formation {
-            commands.entity(formation_entity).despawn();
+            // commands.entity(formation_entity).despawn();
+            commands.entity(formation_entity).insert(MarkedForDespawn);
         }
         formation_state.active_formation = None;
     }

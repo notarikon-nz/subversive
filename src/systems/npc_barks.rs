@@ -170,7 +170,7 @@ pub fn update_bubble_system(
         bubble.lifetime -= dt;
         
         if bubble.lifetime <= 0.0 {
-            commands.entity(entity).despawn();
+            commands.entity(entity).insert(MarkedForDespawn);
         } else {
             transform.translation.y += 20.0 * dt;
             

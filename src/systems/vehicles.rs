@@ -31,7 +31,7 @@ pub fn vehicle_explosion_system(
                 volume: 1.0,
             });
             
-            commands.entity(entity).despawn();
+            commands.entity(entity).insert(MarkedForDespawn); // ← Safe mark
         }
     }
 }
@@ -49,7 +49,8 @@ pub fn explosion_damage_system(
         explosion.duration -= time.delta_secs();
         
         if explosion.duration <= 0.0 {
-            commands.entity(explosion_entity).despawn();
+
+            commands.entity(explosion_entity).insert(MarkedForDespawn); // ← Safe mark
             continue;
         }
         

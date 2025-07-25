@@ -62,7 +62,7 @@ pub fn weapon_pickup_system(
                 goap_agent.update_world_state(WorldKey::HasBetterWeapon, false);
                 goap_agent.abort_plan();
                 
-                commands.entity(dropped_entity).despawn();
+                commands.entity(dropped_entity).insert(MarkedForDespawn);
                 
                 action_events.write(ActionEvent {
                     entity: enemy_entity,

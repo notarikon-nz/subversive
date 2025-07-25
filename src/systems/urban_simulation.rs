@@ -418,7 +418,7 @@ pub fn urban_cleanup_system(
         
         // Despawn if too far and not in an interesting state
         if min_distance > 800.0 && matches!(urban_civ.daily_state, DailyState::Idle | DailyState::GoingHome) {
-            commands.entity(entity).despawn();
+            commands.entity(entity).insert(MarkedForDespawn);
         }
     }
 }

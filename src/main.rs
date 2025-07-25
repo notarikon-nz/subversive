@@ -134,28 +134,31 @@ fn main() {
 
         ))
 
-        .add_systems(OnEnter(GameState::PostMission), (
-            ui::cleanup_mission_ui,
-            health_bars::cleanup_dead_health_bars,
-        ))
-
+        // UI HUB
         .add_systems(OnEnter(GameState::GlobalMap), (
             ui::cleanup_global_map_ui,
             ui::reset_hub_to_global_map,
         ))
 
+        .add_systems(Update,(
+            despawn::despawn_marked_entities,
+        ).run_if(in_state(GameState::GlobalMap)))
+
         .add_systems(OnExit(GameState::GlobalMap), (
             mission::restart_system_optimized
         ))
 
+
+        // MAIN GAME / MISSION
+
         .add_systems(OnEnter(GameState::Mission), (
-            setup_mission_scene_optimized, // Spawn entities FIRST
+            setup_mission_scene_optimized,
             (
                 health_bars::spawn_health_bars,
                 factions::setup_factions_system,
                 factions::faction_color_system,
                 message_window::setup_message_window,
-            ).after(setup_mission_scene_optimized), // Run these AFTER scene setup
+            ).after(setup_mission_scene_optimized),
         ))
 
         .add_systems(Update, (
@@ -324,12 +327,21 @@ fn main() {
             mission::timer_system,
             mission::check_completion,
             
+            // ALWAYS LAST
+            despawn::despawn_marked_entities,
         ).run_if(in_state(GameState::Mission)))
 
-        // Post mission
+        // POST MISSION
+        .add_systems(OnEnter(GameState::PostMission), (
+            ui::cleanup_mission_ui,
+            health_bars::cleanup_dead_health_bars,
+        ))
+
         .add_systems(Update, (
             mission::process_mission_results,  
             ui::screens::post_mission_ui_system,
+
+            
         ).run_if(in_state(GameState::PostMission)))
         
         .run();
@@ -345,11 +357,14 @@ pub fn setup_mission_scene_optimized(
     mut scene_cache: ResMut<SceneCache>,
     agents: Query<Entity, With<Agent>>,
 ) {
-
+    info!("setup_mission_scene_optimized");
     // Clean up existing agents
+    // Doesn't cause the warnings
+    // Removing leaves us with six agents?!
+
     for entity in agents.iter() {
         if agents.get(entity).is_ok() {
-            commands.entity(entity).despawn();
+            commands.entity(entity).insert(MarkedForDespawn); 
         }
     }
 

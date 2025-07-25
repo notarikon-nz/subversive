@@ -18,8 +18,6 @@ pub fn system(
     };
     
     if drag_state.dragging {
-        drag_state.current_pos = world_pos;
-        update_selection_box(&mut commands, &drag_state, &selection_box_query);
         
         if mouse.just_released(MouseButton::Left) {
             complete_drag_selection(&mut commands, &mut selection, &drag_state, &selectable_query, false, &selected_query);
@@ -28,8 +26,11 @@ pub fn system(
             
             // Safe cleanup selection box
             for entity in selection_box_query.iter() {
-                commands.safe_despawn(entity);
+                commands.entity(entity).insert(MarkedForDespawn);
             }
+        } else {
+            drag_state.current_pos = world_pos;
+            update_selection_box(&mut commands, &drag_state, &selection_box_query);
         }
     }
     
@@ -115,7 +116,7 @@ fn update_selection_box(
 ) {
     // Safe cleanup existing selection box
     for entity in selection_box_query.iter() {
-        commands.safe_despawn(entity);
+        commands.entity(entity).insert(MarkedForDespawn);
     }
     
     // Create new selection box

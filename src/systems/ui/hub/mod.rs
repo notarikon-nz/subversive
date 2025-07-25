@@ -214,7 +214,7 @@ fn rebuild_hub(
     fonts: Option<&GameFonts>,
 ) {
     for entity in screen_query.iter() {
-        commands.safe_despawn(entity);
+        commands.entity(entity).insert(MarkedForDespawn);
     }
     create_hub_ui(commands, global_data, hub_states, hub_progress, hub_databases, fonts);
 }

@@ -63,12 +63,6 @@ pub fn check_completion(
 pub fn restart_system_optimized(
     mut commands: Commands,
     restart_check: Option<Res<ShouldRestart>>,
-    // CHANGED: Only query game entities, not ALL entities
-    agents: Query<Entity, With<Agent>>,
-    enemies: Query<Entity, With<Enemy>>,
-    civilians: Query<Entity, With<Civilian>>,
-    terminals: Query<Entity, With<Terminal>>,
-    vehicles: Query<Entity, With<Vehicle>>,
     ui_entities: Query<Entity, Or<(With<Node>, With<Text>)>>,
     sprites: Option<Res<GameSprites>>,
     mut scene_cache: ResMut<SceneCache>,
@@ -84,37 +78,29 @@ pub fn restart_system_optimized(
         return;
     };
 
-
     if restart_check.is_none() { return; }
     
     let mut despawn_count = 0;
     
-    // Despawn game entities
-    for entity in agents.iter().chain(enemies.iter()).chain(civilians.iter()).chain(terminals.iter()).chain(vehicles.iter()) {
-        if let Ok(mut entity_commands) = commands.get_entity(entity) {
-            entity_commands.despawn();
-            despawn_count += 1;
-        }
-    }
-    
     // Despawn UI entities
     for entity in ui_entities.iter() {
         if let Ok(mut entity_commands) = commands.get_entity(entity) {
-            entity_commands.despawn();
+            commands.entity(entity).insert(MarkedForDespawn);
             despawn_count += 1;
         }
     }
     
-    info!("Restarting mission - despawned {} game entities", despawn_count);
+    info!("Restarting mission - despawned {} UI entities", despawn_count);
 
     // Reset game state (same as before)
     *mission_data = MissionData::default();
     *game_mode = GameMode::default();
     *selection = SelectionState::default();
     *inventory_state = InventoryState::default();
-    
+
     commands.remove_resource::<ShouldRestart>();
-    
+
+    /*
     let scene_name = match global_data.selected_region {
         0 => "mission1",
         1 => "mission2", 
@@ -134,6 +120,7 @@ pub fn restart_system_optimized(
             info!("Mission restart complete with fallback scene");
         }
     }
+        */
 }
 
 pub fn process_mission_results(
@@ -198,7 +185,7 @@ pub fn post_mission_system(
     if input.just_pressed(KeyCode::KeyR) {
         // Clear all post-mission UI
         for entity in ui_query.iter() {
-            commands.safe_despawn(entity);
+            commands.entity(entity).insert(MarkedForDespawn);
         }
         
         // Reset flags
