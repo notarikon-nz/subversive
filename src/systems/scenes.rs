@@ -245,7 +245,7 @@ fn spawn_enemy(commands: &mut Commands, pos: Vec2, patrol: Vec<Vec2>, global_dat
         Transform::from_translation(pos.extend(1.0)),
         Enemy,
         faction,
-        create_base_unit_bundle(100.0 * difficulty, 120.0 * difficulty),
+        create_base_unit_bundle(100.0 * difficulty, 100.0), // 120.0 * difficulty),
         Morale::new(100.0 * difficulty, 25.0),
         Vision::new(120.0 * difficulty, 60.0),
         Patrol::new(patrol),

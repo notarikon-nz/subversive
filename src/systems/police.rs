@@ -355,7 +355,7 @@ pub fn spawn_police_unit(
     config: &PoliceConfig,
 ) -> Entity {
     let level_config = unit_type.get_config(config);
-    let (mut sprite, _) = crate::core::sprites::create_enemy_sprite(sprites);
+    let (mut sprite, _) = crate::core::sprites::create_police_sprite(sprites);
     sprite.color = Color::srgba(level_config.color.0, level_config.color.1, level_config.color.2, level_config.color.3);
     
     let patrol_points = generate_patrol_pattern(position, unit_type, config);
@@ -384,7 +384,7 @@ pub fn spawn_police_unit(
             Health(level_config.health),
             Morale::new(level_config.health * 1.5, 20.0),
             MovementSpeed(level_config.speed),
-            Vision::new(level_config.vision, 50.0),
+            Vision::new(level_config.vision, 60.0),
             Patrol::new(patrol_points),
             ai_state,
             GoapAgent::default(),

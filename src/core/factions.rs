@@ -87,6 +87,7 @@ pub fn faction_color_system(
     mut enemy_query: Query<(&mut Sprite, &Faction), (With<Enemy>, Changed<Faction>)>,
 ) {
     for (mut sprite, faction) in enemy_query.iter_mut() {
-        sprite.color = faction.color();
+        // COLOURS OVERIDE THE SPRITES
+        // sprite.color = faction.color();
     }
 }

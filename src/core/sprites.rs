@@ -5,6 +5,7 @@ pub struct GameSprites {
     pub agent: Handle<Image>,
     pub civilian: Handle<Image>,
     pub enemy: Handle<Image>,
+    pub police: Handle<Image>,
     pub terminal_objective: Handle<Image>,
     pub terminal_equipment: Handle<Image>,
     pub terminal_intel: Handle<Image>,
@@ -23,12 +24,11 @@ pub fn load_sprites(mut commands: Commands, asset_server: Res<AssetServer>, exis
         agent: asset_server.load("sprites/agent.png"),
         civilian: asset_server.load("sprites/civilian.png"),
         enemy: asset_server.load("sprites/enemy.png"),
+        police: asset_server.load("sprites/police.png"),
         terminal_objective: asset_server.load("sprites/terminal_red.png"),
         terminal_equipment: asset_server.load("sprites/terminal_blue.png"),
         terminal_intel: asset_server.load("sprites/terminal_green.png"),
     };
-    
-    info!("New agent handle: {:?}", sprites.agent);
     commands.insert_resource(sprites);
     info!("Sprites resource created!");
 }
@@ -39,7 +39,6 @@ pub fn create_agent_sprite(sprites: &GameSprites) -> (Sprite, Transform) {
         Sprite {
             image: sprites.agent.clone(),
             custom_size: Some(Vec2::new(24.0, 24.0)),
-            color: Color::srgb(0.1, 1.0, 0.1), // BRIGHT GREEN - very visible
             ..default()
         },
         Transform::default(),
@@ -51,7 +50,6 @@ pub fn create_civilian_sprite(sprites: &GameSprites) -> (Sprite, Transform) {
         Sprite {
             image: sprites.civilian.clone(),
             custom_size: Some(Vec2::new(18.0, 18.0)),
-            color: Color::srgb(1.0, 1.0, 0.1), // BRIGHT YELLOW - very visible
             ..default()
         },
         Transform::default(),
@@ -63,7 +61,17 @@ pub fn create_enemy_sprite(sprites: &GameSprites) -> (Sprite, Transform) {
         Sprite {
             image: sprites.enemy.clone(),
             custom_size: Some(Vec2::new(22.0, 22.0)),
-            color: Color::srgb(1.0, 0.1, 0.1), // BRIGHT RED - very visible
+            ..default()
+        },
+        Transform::default(),
+    )
+}
+
+pub fn create_police_sprite(sprites: &GameSprites) -> (Sprite, Transform) {
+    (
+        Sprite {
+            image: sprites.police.clone(),
+            custom_size: Some(Vec2::new(22.0, 22.0)),
             ..default()
         },
         Transform::default(),

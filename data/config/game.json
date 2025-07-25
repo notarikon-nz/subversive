@@ -1,7 +1,7 @@
 {
   "gameplay": {
     "max_squad_size": 3,
-    "base_mission_time_limit": 300.0,
+    "base_mission_time_limit": 600.0,
     "starting_credits": 1000,
     "experience_per_level_multiplier": 100
   },
@@ -36,7 +36,7 @@
   "police": {
     "heat_decay_rate": 2.0,
     "spawn_threshold": 25.0,
-    "response_time": 30.0,
+    "response_time": 15.0,
     "max_units_per_spawn": 4
   }
 }

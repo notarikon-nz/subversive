@@ -26,6 +26,7 @@ pub enum BarkType {
     SpottedEnemy,
     TakingFire,
     Hit,
+    Burning,
     Dying,
     // Investigation  
     Investigating,
@@ -40,12 +41,13 @@ impl BarkType {
         match self {
             Self::SpottedEnemy => "Enemy spotted!",
             Self::TakingFire => "Taking fire!",
-            Self::Investigating => "Checking it out...",
+            Self::Investigating => "What was that?",
             Self::OnPatrol => "Sector secure.",
             Self::CallForHelp => "Need backup!",
             Self::Retreating => "Fall back!",
             Self::Hit => "Argh!",
             Self::Dying => "I'm hit!",
+            Self::Burning => "It burns!",
         }
     }
 }

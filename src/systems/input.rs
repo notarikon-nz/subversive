@@ -83,6 +83,17 @@ pub fn handle_input(
            keyboard.just_pressed(KeyCode::Digit3) || keyboard.just_pressed(KeyCode::Digit4) {
             // Handled by formations::formation_input_system
         }
+    } else {
+        // if double-tapped, centre camera on agent
+        if keyboard.pressed(KeyCode::Digit1) {
+            // Select Agent 1
+        }
+        if keyboard.pressed(KeyCode::Digit2) {
+            // Select Agent 2
+        }
+        if keyboard.pressed(KeyCode::Digit3) {
+            // Select Agent 3
+        }
     }
     
     if keyboard.just_pressed(KeyCode::KeyG) {

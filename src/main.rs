@@ -157,7 +157,7 @@ fn main() {
                 health_bars::spawn_health_bars,
                 factions::setup_factions_system,
                 factions::faction_color_system,
-                message_window::setup_message_window,
+                // message_window::setup_message_window,
             ).after(setup_mission_scene_optimized),
         ))
 
@@ -508,7 +508,6 @@ pub fn preload_common_scenes(mut scene_cache: ResMut<SceneCache>) {
 fn setup_urban_areas(mut commands: Commands) {
     commands.insert_resource(UrbanAreas::default());
 }
-
 
 // Add this system to your main.rs update systems for mission state
 pub fn collision_feedback_system(

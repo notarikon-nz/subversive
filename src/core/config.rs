@@ -85,7 +85,7 @@ impl Default for GameConfig {
         Self {
             gameplay: GameplayConfig {
                 max_squad_size: 3,
-                base_mission_time_limit: 300.0,
+                base_mission_time_limit: 600.0,
                 starting_credits: 1000,
                 experience_per_level_multiplier: 100,
             },
