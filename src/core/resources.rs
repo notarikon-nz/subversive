@@ -2,6 +2,12 @@
 use bevy::prelude::*;
 use crate::core::{TargetingMode, AlertLevel, AttachmentSlot};
 
+#[derive(Resource)]
+pub struct MissionLaunchData {
+    pub city_id: String,
+    pub region_id: usize,
+}
+
 // === GAME MODE ===
 #[derive(Resource)]
 pub struct GameMode {

@@ -4,6 +4,18 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use crate::core::*;
 
+// === LORE CATEGORY CONFIG DATA ===
+const LORE_CATEGORY_DATA: &[(LoreCategory, &str, Color)] = &[
+    (LoreCategory::CorpMemo, "📄", Color::srgb(0.8, 0.2, 0.2)),
+    (LoreCategory::PersonalLog, "📔", Color::srgb(0.2, 0.8, 0.2)),
+    (LoreCategory::NewsReport, "📰", Color::srgb(0.2, 0.2, 0.8)),
+    (LoreCategory::TechnicalDoc, "🔧", Color::srgb(0.8, 0.8, 0.2)),
+    (LoreCategory::Conversation, "💬", Color::srgb(0.8, 0.2, 0.8)),
+    (LoreCategory::Research, "🔬", Color::srgb(0.2, 0.8, 0.8)),
+    (LoreCategory::History, "📚", Color::srgb(0.6, 0.4, 0.2)),
+    (LoreCategory::Mission, "🎯", Color::srgb(0.8, 0.6, 0.2)),
+];
+
 // === LORE ENTRY TYPES ===
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LoreEntry {
@@ -12,46 +24,28 @@ pub struct LoreEntry {
     pub content: String,
     pub category: LoreCategory,
     pub discovered: bool,
-    pub source: String, // Where this was found (e.g., "Terminal A-7", "Encrypted Email")
+    pub source: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
 pub enum LoreCategory {
-    CorpMemo,
-    PersonalLog,
-    NewsReport,
-    TechnicalDoc,
-    Conversation,
-    Research,
-    History,
-    Mission,
+    CorpMemo = 0,
+    PersonalLog = 1,
+    NewsReport = 2,
+    TechnicalDoc = 3,
+    Conversation = 4,
+    Research = 5,
+    History = 6,
+    Mission = 7,
 }
 
 impl LoreCategory {
-    pub fn icon(&self) -> &'static str {
-        match self {
-            LoreCategory::CorpMemo => "📄",
-            LoreCategory::PersonalLog => "📔",
-            LoreCategory::NewsReport => "📰",
-            LoreCategory::TechnicalDoc => "🔧",
-            LoreCategory::Conversation => "💬",
-            LoreCategory::Research => "🔬",
-            LoreCategory::History => "📚",
-            LoreCategory::Mission => "🎯",
-        }
+    pub fn icon(self) -> &'static str {
+        LORE_CATEGORY_DATA[self as usize].1
     }
     
-    pub fn color(&self) -> Color {
-        match self {
-            LoreCategory::CorpMemo => Color::srgb(0.8, 0.2, 0.2),
-            LoreCategory::PersonalLog => Color::srgb(0.2, 0.8, 0.2),
-            LoreCategory::NewsReport => Color::srgb(0.2, 0.2, 0.8),
-            LoreCategory::TechnicalDoc => Color::srgb(0.8, 0.8, 0.2),
-            LoreCategory::Conversation => Color::srgb(0.8, 0.2, 0.8),
-            LoreCategory::Research => Color::srgb(0.2, 0.8, 0.8),
-            LoreCategory::History => Color::srgb(0.6, 0.4, 0.2),
-            LoreCategory::Mission => Color::srgb(0.8, 0.6, 0.2),
-        }
+    pub fn color(self) -> Color {
+        LORE_CATEGORY_DATA[self as usize].2
     }
 }
 
@@ -73,25 +67,18 @@ impl Default for LoreDatabase {
 
 impl LoreDatabase {
     pub fn load() -> Self {
-        match std::fs::read_to_string("data/lore.json") {
-            Ok(content) => {
-                match serde_json::from_str::<LoreDatabase>(&content) {
-                    Ok(mut db) => {
-                        db.discovered_count = db.entries.values().filter(|e| e.discovered).count();
-                        info!("Loaded {} lore entries ({} discovered)", db.entries.len(), db.discovered_count);
-                        db
-                    },
-                    Err(e) => {
-                        error!("Failed to parse lore.json: {}", e);
-                        Self::default()
-                    }
-                }
-            },
-            Err(_) => {
-                warn!("No lore.json found, creating empty database");
-                Self::default()
-            }
-        }
+        std::fs::read_to_string("data/lore.json")
+            .map_err(|_| warn!("No lore.json found, creating empty database"))
+            .and_then(|content| {
+                serde_json::from_str::<LoreDatabase>(&content)
+                    .map_err(|e| error!("Failed to parse lore.json: {}", e))
+            })
+            .map(|mut db| {
+                db.discovered_count = db.entries.values().filter(|e| e.discovered).count();
+                info!("Loaded {} lore entries ({} discovered)", db.entries.len(), db.discovered_count);
+                db
+            })
+            .unwrap_or_default()
     }
     
     pub fn save(&self) {
@@ -103,15 +90,15 @@ impl LoreDatabase {
     }
     
     pub fn discover_entry(&mut self, id: &str) -> bool {
-        if let Some(entry) = self.entries.get_mut(id) {
-            if !entry.discovered {
+        self.entries.get_mut(id)
+            .filter(|entry| !entry.discovered)
+            .map(|entry| {
                 entry.discovered = true;
                 self.discovered_count += 1;
                 info!("Discovered lore: {}", entry.title);
-                return true;
-            }
-        }
-        false
+                true
+            })
+            .unwrap_or(false)
     }
     
     pub fn get_entry(&self, id: &str) -> Option<&LoreEntry> {
@@ -140,7 +127,7 @@ impl LoreDatabase {
 pub struct LoreSource {
     pub lore_ids: Vec<String>,
     pub requires_hacking: bool,
-    pub access_time: f32, // Time to read/access
+    pub access_time: f32,
     pub one_time_use: bool,
     pub accessed: bool,
 }
@@ -188,31 +175,27 @@ pub fn lore_interaction_system(
     mut audio_events: EventWriter<AudioEvent>,
 ) {
     for event in lore_events.read() {
-        if let Ok(mut lore_source) = lore_sources.get_mut(event.source) {
-            if lore_source.accessed && lore_source.one_time_use {
-                continue; // Already accessed
-            }
+        let Ok(mut lore_source) = lore_sources.get_mut(event.source) else {
+            continue;
+        };
+        
+        if lore_source.accessed && lore_source.one_time_use {
+            continue;
+        }
+        
+        // Discover all lore entries from this source
+        let discovered_any = lore_source.lore_ids.iter()
+            .any(|lore_id| lore_db.discover_entry(lore_id));
+        
+        if discovered_any {
+            lore_source.accessed = true;
             
-            // Discover all lore entries from this source
-            let mut discovered_any = false;
-            for lore_id in &lore_source.lore_ids {
-                if lore_db.discover_entry(lore_id) {
-                    discovered_any = true;
-                }
-            }
+            audio_events.write(AudioEvent {
+                sound: AudioType::TerminalAccess,
+                volume: 0.4,
+            });
             
-            if discovered_any {
-                lore_source.accessed = true;
-                
-                // Play discovery sound
-                audio_events.write(AudioEvent {
-                    sound: AudioType::TerminalAccess,
-                    volume: 0.4,
-                });
-                
-                // Show notification
-                spawn_lore_notification(&mut commands, &lore_source.lore_ids[0], &lore_db);
-            }
+            spawn_lore_notification(&mut commands, &lore_source.lore_ids[0], &lore_db);
         }
     }
 }
@@ -256,36 +239,6 @@ pub fn lore_notification_system(
 }
 
 // === HELPER FUNCTIONS ===
-pub fn create_sample_lore_entries() -> Vec<LoreEntry> {
-    vec![
-        LoreEntry {
-            id: "corp_memo_001".to_string(),
-            title: "Project Neurovector Status".to_string(),
-            content: "TO: All Department Heads\nFROM: Dr. Sarah Chen, R&D\n\nProject Neurovector has entered Phase 3 testing. Initial trials show promising results for civilian crowd control applications. However, we're seeing unexpected side effects in prolonged exposure scenarios.\n\nRecommend proceeding with caution. The board wants results, but we can't afford another incident like the Tokyo facility.\n\n- Dr. Chen".to_string(),
-            category: LoreCategory::CorpMemo,
-            discovered: false,
-            source: "Terminal A-7".to_string(),
-        },
-        LoreEntry {
-            id: "personal_log_002".to_string(),
-            title: "Marcus - Day 14".to_string(),
-            content: "They think I don't know what they're doing in Sub-Level 3. The screaming stopped two days ago. That's not a good sign.\n\nFound Sarah's research notes in the trash. The neural interface isn't just for crowd control - they're trying to create permanent compliance. Turn people into puppets.\n\nI need to get this information out. If they catch me...".to_string(),
-            category: LoreCategory::PersonalLog,
-            discovered: false,
-            source: "Hidden Drive".to_string(),
-        },
-        LoreEntry {
-            id: "news_report_003".to_string(),
-            title: "Underground Violence Escalates".to_string(),
-            content: "Neo-Tokyo News Network - Reports of coordinated attacks on corporate facilities continue to rise. Authorities suspect the involvement of the shadowy organization known only as 'The Resistance.'\n\nCorporate Security Chief Williams stated: 'These terrorists threaten the stability that our citizens depend on. We will not negotiate with extremists.'\n\nMeanwhile, civilian casualties from police response continue to mount...".to_string(),
-            category: LoreCategory::NewsReport,
-            discovered: false,
-            source: "News Terminal".to_string(),
-        },
-    ]
-}
-
-// === INTEGRATION WITH EXISTING SYSTEMS ===
 pub fn add_lore_to_terminal(commands: &mut Commands, entity: Entity, lore_ids: Vec<String>) {
     commands.entity(entity).insert(LoreSource::new(lore_ids));
 }

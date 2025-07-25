@@ -17,27 +17,24 @@ pub struct ResearchProject {
     pub description: String,
     pub cost: u32,
     pub category: ResearchCategory,
-    pub prerequisites: Vec<String>, // IDs of required research
+    pub prerequisites: Vec<String>,
     pub benefits: Vec<ResearchBenefit>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum ResearchCategory {
-    Weapons,      // Unlock attachments and weapon types
-    Cybernetics,  // Agent augmentations  
-    Equipment,    // Tools and gadgets
-    Intelligence, // Mission advantages
+    Weapons, Cybernetics, Equipment, Intelligence,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ResearchBenefit {
-    UnlockAttachment(String),           // Unlock specific attachment
-    UnlockWeapon(WeaponType),          // Unlock weapon type
-    UnlockTool(ToolType),              // Unlock tool type
-    UnlockCybernetic(CyberneticType),  // Unlock cybernetic
-    CreditsPerMission(u32),            // Bonus credits per mission
-    ExperienceBonus(u32),              // Extra XP percentage
-    AlertReduction(u32),               // Reduce regional alert faster
+    UnlockAttachment(String),
+    UnlockWeapon(WeaponType),
+    UnlockTool(ToolType),
+    UnlockCybernetic(CyberneticType),
+    CreditsPerMission(u32),
+    ExperienceBonus(u32),
+    AlertReduction(u32),
 }
 
 impl ResearchProject {
@@ -55,30 +52,21 @@ pub struct ResearchDatabase {
     pub projects: Vec<ResearchProject>,
 }
 
-
 impl ResearchDatabase {
     pub fn load() -> Self {
-        match std::fs::read_to_string("data/research.json") {
-            Ok(content) => {
-                match serde_json::from_str::<ResearchDatabase>(&content) {  // Add type annotation
-                    Ok(data) => {
-                        info!("Loaded {} research projects from data/research.json", data.projects.len());
-                        data
-                    },
-                    Err(e) => {
-                        error!("Failed to parse research.json: {}", e);
-                        Self { projects: Vec::new() }
-                    }
-                }
-            },
-            Err(e) => {
-                error!("Failed to load data/research.json: {}", e);
-                Self { projects: Vec::new() }
-            }
-        }
+        std::fs::read_to_string("data/research.json")
+            .map_err(|e| error!("Failed to load data/research.json: {}", e))
+            .and_then(|content| {
+                serde_json::from_str::<ResearchDatabase>(&content)
+                    .map_err(|e| error!("Failed to parse research.json: {}", e))
+            })
+            .map(|data| {
+                info!("Loaded {} research projects from data/research.json", data.projects.len());
+                data
+            })
+            .unwrap_or_default()
     }
     
-    // Add missing methods that are used elsewhere in the codebase
     pub fn get_project(&self, id: &str) -> Option<&ResearchProject> {
         self.projects.iter().find(|p| p.id == id)
     }
@@ -96,6 +84,20 @@ impl ResearchDatabase {
     }
 }
 
+// === UNIFIED BENEFIT PROCESSING ===
+fn process_research_benefits<F>(
+    progress: &ResearchProgress,
+    research_db: &ResearchDatabase,
+    mut processor: F,
+) where
+    F: FnMut(&ResearchBenefit),
+{
+    for project_id in &progress.completed {
+        if let Some(project) = research_db.get_project(project_id) {
+            project.benefits.iter().for_each(&mut processor);
+        }
+    }
+}
 
 // Apply research benefits to game state
 pub fn apply_research_benefits(
@@ -104,57 +106,29 @@ pub fn apply_research_benefits(
     unlocked_attachments: &mut UnlockedAttachments,
     global_data: &mut GlobalData,
 ) {
-    for project_id in &progress.completed {
-        if let Some(project) = research_db.get_project(project_id) {
-            for benefit in &project.benefits {
-                match benefit {
-                    ResearchBenefit::UnlockAttachment(attachment_id) => {
-                        unlocked_attachments.attachments.insert(attachment_id.clone());
-                    },
-                    ResearchBenefit::UnlockWeapon(_weapon_type) => {
-                        // Weapons are available to purchase - handled in equipment systems
-                    },
-                    ResearchBenefit::UnlockTool(_tool_type) => {
-                        // Tools are available to find - handled in mission systems  
-                    },
-                    ResearchBenefit::UnlockCybernetic(_cybernetic_type) => {
-                        // Cybernetics are available to install - handled in agent systems
-                    },
-                    ResearchBenefit::CreditsPerMission(_amount) => {
-                        // Applied during mission completion
-                    },
-                    ResearchBenefit::ExperienceBonus(_percentage) => {
-                        // Applied during XP calculation
-                    },
-                    ResearchBenefit::AlertReduction(_days) => {
-                        // Applied during region alert decay
-                    },
-                }
-            }
+    process_research_benefits(progress, research_db, |benefit| {
+        match benefit {
+            ResearchBenefit::UnlockAttachment(attachment_id) => {
+                unlocked_attachments.attachments.insert(attachment_id.clone());
+            },
+            // Other benefits are handled in their respective systems
+            _ => {}
         }
-    }
+    });
 }
 
-// NEW: Startup-safe version that only handles immediate unlocks
+// Startup-safe version that only handles immediate unlocks
 pub fn apply_research_unlocks(
     progress: &ResearchProgress,
     research_db: &ResearchDatabase,
     unlocked_attachments: &mut UnlockedAttachments,
 ) {
-    for project_id in &progress.completed {
-        if let Some(project) = research_db.get_project(project_id) {
-            for benefit in &project.benefits {
-                match benefit {
-                    ResearchBenefit::UnlockAttachment(attachment_id) => {
-                        unlocked_attachments.attachments.insert(attachment_id.clone());
-                        info!("Research: Unlocked attachment {}", attachment_id);
-                    },
-                    // Other benefits don't need immediate application at startup
-                    _ => {}
-                }
-            }
+    process_research_benefits(progress, research_db, |benefit| {
+        if let ResearchBenefit::UnlockAttachment(attachment_id) = benefit {
+            unlocked_attachments.attachments.insert(attachment_id.clone());
+            info!("Research: Unlocked attachment {}", attachment_id);
         }
-    }
+    });
 }
 
 // Calculate bonus credits from research
@@ -164,15 +138,11 @@ pub fn calculate_research_credit_bonus(
 ) -> u32 {
     let mut total_bonus = 0;
     
-    for project_id in &progress.completed {
-        if let Some(project) = research_db.get_project(project_id) {
-            for benefit in &project.benefits {
-                if let ResearchBenefit::CreditsPerMission(amount) = benefit {
-                    total_bonus += amount;
-                }
-            }
+    process_research_benefits(progress, research_db, |benefit| {
+        if let ResearchBenefit::CreditsPerMission(amount) = benefit {
+            total_bonus += amount;
         }
-    }
+    });
     
     total_bonus
 }
@@ -185,15 +155,11 @@ pub fn calculate_research_xp_bonus(
 ) -> u32 {
     let mut bonus_percentage = 0;
     
-    for project_id in &progress.completed {
-        if let Some(project) = research_db.get_project(project_id) {
-            for benefit in &project.benefits {
-                if let ResearchBenefit::ExperienceBonus(percentage) = benefit {
-                    bonus_percentage += percentage;
-                }
-            }
+    process_research_benefits(progress, research_db, |benefit| {
+        if let ResearchBenefit::ExperienceBonus(percentage) = benefit {
+            bonus_percentage += percentage;
         }
-    }
+    });
     
     if bonus_percentage > 0 {
         base_xp + (base_xp * bonus_percentage / 100)
@@ -209,15 +175,11 @@ pub fn get_research_alert_reduction(
 ) -> u32 {
     let mut total_reduction = 0;
     
-    for project_id in &progress.completed {
-        if let Some(project) = research_db.get_project(project_id) {
-            for benefit in &project.benefits {
-                if let ResearchBenefit::AlertReduction(days) = benefit {
-                    total_reduction += days;
-                }
-            }
+    process_research_benefits(progress, research_db, |benefit| {
+        if let ResearchBenefit::AlertReduction(days) = benefit {
+            total_reduction += days;
         }
-    }
+    });
     
     total_reduction
 }
@@ -230,21 +192,25 @@ pub fn purchase_research(
     research_db: &ResearchDatabase,
     unlocked_attachments: &mut UnlockedAttachments,
 ) -> bool {
-    if let Some(project) = research_db.get_project(project_id) {
-        // Check if available and affordable
-        if project.is_available(progress) && !project.is_completed(progress) && global_data.credits >= project.cost {
-            // Purchase research
-            global_data.credits -= project.cost;
-            progress.completed.insert(project_id.to_string());
-            progress.credits_invested += project.cost;
-            
-            // Apply immediate benefits
-            apply_research_benefits(progress, research_db, unlocked_attachments, global_data);
-            
-            info!("Research completed: {} for {} credits", project.name, project.cost);
-            return true;
-        }
+    let Some(project) = research_db.get_project(project_id) else {
+        return false;
+    };
+    
+    // Check availability and affordability
+    if !project.is_available(progress) || 
+       project.is_completed(progress) || 
+       global_data.credits < project.cost {
+        return false;
     }
     
-    false
+    // Purchase research
+    global_data.credits -= project.cost;
+    progress.completed.insert(project_id.to_string());
+    progress.credits_invested += project.cost;
+    
+    // Apply immediate benefits
+    apply_research_benefits(progress, research_db, unlocked_attachments, global_data);
+    
+    info!("Research completed: {} for {} credits", project.name, project.cost);
+    true
 }

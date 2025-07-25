@@ -172,7 +172,7 @@ let HubProgress {
 let needs_rebuild = match active_tab {
     HubTab::GlobalMap => global_map::handle_input(
         &input, &mut global_data, hub_state,
-        &hub_databases.cities_db, cities_progress,
+        &hub_databases.cities_db, 
         map_state, &windows, &cameras, &mouse, &city_query,
     ),
     HubTab::Research => research::handle_input(

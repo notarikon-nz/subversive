@@ -3,11 +3,7 @@ use bevy::prelude::*;
 use crate::core::*;
 use crate::systems::ui::builder::*;
 
-#[derive(Resource)]
-pub struct MissionLaunchData {
-    pub city_id: String,
-    pub region_id: usize,
-}
+
 
 pub fn handle_input(
     input: &ButtonInput<KeyCode>,
@@ -21,7 +17,7 @@ pub fn handle_input(
 
         if ready_agents > 0 {
             commands.insert_resource(MissionLaunchData {
-                city_id: cities_progress.current_city.clone(),
+                city_id: global_data.cities_progress.current_city.clone(),
                 region_id: global_data.selected_region,
             });
 
@@ -40,9 +36,9 @@ pub fn create_content(
 ) {
     parent.spawn(UIBuilder::content_area()).with_children(|content| {
         
-        if let Some(city) = cities_db.get_city(&cities_progress.current_city) {
-            let city_state = cities_progress.get_city_state(&cities_progress.current_city);
-            let briefing = generate_mission_briefing_for_city(global_data, cities_db, cities_progress, &cities_progress.current_city);
+        if let Some(city) = cities_db.get_city(&global_data.cities_progress.current_city) {
+            let city_state = global_data.cities_progress.get_city_state(&global_data.cities_progress.current_city);
+            let briefing = generate_mission_briefing_for_city(global_data, cities_db, cities_progress, &global_data.cities_progress.current_city);
             
             // Header
             content.spawn(UIBuilder::row(0.0)).with_children(|header| {

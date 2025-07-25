@@ -78,8 +78,9 @@ pub struct CitiesDatabase {
 
 #[derive(Clone, Resource, Serialize, Deserialize, Default)]
 pub struct CitiesProgress {
-    pub city_states: HashMap<String, CityState>,
     pub current_city: String,
+    pub city_states: HashMap<String, CityState>,
+    pub unlocked_cities: std::collections::HashSet<String>,
 }
 
 impl CitiesDatabase {
@@ -122,31 +123,34 @@ impl CitiesDatabase {
         self.cities.iter().collect()
     }
 
-    pub fn get_accessible_cities(&self, progress: &CitiesProgress) -> Vec<&City> {
-        let mut accessible = Vec::new();
+    pub fn get_accessible_cities(&self, global_data: &GlobalData) -> Vec<&City> {
         
-        // Starting city is always accessible
-        if let Some(starting_city) = self.get_city(&self.starting_city) {
-            accessible.push(starting_city);
-        }
+        self.cities.iter()
+            .filter(|city| {
+                let is_starting = city.id == self.starting_city;
+                let is_unlocked = global_data.cities_progress.unlocked_cities.contains(&city.id);
+                let accessible = is_starting || is_unlocked;
+                accessible
+            })
+            .collect()
+    }
+    
+    pub fn unlock_connected_cities(&self, completed_city_id: &str, cities_progress: &mut CitiesProgress) -> Vec<String> {
+        let mut newly_unlocked = Vec::new();
         
-        // Cities connected to completed cities are accessible
-        for city in &self.cities {
-            if progress.city_states.get(&city.id).map_or(false, |s| s.completed) {
-                // Add all connected cities
-                for connection_id in &city.connections {
-                    if let Some(connected_city) = self.get_city(connection_id) {
-                        if !accessible.iter().any(|c| c.id == connected_city.id) {
-                            accessible.push(connected_city);
-                        }
-                    }
+        if let Some(completed_city) = self.get_city(completed_city_id) {
+            for connection_id in &completed_city.connections {
+                if !cities_progress.unlocked_cities.contains(connection_id) {
+                    cities_progress.unlocked_cities.insert(connection_id.clone());
+                    newly_unlocked.push(connection_id.clone());
+                    info!("Unlocked new city: {}", connection_id);
                 }
             }
         }
         
-        accessible
+        newly_unlocked
     }
-    
+
     fn default_cities() -> Self {
         Self {
             starting_city: "new_york".to_string(),
@@ -156,6 +160,17 @@ impl CitiesDatabase {
 }
 
 impl CitiesProgress {
+    pub fn new(starting_city: String) -> Self {
+        let mut unlocked_cities = std::collections::HashSet::new();
+        unlocked_cities.insert(starting_city.clone()); // Starting city is always unlocked
+        
+        Self {
+            current_city: starting_city,
+            city_states: std::collections::HashMap::new(),
+            unlocked_cities,
+        }
+    }
+
     pub fn get_city_state(&self, city_id: &str) -> CityState {
         self.city_states.get(city_id)
             .cloned()
@@ -163,9 +178,9 @@ impl CitiesProgress {
     }
     
     pub fn get_city_state_mut(&mut self, city_id: &str) -> &mut CityState {
-        self.city_states.entry(city_id.to_string()).or_default()
+        self.city_states.entry(city_id.to_string()).or_insert_with(CityState::default)
     }
-    
+
     pub fn complete_city(&mut self, city_id: &str, current_day: u32) {
         let state = self.get_city_state_mut(city_id);
         state.completed = true;

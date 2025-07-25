@@ -84,13 +84,9 @@ impl Default for GlobalData {
             agent_experience: [0, 0, 0],
             current_day: 1,
             agent_recovery: [0, 0, 0],
-            agent_loadouts: [
-                crate::core::AgentLoadout::default(),
-                crate::core::AgentLoadout::default(), 
-                crate::core::AgentLoadout::default()
-            ],
+            agent_loadouts: [crate::core::AgentLoadout::default(),crate::core::AgentLoadout::default(),crate::core::AgentLoadout::default()],
             research_progress: ResearchProgress::default(),
-            cities_progress: CitiesProgress::default(),
+            cities_progress: CitiesProgress::new("new_york".to_string()),
         }
     }
 }

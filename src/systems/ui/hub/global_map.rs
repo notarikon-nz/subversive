@@ -22,7 +22,7 @@ pub fn handle_input(
     global_data: &mut GlobalData,
     hub_state: &mut super::HubState,
     cities_db: &CitiesDatabase,
-    cities_progress: &mut CitiesProgress,
+    // cities_progress: &mut CitiesProgress,
     map_state: &mut GlobalMapState,
     windows: &Query<&Window>,
     cameras: &Query<(&Camera, &GlobalTransform)>,
@@ -51,7 +51,7 @@ pub fn handle_input(
                 
                 if distance <= 15.0 && interactive_city.accessible {
                     map_state.selected_city = Some(interactive_city.city_id.clone());
-                    cities_progress.current_city = interactive_city.city_id.clone();
+                    global_data.cities_progress.current_city = interactive_city.city_id.clone();
                     needs_rebuild = true;
                     break;
                 }
@@ -86,7 +86,7 @@ pub fn handle_input(
             region.update_alert(current_day);
         }
         
-        for (_, city_state) in cities_progress.city_states.iter_mut() {
+        for (_, city_state) in global_data.cities_progress.city_states.iter_mut() {
             update_city_alert(city_state, current_day);
         }
         
@@ -117,8 +117,8 @@ pub fn create_content(
     map_state: &mut GlobalMapState,
 ) {
     parent.spawn(UIBuilder::content_area()).with_children(|content| {
-        create_world_map_section(content, cities_db, cities_progress, map_state);
-        create_selected_city_info(content, cities_db, cities_progress, map_state);
+        create_world_map_section(content, cities_db, &global_data, map_state);
+        create_selected_city_info(content, cities_db, &global_data, map_state);
         content.spawn(UIBuilder::nav_controls("Click Cities | W: Wait Day | ENTER: Launch Mission"));
     });
 }
@@ -126,7 +126,7 @@ pub fn create_content(
 fn create_world_map_section(
     parent: &mut ChildSpawnerCommands,
     cities_db: &CitiesDatabase,
-    cities_progress: &CitiesProgress,
+    global_data: &GlobalData,
     map_state: &mut GlobalMapState,
 ) {
     parent.spawn((
@@ -146,7 +146,7 @@ fn create_world_map_section(
         map_state.map_projection = Some(MapProjection::new(map_width, map_height));
         
         let projection = map_state.map_projection.as_ref().unwrap();
-        let accessible_cities = cities_db.get_accessible_cities(cities_progress);
+        let accessible_cities = cities_db.get_accessible_cities(&global_data);
         let all_cities = cities_db.get_all_cities();
         
         for city in &all_cities {
@@ -156,7 +156,7 @@ fn create_world_map_section(
             let is_accessible = accessible_cities.iter().any(|acc_city| acc_city.id == city.id);
             let is_selected = map_state.selected_city.as_ref() == Some(&city.id);
             let is_hovered = map_state.hovered_city.as_ref() == Some(&city.id);
-            let city_state = cities_progress.get_city_state(&city.id);
+            let city_state = global_data.cities_progress.get_city_state(&city.id);
             
             let city_color = if !is_accessible {
                 Color::srgba(0.3, 0.3, 0.3, 0.4)
@@ -271,12 +271,12 @@ fn create_world_map_section(
 fn create_selected_city_info(
     parent: &mut ChildSpawnerCommands,
     cities_db: &CitiesDatabase,
-    cities_progress: &CitiesProgress,
+    global_data: &GlobalData,
     map_state: &GlobalMapState,
 ) {
     if let Some(selected_city_id) = &map_state.selected_city {
         if let Some(city) = cities_db.get_city(selected_city_id) {
-            let city_state = cities_progress.get_city_state(selected_city_id);
+            let city_state = global_data.cities_progress.get_city_state(selected_city_id);
             
             let (panel_node, _) = UIBuilder::section_panel();
             parent.spawn((panel_node, BackgroundColor(Color::srgba(0.1, 0.1, 0.2, 0.5)))).with_children(|city_info| {

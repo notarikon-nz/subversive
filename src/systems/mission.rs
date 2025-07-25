@@ -3,6 +3,8 @@ use bevy::prelude::*;
 use crate::core::*;
 use crate::systems::scenes::*;
 
+use crate::systems::ui::*;
+
 pub fn timer_system(
     mut mission_data: ResMut<MissionData>,
     mut next_state: ResMut<NextState<GameState>>,
@@ -128,6 +130,9 @@ pub fn process_mission_results(
     mut processed: ResMut<PostMissionProcessed>,
     post_mission: Res<PostMissionResults>,
     agent_query: Query<&Agent>,
+    cities_db: Res<CitiesDatabase>,
+    // mut cities_progress: ResMut<CitiesProgress>,
+    launch_data: Option<Res<MissionLaunchData>>,
 ) {
     if processed.0 { return; }
     
@@ -151,6 +156,22 @@ pub fn process_mission_results(
             }
         }
         
+        // UNLOCK CONNECTED CITIES - ADD THIS BLOCK
+        if let Some(launch_data) = launch_data.as_ref() {
+            let newly_unlocked = cities_db.unlock_connected_cities(&launch_data.city_id, &mut global_data.cities_progress);
+            
+            if !newly_unlocked.is_empty() {
+                info!("Mission success in {} unlocked {} new cities: {:?}", 
+                      launch_data.city_id, newly_unlocked.len(), newly_unlocked);
+            }
+            
+            // Mark the completed city
+            let city_state = global_data.cities_progress.get_city_state_mut(&launch_data.city_id);
+            city_state.completed = true;
+            city_state.times_visited += 1;
+            city_state.last_mission_day = current_day;
+        }
+
         if post_mission.enemies_killed > 0 || post_mission.time_taken >= 180.0 {
             global_data.regions[region_idx].raise_alert(current_day);
         }

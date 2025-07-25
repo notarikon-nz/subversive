@@ -8,7 +8,7 @@ use bevy_light_2d::prelude::*;
 use leafwing_input_manager::prelude::*;
 use systems::ui::hub::{CyberneticsDatabase, HubStates, HubDatabases, HubProgress};
 use systems::ui::hub::agents::AgentManagementState;
-use systems::ui::hub::missions::{MissionLaunchData};
+
 use systems::police::{load_police_config, PoliceResponse, PoliceEscalation};
 
 mod core;
@@ -450,11 +450,15 @@ fn setup_attachments(mut commands: Commands) {
 }
 
 fn load_global_data_or_default() -> (GlobalData, ResearchProgress) {
-    if let Some(loaded_data) = crate::systems::save::load_game() {
-        let research_progress = loaded_data.research_progress.clone();
-        (loaded_data, research_progress)
+    if let Some((mut loaded_global_data)) = crate::systems::save::load_game() {
+        // Merge the loaded cities progress into global data
+        loaded_global_data.cities_progress = loaded_global_data.cities_progress;
+        let research_progress = loaded_global_data.research_progress.clone();
+        (loaded_global_data, research_progress)
     } else {
-        (GlobalData::default(), ResearchProgress::default())
+        let global_data = GlobalData::default(); // This now includes cities_progress
+        let research_progress = global_data.research_progress.clone();
+        (global_data, research_progress)
     }
 }
 
@@ -469,6 +473,8 @@ fn apply_loaded_research_benefits(
         &mut unlocked_attachments,
     );
 }
+
+
 
 fn ensure_data_directories() {
     let directories = [
@@ -541,3 +547,4 @@ fn setup_police_system(mut commands: Commands) {
     commands.insert_resource(PoliceResponse::default());
     commands.insert_resource(PoliceEscalation::default());
 }
+
