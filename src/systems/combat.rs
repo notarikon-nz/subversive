@@ -2,6 +2,9 @@
 use bevy::prelude::*;
 use leafwing_input_manager::prelude::*;
 use crate::core::*;
+use crate::systems::explosions::*;
+use crate::core::spawn_damage_text::*;
+
 
 pub fn system(
     mut gizmos: Gizmos,
@@ -9,6 +12,7 @@ pub fn system(
     mut action_events: EventReader<ActionEvent>,
     mut combat_events: EventWriter<CombatEvent>,
     mut audio_events: EventWriter<AudioEvent>,
+    mut damage_text_events: EventWriter<DamageTextEvent>,
     agent_query: Query<(&Transform, &Inventory), With<Agent>>,
     mut agent_weapon_query: Query<&mut WeaponState, With<Agent>>,
     mut target_query: Query<(Entity, &Transform, &mut Health), Or<(With<Enemy>, With<Vehicle>)>>,
@@ -21,7 +25,7 @@ pub fn system(
     // Handle combat targeting mode
     if let Some(TargetingMode::Combat { agent }) = &game_mode.targeting {
         handle_combat_targeting(*agent, &input, &agent_query, &mut agent_weapon_query, 
-                               &mut target_query, &mut combat_events, &mut audio_events,
+                               &mut target_query, &mut combat_events, &mut audio_events, &mut damage_text_events, 
                                &mut gizmos, &windows, &cameras);
     }
 
@@ -29,7 +33,7 @@ pub fn system(
     for event in action_events.read() {
         if let Action::Attack(target) = event.action {
             execute_attack(event.entity, target, &agent_query, &mut agent_weapon_query, 
-                         &mut target_query, &mut combat_events, &mut audio_events);
+                         &mut target_query, &mut combat_events, &mut audio_events, &mut damage_text_events);
         }
     }
 }
@@ -42,6 +46,7 @@ fn handle_combat_targeting(
     target_query: &mut Query<(Entity, &Transform, &mut Health), Or<(With<Enemy>, With<Vehicle>)>>,
     combat_events: &mut EventWriter<CombatEvent>,
     audio_events: &mut EventWriter<AudioEvent>,
+    damage_text_events: &mut EventWriter<DamageTextEvent>,
     gizmos: &mut Gizmos,
     windows: &Query<&Window>,
     cameras: &Query<(&Camera, &GlobalTransform)>,
@@ -59,7 +64,7 @@ fn handle_combat_targeting(
     // Handle mouse click for target selection
     if action_state.just_pressed(&PlayerAction::Move) {
         if let Some(target) = find_target_at_mouse(target_query, agent_pos, range, windows, cameras) {
-            execute_attack(agent, target, agent_query, agent_weapon_query, target_query, combat_events, audio_events);
+            execute_attack(agent, target, agent_query, agent_weapon_query, target_query, combat_events, audio_events, damage_text_events);
         }
     }
 }
@@ -72,6 +77,7 @@ fn execute_attack(
     target_query: &mut Query<(Entity, &Transform, &mut Health), Or<(With<Enemy>, With<Vehicle>)>>,
     combat_events: &mut EventWriter<CombatEvent>,
     audio_events: &mut EventWriter<AudioEvent>,
+    damage_text_events: &mut EventWriter<DamageTextEvent>,
 ) {
     // Validate and consume ammo
     if let Ok(mut weapon_state) = agent_weapon_query.get_mut(attacker) {
@@ -88,10 +94,13 @@ fn execute_attack(
     let hit = rand::random::<f32>() < accuracy;
     
     // Apply damage to target
-    let final_damage = if let Ok((_, _, mut health)) = target_query.get_mut(target) {
+    let final_damage = if let Ok((_, target_transform, mut health)) = target_query.get_mut(target) {
         if hit {
             let actual_damage = damage; // Simplified: no damage multiplier for now
-            // spawn damage text            
+            damage_text_events.write(DamageTextEvent {
+                position: target_transform.translation.truncate(),
+                damage: actual_damage,
+            });            
             health.0 = (health.0 - actual_damage).max(0.0);
             actual_damage
         } else {

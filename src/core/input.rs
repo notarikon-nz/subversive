@@ -14,6 +14,7 @@ pub enum PlayerAction {
     Interact,
     Inventory,
     Reload,
+    SetTimeBomb,
 }
 
 // === TARGETING SYSTEM ===

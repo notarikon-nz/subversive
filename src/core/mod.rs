@@ -27,6 +27,8 @@ pub mod lore;
 pub mod hackable;
 pub mod cities;
 
+pub mod spawn_damage_text;
+
 // Re-exports for convenience
 pub use events::*;
 pub use audio::*;
@@ -50,6 +52,7 @@ pub use scene_cache::*;
 pub use lore::*;
 pub use hackable::*;
 pub use cities::*;
+pub use spawn_damage_text::*;
 
 pub use crate::systems::ui::hub::{HubState};
 
@@ -61,6 +64,7 @@ pub struct AgentLoadout {
     pub equipped_weapon_idx: usize,
     pub tools: Vec<ToolType>,
     pub cybernetics: Vec<CyberneticType>,
+    
 }
 
 impl Default for AgentLoadout {

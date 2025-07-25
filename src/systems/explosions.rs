@@ -363,10 +363,10 @@ fn spawn_explosion(
     explosion_type: ExplosionType,
 ) {
     let (color, duration) = match explosion_type {
-        ExplosionType::Grenade => (Color::srgba(1.0, 0.8, 0.0, 0.7), 2.0),
-        ExplosionType::Vehicle => (Color::srgba(1.0, 0.5, 0.0, 0.8), 3.0),
-        ExplosionType::TimeBomb => (Color::srgba(1.0, 0.3, 0.1, 0.9), 2.5),
-        ExplosionType::Cascading => (Color::srgba(0.9, 0.7, 0.1, 0.6), 1.5),
+        ExplosionType::Grenade => (Color::srgba(1.0, 0.8, 0.0, 0.25), 2.0),
+        ExplosionType::Vehicle => (Color::srgba(1.0, 0.5, 0.0, 0.25), 3.0),
+        ExplosionType::TimeBomb => (Color::srgba(1.0, 0.3, 0.1, 0.25), 2.5),
+        ExplosionType::Cascading => (Color::srgba(0.9, 0.7, 0.1, 0.25), 1.5),
     };
     
     commands.spawn((
@@ -460,38 +460,4 @@ pub fn handle_vehicle_explosions(
         
         commands.entity(entity).despawn();
     }
-}
-
-
-pub fn spawn_damage_text(
-    commands: &mut Commands,
-    position: Vec2,
-    damage: f32,
-    settings: &CombatTextSettings,
-) {
-    let damage_text = format!("{:.0}", damage);
-    let text_color = if damage >= 50.0 {
-        Color::srgb(1.0, 0.2, 0.2) // High damage = red
-    } else if damage >= 25.0 {
-        Color::srgb(1.0, 0.8, 0.2) // Medium damage = orange
-    } else {
-        Color::srgb(1.0, 1.0, 0.2) // Low damage = yellow
-    };
-    
-    commands.spawn((
-        Text2d::new(damage_text),
-        TextFont {
-            font_size: settings.font_size,
-            ..default()
-        },
-        TextColor(text_color),
-        Transform::from_translation((position + Vec2::new(0.0, 30.0)).extend(100.0)),
-        FloatingText {
-            lifetime: 1.0,
-            velocity: Vec2::new(
-                (rand::random::<f32>() - 0.5) * 20.0, // Random horizontal drift
-                50.0, // Upward movement
-            ),
-        },
-    ));
 }

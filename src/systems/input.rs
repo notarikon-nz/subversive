@@ -59,6 +59,14 @@ pub fn handle_input(
         }
     }
 
+    // T for TimeBomb
+    if keyboard.just_pressed(KeyCode::KeyT) {
+        if let Some(&agent) = selection.selected.first() {
+            info!("spawning time bomb at x,y with a fuse of z seconds");
+        }
+    }
+
+
     // Add reload input handling
     if keyboard.just_pressed(KeyCode::KeyR) {
         if let Some(&agent) = selection.selected.first() {

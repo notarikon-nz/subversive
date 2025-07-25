@@ -78,3 +78,9 @@ pub struct AlarmActivatedEvent {
     pub activator: Entity,
     pub panel_pos: Vec2,
 }
+
+#[derive(Event)]
+pub struct DamageTextEvent {
+    pub position: Vec2,
+    pub damage: f32,
+}

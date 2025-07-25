@@ -38,7 +38,7 @@ fn main() {
         }))    
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.0))
         .add_plugins(InputManagerPlugin::<PlayerAction>::default())
-        .add_plugins(Light2dPlugin) // bevy_light_2d
+//        .add_plugins(Light2dPlugin) // bevy_light_2d
         .add_plugins(bevy_mod_imgui::ImguiPlugin::default())
 
         // .add_plugins(bevy::diagnostic::LogDiagnosticsPlugin::default())
@@ -74,6 +74,8 @@ fn main() {
         .insert_resource(AttachmentDatabase::load())
         .insert_resource(LoreDatabase::load())
         .insert_resource(CitiesDatabase::load())
+        .insert_resource(WeaponDatabase::load())
+        .insert_resource(CyberneticsDatabase::load())
 
         .init_resource::<UIState>()
         .init_resource::<PostMissionProcessed>()
@@ -86,7 +88,6 @@ fn main() {
         .init_resource::<FormationState>()
         .init_resource::<CivilianSpawner>()
         .init_resource::<PowerGrid>()
-        .insert_resource(CyberneticsDatabase::load())
         .insert_resource(AgentManagementState::default())
         
         .insert_resource(HubStates::default())
@@ -105,6 +106,7 @@ fn main() {
         .add_event::<HackAttemptEvent>() 
         .add_event::<HackCompletedEvent>()
         .add_event::<PowerGridEvent>()
+        .add_event::<DamageTextEvent>()
 
         .add_systems(Startup, (
             fonts::load_fonts,
@@ -191,6 +193,7 @@ fn main() {
 
             combat::system,
             combat::death_system,
+            damage_text_event_system,
 
             ui::world::system,
             ui::screens::inventory_system,
@@ -274,6 +277,7 @@ fn main() {
             police::police_spawn_system,
             police::police_cleanup_system,
             police::police_deescalation_system,
+            
         ).run_if(in_state(GameState::Mission)))
 
         .add_systems(Update, (
@@ -410,7 +414,8 @@ fn setup_camera_and_input(mut commands: Commands) {
         .with(PlayerAction::Combat, KeyCode::KeyF)
         .with(PlayerAction::Interact, KeyCode::KeyE)
         .with(PlayerAction::Inventory, KeyCode::KeyI)
-        .with(PlayerAction::Reload, KeyCode::KeyR);
+        .with(PlayerAction::Reload, KeyCode::KeyR)
+        .with(PlayerAction::SetTimeBomb, KeyCode::KeyT);
     
     commands.spawn((
         input_map,
