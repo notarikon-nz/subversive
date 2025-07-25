@@ -1,8 +1,8 @@
 /target
 /removed
 /assets
-.gitignore
 Cargo.lock
 quicksave.json
 subversive_save.json
 _scenes.rs
+.gitignore

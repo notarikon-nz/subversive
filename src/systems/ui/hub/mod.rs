@@ -1,5 +1,6 @@
 // src/systems/ui/hub/mod.rs - Simplified and consolidated
 use bevy::prelude::*;
+use bevy::input::mouse::*;
 use crate::core::*;
 use crate::systems::ui::builder::*;
 use serde::{Deserialize, Serialize};
@@ -135,6 +136,8 @@ pub fn hub_system(
     cameras: Query<(&Camera, &GlobalTransform)>,
     mouse: Res<ButtonInput<MouseButton>>,
     city_query: Query<(Entity, &Transform, &global_map::InteractiveCity)>,
+    mut scroll_events: EventReader<MouseWheel>, // Add this
+    time: Res<Time>, // Add this
 ) {
     let mut tab_changed = false;
     
@@ -153,46 +156,47 @@ pub fn hub_system(
                    &hub_progress, &hub_databases, fonts.as_deref());
     }
 
-let active_tab = hub_states.hub_state.active_tab;
+    let active_tab = hub_states.hub_state.active_tab;
 
-// Destructure to get separate mutable references
-let HubStates {
-    ref mut hub_state,
-    ref mut manufacture_state,
-    ref mut agent_state,
-    ref mut map_state,
-} = &mut *hub_states;
+    // Destructure to get separate mutable references
+    let HubStates {
+        ref mut hub_state,
+        ref mut manufacture_state,
+        ref mut agent_state,
+        ref mut map_state,
+    } = &mut *hub_states;
 
-let HubProgress {
-    ref mut research_progress,
-    ref mut cities_progress,
-    ref mut unlocked,
-} = &mut *hub_progress;
+    let HubProgress {
+        ref mut research_progress,
+        ref mut cities_progress,
+        ref mut unlocked,
+    } = &mut *hub_progress;
 
-let needs_rebuild = match active_tab {
-    HubTab::GlobalMap => global_map::handle_input(
-        &input, &mut global_data, hub_state,
-        &hub_databases.cities_db, 
-        map_state, &windows, &cameras, &mouse, &city_query,
-    ),
-    HubTab::Research => research::handle_input(
-        &input, &mut global_data, research_progress,
-        &hub_databases.research_db, unlocked,
-        &mut hub_state.selected_research_project
-    ),
-    HubTab::Agents => agents::handle_input(
-        &input, hub_state, agent_state,
-        &mut global_data, &hub_databases.cybernetics_db.cybernetics
-    ),
-    HubTab::Manufacture => manufacture::handle_input(
-        &input, hub_state, manufacture_state,
-        &mut global_data, agent_query, &hub_databases.attachment_db
-    ),
-    HubTab::Missions => missions::handle_input(
-        &input, &mut commands, &mut next_state, 
-        &global_data, cities_progress,
-    ),
-};
+    let needs_rebuild = match active_tab {
+        HubTab::GlobalMap => global_map::handle_input(
+            &input, &mut global_data, hub_state,
+            &hub_databases.cities_db, 
+            map_state, &windows, &cameras, &mouse, &city_query,
+            scroll_events, &time,
+        ),
+        HubTab::Research => research::handle_input(
+            &input, &mut global_data, research_progress,
+            &hub_databases.research_db, unlocked,
+            &mut hub_state.selected_research_project
+        ),
+        HubTab::Agents => agents::handle_input(
+            &input, hub_state, agent_state,
+            &mut global_data, &hub_databases.cybernetics_db.cybernetics
+        ),
+        HubTab::Manufacture => manufacture::handle_input(
+            &input, hub_state, manufacture_state,
+            &mut global_data, agent_query, &hub_databases.attachment_db
+        ),
+        HubTab::Missions => missions::handle_input(
+            &input, &mut commands, &mut next_state, 
+            &global_data, cities_progress,
+        ),
+    };
 
     if input.just_pressed(KeyCode::Escape) {
         std::process::exit(0);
