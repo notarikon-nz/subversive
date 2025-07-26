@@ -267,7 +267,7 @@ fn main() {
             */
                         
             combat::cleanup_miss_targets,
-        ).run_if(in_state(GameState::Mission)))        
+        ).run_if(in_state(GameState::Mission)))
 
         // Mission management systems
         .add_systems(Update, (            

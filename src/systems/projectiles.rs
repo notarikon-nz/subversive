@@ -424,11 +424,11 @@ fn handle_beam_projectile(
     if !*applied_damage {
         if let Ok(mut health) = target_health.get_mut(projectile.target) {
             health.0 = (health.0 - projectile.damage).max(0.0);
-            damage_text_events.send(DamageTextEvent {
+            damage_text_events.write(DamageTextEvent {
                 position: *end_pos,
                 damage: projectile.damage,
             });
-            combat_events.send(CombatEvent {
+            combat_events.write(CombatEvent {
                 attacker: projectile.attacker,
                 target: projectile.target,
                 damage: projectile.damage,
@@ -456,12 +456,12 @@ fn apply_damage(
     if let Ok(mut health) = target_health.get_mut(projectile.target) {
         health.0 = (health.0 - projectile.damage).max(0.0);
         
-        damage_text_events.send(DamageTextEvent {
+        damage_text_events.write(DamageTextEvent {
             position,
             damage: projectile.damage,
         });
         
-        combat_events.send(CombatEvent {
+        combat_events.write(CombatEvent {
             attacker: projectile.attacker,
             target: projectile.target,
             damage: projectile.damage,
@@ -491,7 +491,7 @@ fn apply_area_damage(
             if let Ok(mut health) = target_health.get_mut(Entity::from_raw(entity as u32)) {
                 health.0 = (health.0 - actual_damage).max(0.0);
                 
-                damage_text_events.send(DamageTextEvent {
+                damage_text_events.write(DamageTextEvent {
                     position: transform.translation.truncate(),
                     damage: actual_damage,
                 });
@@ -569,7 +569,7 @@ pub struct ImpactEffect {
 // Simple impact effect system
 pub fn impact_effect_system(
     mut commands: Commands,
-    mut impacts: Query<(Entity, &mut Sprite, &mut ImpactEffect),Without<MarkedForDespawn>>,
+    mut impacts: Query<(Entity, &mut Sprite, &mut ImpactEffect)>,
     time: Res<Time>,
 ) {
     let dt = time.delta_secs();

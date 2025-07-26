@@ -144,9 +144,9 @@ pub fn pause_system(
 pub fn inventory_system(
     mut commands: Commands,
     inventory_state: Res<InventoryState>,
-    agent_query: Query<(&Inventory, &WeaponState), (With<Agent>, Changed<Inventory>)>, // Add WeaponState
-    all_agent_query: Query<(&Inventory, &WeaponState), With<Agent>>, // Add WeaponState
-    inventory_ui_query: Query<Entity, With<InventoryUI>>,
+    agent_query: Query<(&Inventory, &WeaponState), (With<Agent>, Changed<Inventory>)>,
+    all_agent_query: Query<(&Inventory, &WeaponState), With<Agent>>,
+    inventory_ui_query: Query<Entity, (With<InventoryUI>, Without<MarkedForDespawn>)>,
 ) {
     if !inventory_state.ui_open {
         if !inventory_ui_query.is_empty() {

@@ -136,8 +136,8 @@ fn handle_minigun_suppression(
 }
 
 pub fn area_effect_system(
-    mut area_query: Query<(Entity, &mut AreaDenial, &Transform)>,
-    mut suppression_query: Query<(Entity, &mut SuppressionZone, &Transform), (Without<AreaDenial>, Without<MarkedForDespawn>)>,
+    mut area_query: Query<(Entity, &mut AreaDenial, &Transform), Without<MarkedForDespawn>>,
+    mut suppression_query: Query<(Entity, &mut SuppressionZone, &Transform), Without<MarkedForDespawn>>,
     mut agent_query: Query<(&Transform, &mut Health), (With<Agent>, Without<MarkedForDespawn>)>,
     mut commands: Commands,
     time: Res<Time>,
@@ -145,12 +145,15 @@ pub fn area_effect_system(
 ) {
     if game_mode.paused { return; }
 
+    // Collect entities to despawn to avoid issues with entity commands
+    let mut to_despawn = Vec::new();
+
     // Process area denial effects
     for (entity, mut area_denial, area_transform) in area_query.iter_mut() {
         area_denial.duration -= time.delta_secs();
         
         if area_denial.duration <= 0.0 {
-            commands.entity(entity).insert(MarkedForDespawn);
+            to_despawn.push(entity);
             continue;
         }
 
@@ -170,7 +173,15 @@ pub fn area_effect_system(
         suppression.duration -= time.delta_secs();
         
         if suppression.duration <= 0.0 {
-            commands.entity(entity).insert(MarkedForDespawn);
+            to_despawn.push(entity);
+        }
+    }
+
+    // Mark entities for despawn after iteration is complete
+    for entity in to_despawn {
+        // Check if entity still exists before marking
+        if let Ok(mut entity_commands) = commands.get_entity(entity) {
+            entity_commands.insert(MarkedForDespawn);
         }
     }
 }

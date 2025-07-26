@@ -2,6 +2,7 @@
 use bevy::prelude::*;
 use leafwing_input_manager::prelude::*;
 use crate::core::*;
+use crate::systems::explosions::*;
 use crate::systems::projectiles::*;
 
 pub fn system(
@@ -97,7 +98,9 @@ fn execute_attack(
         .unwrap_or(WeaponType::Pistol);
     
     let (damage, accuracy, noise) = get_attack_stats(Some((attacker_transform, inventory)), 
-                                                   agent_weapon_query.get(attacker).ok(), weapon_db);
+                                                   agent_weapon_query.get(attacker).ok(),
+                                                   weapon_db
+                                                );
     
     // Check if shot hits (accuracy check)
     let hit = rand::random::<f32>() < accuracy;
@@ -115,7 +118,7 @@ fn execute_attack(
         );
         
         // Play audio
-        audio_events.write(AudioEvent { 
+        audio_events.send(AudioEvent { 
             sound: AudioType::Gunshot, 
             volume: (0.7 * noise).clamp(0.1, 1.0) 
         });

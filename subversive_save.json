@@ -1,27 +1,27 @@
 {
-  "credits": 250400,
-  "current_day": 86,
+  "credits": 254200,
+  "current_day": 96,
   "agent_levels": [
-    1,
-    1,
-    1
+    2,
+    2,
+    2
   ],
   "agent_experience": [
-    155,
-    155,
-    155
+    285,
+    285,
+    285
   ],
   "agent_recovery": [
-    84,
-    84,
-    84
+    94,
+    94,
+    94
   ],
   "regions": [
     {
       "name": "Neo-Tokyo Central",
       "threat_level": 1,
       "alert_level": 3,
-      "alert_decay_timer": 97
+      "alert_decay_timer": 107
     },
     {
       "name": "Corporate District",
@@ -118,18 +118,18 @@
     "credits_invested": 0
   },
   "cities_progress": {
-    "current_city": "panama_city",
+    "current_city": "mexico_city",
     "city_states": {
+      "mexico_city": {
+        "completed": true,
+        "alert_level": "Green",
+        "last_mission_day": 93,
+        "times_visited": 2
+      },
       "miami": {
         "completed": true,
         "alert_level": "Green",
         "last_mission_day": 80,
-        "times_visited": 1
-      },
-      "panama_city": {
-        "completed": true,
-        "alert_level": "Green",
-        "last_mission_day": 83,
         "times_visited": 1
       },
       "new_york": {
@@ -137,16 +137,23 @@
         "alert_level": "Green",
         "last_mission_day": 75,
         "times_visited": 3
+      },
+      "panama_city": {
+        "completed": true,
+        "alert_level": "Green",
+        "last_mission_day": 88,
+        "times_visited": 3
       }
     },
     "unlocked_cities": [
-      "miami",
-      "new_york",
+      "los_angeles",
+      "toronto",
       "mexico_city",
-      "chicago",
       "bogota",
       "panama_city",
-      "toronto"
+      "new_york",
+      "chicago",
+      "miami"
     ]
   }
 }
