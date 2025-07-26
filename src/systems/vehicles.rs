@@ -3,6 +3,7 @@ use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 use crate::core::*;
 use crate::systems::scanner::*;
+use crate::systems::explosions::*;
 
 pub fn vehicle_explosion_system(
     mut commands: Commands,
@@ -13,58 +14,19 @@ pub fn vehicle_explosion_system(
         if health.0 <= 0.0 {
             let explosion_pos = transform.translation.truncate();
             
-            commands.spawn((
-                VehicleExplosion {
-                    radius: vehicle.explosion_radius(),
-                    damage: vehicle.explosion_damage(),
-                    duration: 3.0,
-                },
-                Transform::from_translation(explosion_pos.extend(1.0)),
-                Sprite {
-                    color: Color::srgba(1.0, 0.5, 0.0, 0.8),
-                    custom_size: Some(Vec2::splat(vehicle.explosion_radius() * 2.0)),
-                    ..default()
-                },
-            ));
-            
+            spawn_explosion(
+                &mut commands, 
+                explosion_pos, 
+                vehicle.explosion_radius(), 
+                vehicle.explosion_damage(), 
+                ExplosionType::Vehicle
+            );
             audio_events.write(AudioEvent {
                 sound: AudioType::Alert, // Reuse alert sound for explosion
                 volume: 1.0,
             });
             
-            commands.entity(entity).insert(MarkedForDespawn); // ← Safe mark
-        }
-    }
-}
-
-pub fn explosion_damage_system(
-    mut explosion_query: Query<(Entity, &mut VehicleExplosion, &Transform), Without<MarkedForDespawn>>,
-    mut damageable_query: Query<(&Transform, &mut Health), (Without<VehicleExplosion>, Without<Dead>)>,
-    mut commands: Commands,
-    time: Res<Time>,
-    game_mode: Res<GameMode>,
-) {
-    if game_mode.paused { return; }
-
-    for (explosion_entity, mut explosion, explosion_transform) in explosion_query.iter_mut() {
-        explosion.duration -= time.delta_secs();
-        
-        if explosion.duration <= 0.0 {
-
-            commands.entity(explosion_entity).insert(MarkedForDespawn); // ← Safe mark
-            continue;
-        }
-        
-        let explosion_pos = explosion_transform.translation.truncate();
-        
-        for (target_transform, mut health) in damageable_query.iter_mut() {
-            let distance = explosion_pos.distance(target_transform.translation.truncate());
-            
-            if distance <= explosion.radius {
-                let damage_factor = 1.0 - (distance / explosion.radius);
-                let damage = explosion.damage * damage_factor * time.delta_secs();
-                health.0 -= damage;
-            }
+            commands.entity(entity).insert(MarkedForDespawn);
         }
     }
 }

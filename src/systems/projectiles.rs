@@ -1,6 +1,7 @@
 // src/systems/projectiles.rs - Compact and efficient projectile system
 use bevy::prelude::*;
 use crate::core::*;
+use crate::systems::explosions::*;
 
 // Unified projectile behavior enum
 #[derive(Component, Clone)]
@@ -331,17 +332,7 @@ fn handle_grenade_projectile(
     if *fuse_timer <= 0.0 {
         // Explode
         let pos = transform.translation.truncate();
-        apply_area_damage(
-            combat_events,
-            damage_text_events,
-            target_health,
-            targets,
-            pos,
-            projectile.damage,
-            100.0,
-            projectile.attacker,
-        );
-        spawn_explosion(commands, pos);
+        spawn_explosion(commands, pos, 100.0, projectile.damage, ExplosionType::Grenade);
         commands.entity(entity).insert(MarkedForDespawn);
     } else {
         // Physics movement
@@ -386,17 +377,7 @@ fn handle_rocket_projectile(
         
         if current_pos.distance(target_pos) <= move_distance + 15.0 {
             // Hit with explosion
-            apply_area_damage(
-                combat_events,
-                damage_text_events,
-                target_health,
-                targets,
-                target_pos,
-                projectile.damage,
-                120.0,
-                projectile.attacker,
-            );
-            spawn_explosion(commands, target_pos);
+            spawn_explosion(commands, target_pos, 120.0, projectile.damage, ExplosionType::Grenade);
             commands.entity(entity).insert(MarkedForDespawn);
         } else {
             transform.translation += direction.extend(0.0) * move_distance;
@@ -517,35 +498,6 @@ fn spawn_impact(commands: &mut Commands, position: Vec2, weapon_type: WeaponType
         Transform::from_translation(position.extend(5.0)),
         ImpactEffect { lifetime },
     ));
-}
-
-fn spawn_explosion(commands: &mut Commands, position: Vec2) {
-    // Main explosion
-    commands.spawn((
-        Sprite {
-            color: Color::srgb(1.0, 0.5, 0.1),
-            custom_size: Some(Vec2::splat(50.0)),
-            ..default()
-        },
-        Transform::from_translation(position.extend(5.0)),
-        ImpactEffect { lifetime: 0.5 },
-    ));
-    
-    // Simplified particles - spawn fewer for performance
-    for i in 0..6 {
-        let angle = i as f32 * std::f32::consts::TAU / 6.0;
-        let offset = Vec2::new(angle.cos(), angle.sin()) * 40.0;
-        
-        commands.spawn((
-            Sprite {
-                color: Color::srgb(1.0, 0.4 + fastrand::f32() * 0.3, 0.1),
-                custom_size: Some(Vec2::splat(8.0 + fastrand::f32() * 4.0)),
-                ..default()
-            },
-            Transform::from_translation((position + offset).extend(4.0)),
-            ImpactEffect { lifetime: 0.3 + fastrand::f32() * 0.2 },
-        ));
-    }
 }
 
 fn spawn_trail_particle(commands: &mut Commands, position: Vec2) {

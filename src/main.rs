@@ -295,7 +295,7 @@ fn main() {
         // Environmental systems
         .add_systems(Update, (
             vehicles::vehicle_explosion_system,
-            vehicles::explosion_damage_system,
+            //vehicles::explosion_damage_system,
             vehicles::vehicle_cover_system,
             vehicles::vehicle_spawn_system,
 
@@ -337,6 +337,15 @@ fn main() {
 
         .add_systems(Update, (
             explosions::explosion_damage_system,
+            explosions::time_bomb_system,
+            explosions::pending_explosion_system,
+            explosions::status_effect_system,
+            explosions::floating_text_system,
+            explosions::handle_grenade_events,
+            explosions::handle_vehicle_explosions,
+
+/*
+            explosions::explosion_damage_system,
             explosions::floating_text_system,
             explosions::handle_grenade_events,
             explosions::handle_vehicle_explosions,
@@ -344,7 +353,7 @@ fn main() {
             explosions::time_bomb_system,
             explosions::pending_explosion_system,
             explosions::status_effect_system,
-            
+*/            
             scanner::scanner_ui_system,
             scanner::scanner_cleanup_system,
         ).run_if(in_state(GameState::Mission)))
