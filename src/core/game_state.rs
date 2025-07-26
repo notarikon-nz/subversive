@@ -7,13 +7,19 @@ use crate::core::cities::*;
 // === GAME STATES ===
 #[derive(States, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum GameState {
+    MainMenu,
+    NewGame,
+    Settings,
+    Credits,
     GlobalMap,
     Mission,
     PostMission,
+    Cyberspace,
+
 }
 
 impl Default for GameState {
-    fn default() -> Self { GameState::GlobalMap }
+    fn default() -> Self { GameState::MainMenu } // ::GlobalMap
 }
 
 // === ALERT LEVELS ===

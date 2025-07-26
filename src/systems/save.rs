@@ -108,6 +108,11 @@ pub fn load_game() -> Option<(GlobalData)> {
         .map(|save_data| save_data.into())
 }
 
+// Used by Main Menu for Continue logic
+pub fn save_game_exists() -> bool {
+    std::path::Path::new(SAVE_FILE).exists()
+}
+
 // Legacy function for backward compatibility
 pub fn save_game(global_data: &GlobalData) {
     // Create default cities progress if not available

@@ -147,13 +147,13 @@
       }
     },
     "unlocked_cities": [
-      "miami",
-      "panama_city",
-      "mexico_city",
-      "new_york",
       "chicago",
-      "bogota",
-      "toronto"
+      "miami",
+      "toronto",
+      "mexico_city",
+      "panama_city",
+      "new_york",
+      "bogota"
     ]
   }
 }

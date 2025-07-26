@@ -6,9 +6,13 @@ pub mod world;
 pub mod screens;
 pub mod hub;
 pub mod builder; // Add the builder module
+pub mod main_menu;
+pub mod settings;
+pub mod credits;
 
 pub use screens::*;
 pub use hub::*;
+pub use main_menu::*;
 
 pub fn cleanup_mission_ui(
     mut commands: Commands,

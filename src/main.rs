@@ -6,8 +6,12 @@ use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 use bevy_light_2d::prelude::*;
 use leafwing_input_manager::prelude::*;
+
 use systems::ui::hub::{CyberneticsDatabase, HubStates, HubDatabases, HubProgress};
 use systems::ui::hub::agents::AgentManagementState;
+use systems::ui::{main_menu, settings, credits};
+use systems::ui::{MainMenuState};
+
 
 use systems::police::{load_police_config, PoliceResponse, PoliceEscalation};
 
@@ -64,6 +68,7 @@ fn main() {
         .init_resource::<CitiesProgress>()
         .init_resource::<MessageLog>()
         .init_resource::<ScannerState>()
+        .init_resource::<MainMenuState>()
 
         .insert_resource(GameConfig::load())
         .insert_resource(global_data)
@@ -120,7 +125,7 @@ fn main() {
             setup_police_system,
             sprites::load_sprites,
         ))
-        
+
         .add_systems(PostStartup, (
             preload_common_scenes,
         ))
@@ -134,6 +139,41 @@ fn main() {
             audio::audio_system,
             scene_cache_debug_system,
 
+        ))
+
+        // MAIN MENU
+        .add_systems(OnEnter(GameState::MainMenu), (
+            main_menu::setup_main_menu,
+        ))
+        .add_systems(Update, (
+            main_menu::menu_input_system,
+            main_menu::menu_mouse_system,
+            main_menu::update_menu_visuals,
+        ).run_if(in_state(GameState::MainMenu)))
+        .add_systems(OnExit(GameState::MainMenu), (
+            main_menu::cleanup_main_menu,
+        ))        
+
+        // SETTINGS
+        .add_systems(OnEnter(GameState::Settings), (
+            settings::setup_settings,
+        ))
+        .add_systems(Update, (
+            settings::settings_input,
+        ).run_if(in_state(GameState::Settings)))
+        .add_systems(OnExit(GameState::Settings), (
+            settings::cleanup_settings,
+        ))
+
+        // CREDITS
+        .add_systems(OnEnter(GameState::Credits), (
+            credits::setup_credits,
+        ))
+        .add_systems(Update, (
+            credits::credits_input,
+        ).run_if(in_state(GameState::Credits)))
+        .add_systems(OnExit(GameState::Credits), (
+            credits::cleanup_credits,
         ))
 
         // UI HUB
