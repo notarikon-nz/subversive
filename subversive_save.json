@@ -1,27 +1,27 @@
 {
-  "credits": 254200,
-  "current_day": 96,
+  "credits": 261600,
+  "current_day": 11,
   "agent_levels": [
-    2,
-    2,
-    2
+    1,
+    1,
+    1
   ],
   "agent_experience": [
-    285,
-    285,
-    285
+    90,
+    90,
+    90
   ],
   "agent_recovery": [
-    94,
-    94,
-    94
+    9,
+    9,
+    9
   ],
   "regions": [
     {
       "name": "Neo-Tokyo Central",
       "threat_level": 1,
       "alert_level": 3,
-      "alert_decay_timer": 107
+      "alert_decay_timer": 22
     },
     {
       "name": "Corporate District",
@@ -40,6 +40,29 @@
     {
       "weapon_configs": [
         {
+          "base_weapon": "Minigun",
+          "attachments": {},
+          "behavior": {
+            "preferred_range": 150.0,
+            "burst_fire": true,
+            "requires_cover": true,
+            "area_effect": false,
+            "reload_retreat": true,
+            "area_damage": null,
+            "penetration": true,
+            "energy_cost": null
+          }
+        }
+      ],
+      "equipped_weapon_idx": 0,
+      "tools": [
+        "Scanner"
+      ],
+      "cybernetics": []
+    },
+    {
+      "weapon_configs": [
+        {
           "base_weapon": "Rifle",
           "attachments": {},
           "behavior": {
@@ -58,9 +81,7 @@
       "tools": [
         "Scanner"
       ],
-      "cybernetics": [
-        "CombatEnhancer"
-      ]
+      "cybernetics": []
     },
     {
       "weapon_configs": [
@@ -69,31 +90,6 @@
           "attachments": {},
           "behavior": {
             "preferred_range": 250.0,
-            "burst_fire": false,
-            "requires_cover": false,
-            "area_effect": false,
-            "reload_retreat": false,
-            "area_damage": null,
-            "penetration": true,
-            "energy_cost": 10.0
-          }
-        }
-      ],
-      "equipped_weapon_idx": 0,
-      "tools": [
-        "Scanner"
-      ],
-      "cybernetics": [
-        "CombatEnhancer"
-      ]
-    },
-    {
-      "weapon_configs": [
-        {
-          "base_weapon": "Rifle",
-          "attachments": {},
-          "behavior": {
-            "preferred_range": 150.0,
             "burst_fire": true,
             "requires_cover": true,
             "area_effect": false,
@@ -108,9 +104,7 @@
       "tools": [
         "Scanner"
       ],
-      "cybernetics": [
-        "CombatEnhancer"
-      ]
+      "cybernetics": []
     }
   ],
   "research_progress": {
@@ -118,42 +112,27 @@
     "credits_invested": 0
   },
   "cities_progress": {
-    "current_city": "mexico_city",
+    "current_city": "miami",
     "city_states": {
-      "mexico_city": {
+      "new_york": {
         "completed": true,
         "alert_level": "Green",
-        "last_mission_day": 93,
+        "last_mission_day": 3,
         "times_visited": 2
       },
       "miami": {
         "completed": true,
         "alert_level": "Green",
-        "last_mission_day": 80,
-        "times_visited": 1
-      },
-      "new_york": {
-        "completed": true,
-        "alert_level": "Green",
-        "last_mission_day": 75,
-        "times_visited": 3
-      },
-      "panama_city": {
-        "completed": true,
-        "alert_level": "Green",
-        "last_mission_day": 88,
-        "times_visited": 3
+        "last_mission_day": 8,
+        "times_visited": 2
       }
     },
     "unlocked_cities": [
-      "los_angeles",
-      "toronto",
-      "mexico_city",
-      "bogota",
-      "panama_city",
       "new_york",
-      "chicago",
-      "miami"
+      "toronto",
+      "miami",
+      "panama_city",
+      "chicago"
     ]
   }
 }

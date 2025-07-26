@@ -2,7 +2,6 @@
 use bevy::prelude::*;
 use leafwing_input_manager::prelude::*;
 use crate::core::*;
-use crate::systems::explosions::*;
 use crate::systems::projectiles::*;
 
 pub fn system(
@@ -118,7 +117,7 @@ fn execute_attack(
         );
         
         // Play audio
-        audio_events.send(AudioEvent { 
+        audio_events.write(AudioEvent { 
             sound: AudioType::Gunshot, 
             volume: (0.7 * noise).clamp(0.1, 1.0) 
         });

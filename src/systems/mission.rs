@@ -98,28 +98,6 @@ pub fn restart_system_optimized(
     *inventory_state = InventoryState::default();
 
     commands.remove_resource::<ShouldRestart>();
-
-    /*
-    let scene_name = match global_data.selected_region {
-        0 => "mission1",
-        1 => "mission2", 
-        2 => "mission3",
-        _ => "mission1",
-    };
-    
-    // NEW: Use cached scene loading for restart
-    match load_scene_cached(&mut scene_cache, scene_name) {
-        Some(scene) => {
-            spawn_from_scene(&mut commands, &scene, &*global_data, &sprites);
-            info!("Mission restart complete with cached scene: {}", scene_name);
-        },
-        None => {
-            error!("Failed to load scene during restart: {}. Using fallback.", scene_name);
-            spawn_fallback_mission(&mut commands, &*global_data, &sprites);
-            info!("Mission restart complete with fallback scene");
-        }
-    }
-        */
 }
 
 pub fn process_mission_results(

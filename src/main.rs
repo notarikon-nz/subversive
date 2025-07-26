@@ -252,19 +252,6 @@ fn main() {
 
             projectiles::unified_projectile_system,
             projectiles::impact_effect_system,            
-            
-            /*
-            projectiles::projectile_movement_system,
-            projectiles::grenade_movement_system,
-            projectiles::energy_beam_system,
-            projectiles::impact_effect_system,
-            projectiles::flamethrower_stream_system,
-            
-            // TESTING
-            // PARTICLE SYSTEM INCOMING
-            projectiles::rocket_trail_system,
-            projectiles::energy_weapon_effects_system,
-            */
                         
             combat::cleanup_miss_targets,
         ).run_if(in_state(GameState::Mission)))

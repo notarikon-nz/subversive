@@ -1,7 +1,6 @@
 // src/systems/projectiles.rs - Compact and efficient projectile system
 use bevy::prelude::*;
 use crate::core::*;
-use serde::{Deserialize, Serialize};
 
 // Unified projectile behavior enum
 #[derive(Component, Clone)]
@@ -569,7 +568,7 @@ pub struct ImpactEffect {
 // Simple impact effect system
 pub fn impact_effect_system(
     mut commands: Commands,
-    mut impacts: Query<(Entity, &mut Sprite, &mut ImpactEffect)>,
+    mut impacts: Query<(Entity, &mut Sprite, &mut ImpactEffect), Without<MarkedForDespawn>>,
     time: Res<Time>,
 ) {
     let dt = time.delta_secs();

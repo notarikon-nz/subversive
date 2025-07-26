@@ -106,7 +106,7 @@ pub fn morale_system(
 }
 
 pub fn civilian_morale_system(
-    mut civilian_query: Query<(Entity, &Transform, &mut Morale), (With<Civilian>, Without<FleeTarget>)>,
+    mut civilian_query: Query<(Entity, &Transform, &mut Morale), (With<Civilian>, Without<FleeTarget>, Without<MarkedForDespawn>)>,
     mut commands: Commands,
     mut audio_events: EventReader<AudioEvent>,
     agent_query: Query<&Transform, With<Agent>>,
