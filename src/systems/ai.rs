@@ -1,7 +1,6 @@
 // src/systems/ai.rs - Updated to integrate with GOAP
 use bevy::prelude::*;
 use crate::core::*;
- // Add this import
 
 #[derive(Component)]
 pub struct AIState {

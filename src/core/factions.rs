@@ -40,7 +40,6 @@ impl Faction {
     }
 }
 
-// Add faction component to existing entities
 pub fn setup_factions_system(
     mut commands: Commands,
     agent_query: Query<Entity, (With<Agent>, Without<Faction>)>,

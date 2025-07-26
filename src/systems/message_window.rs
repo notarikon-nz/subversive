@@ -1,4 +1,3 @@
-// Add this to your systems module (e.g., systems/message_window.rs)
 use bevy::prelude::*;
 use std::collections::VecDeque;
 

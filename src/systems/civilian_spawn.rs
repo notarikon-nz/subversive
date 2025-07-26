@@ -32,7 +32,6 @@ impl Default for CivilianSpawner {
     }
 }
 
-// Add config-aware civilian spawning
 pub fn dynamic_civilian_spawn_system_with_config(
     mut commands: Commands,
     mut spawner: ResMut<CivilianSpawner>,

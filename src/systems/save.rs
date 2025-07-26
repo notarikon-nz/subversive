@@ -144,7 +144,6 @@ pub fn auto_save_system(
     }
 }
 
-// Add this system to handle post-mission saves
 pub fn post_mission_save_system(
     mut processed: ResMut<PostMissionProcessed>,
     global_data: Res<GlobalData>,

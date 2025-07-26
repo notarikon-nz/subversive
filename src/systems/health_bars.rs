@@ -44,7 +44,6 @@ pub fn spawn_health_bars(
                 Transform::from_translation(BAR_OFFSET),
             )).id();
             
-            // Add component and children to entity
             commands.entity(entity)
                 .insert(HealthBar { max_health: 100.0, fill })
                 .add_child(bg)

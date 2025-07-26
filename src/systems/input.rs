@@ -71,8 +71,6 @@ pub fn handle_input(
         }
     }
 
-
-    // Add reload input handling
     if keyboard.just_pressed(KeyCode::KeyR) {
         if let Some(&agent) = selection.selected.first() {
             action_events.write(ActionEvent {

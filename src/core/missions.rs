@@ -353,7 +353,6 @@ fn generate_city_objectives(city: &City, difficulty: f32, seed: usize) -> Vec<Mi
     // Use seed for deterministic randomness
     let random_chance = ((seed * 31) % 100) as f32 / 100.0;
     
-    // Add optional data extraction objective
     if random_chance > 0.3 {
         objectives.push(MissionObjective {
             name: "Download Corporate Data".to_string(),
@@ -364,7 +363,6 @@ fn generate_city_objectives(city: &City, difficulty: f32, seed: usize) -> Vec<Mi
         });
     }
     
-    // Add elimination objective for high corruption cities
     if city.corruption_level >= 7 && random_chance > 0.6 {
         objectives.push(MissionObjective {
             name: "Eliminate High-Value Target".to_string(),

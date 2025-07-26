@@ -123,7 +123,6 @@ pub fn spawn_from_scene(commands: &mut Commands, scene: &SceneData, global_data:
           scene.agents.len(), scene.enemies.len(), scene.civilians.len());
 }
 
-// Add the missing parse function
 fn parse_vehicle_type(type_str: &str) -> VehicleType {
     match type_str {
         "civilian_car" => VehicleType::CivilianCar,
@@ -135,7 +134,6 @@ fn parse_vehicle_type(type_str: &str) -> VehicleType {
     }
 }
 
-// Add fallback mission spawner for compatibility
 pub fn spawn_fallback_mission(commands: &mut Commands, global_data: &GlobalData, sprites: &GameSprites) {
     commands.insert_resource(UrbanAreas::default());
     
@@ -153,7 +151,6 @@ pub fn spawn_fallback_mission(commands: &mut Commands, global_data: &GlobalData,
     spawn_cover_points(commands);
 }
 
-// Add legacy scene loading for compatibility
 pub fn load_scene(name: &str) -> Option<SceneData> {
     let path = format!("scenes/{}.json", name);
     let content = std::fs::read_to_string(&path).ok()?;
@@ -213,7 +210,6 @@ fn spawn_urban_civilian(commands: &mut Commands, pos: Vec2, sprites: &GameSprite
     ));
 }
 
-// Add compatibility function for civilian_spawn.rs
 pub fn spawn_civilian_with_config(commands: &mut Commands, pos: Vec2, sprites: &GameSprites, config: &GameConfig) {
     let (sprite, _) = create_civilian_sprite(sprites);
     

@@ -165,7 +165,6 @@ fn show_scan_window(
         lines.push(format!("Weapon: {:?}", get_weapon_type(weapon_state)));
     }
 
-    // Add name if available
     if let Ok(name) = names.get(target) {
         title = name.to_string();
     }

@@ -62,7 +62,6 @@ fn toggle_agent_selection(
             commands.entity(entity).remove::<Selected>();
             selection.selected.retain(|&e| e != entity);
         } else {
-            // Add to selection
             add_to_selection(commands, selection, entity);
         }
     }
@@ -178,7 +177,6 @@ fn complete_drag_selection(
                     commands.entity(entity).remove::<Selected>();
                     selection.selected.retain(|&e| e != entity);
                 } else {
-                    // Add to selection
                     add_to_selection(commands, selection, entity);
                 }
             }

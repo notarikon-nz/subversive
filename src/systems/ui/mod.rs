@@ -5,7 +5,7 @@ use crate::core::*;
 pub mod world;
 pub mod screens;
 pub mod hub;
-pub mod builder; // Add the builder module
+pub mod builder;
 pub mod main_menu;
 pub mod settings;
 pub mod credits;

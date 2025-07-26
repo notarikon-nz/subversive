@@ -581,7 +581,6 @@ fn setup_urban_areas(mut commands: Commands) {
     commands.insert_resource(UrbanAreas::default());
 }
 
-// Add this system to your main.rs update systems for mission state
 pub fn collision_feedback_system(
     mut collision_events: EventReader<CollisionEvent>,
     mut units: Query<&mut Velocity, Or<(With<Agent>, With<Civilian>, With<Enemy>)>>,

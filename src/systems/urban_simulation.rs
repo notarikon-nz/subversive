@@ -195,7 +195,6 @@ fn pick_random_zone_center(zones: &[UrbanZone]) -> Option<Vec2> {
     if zones.is_empty() { return None; }
     let zone = &zones[rand::random::<usize>() % zones.len()];
     
-    // Add some randomness within the zone
     let angle = rand::random::<f32>() * std::f32::consts::TAU;
     let distance = rand::random::<f32>() * zone.radius * 0.8;
     let offset = Vec2::new(angle.cos(), angle.sin()) * distance;

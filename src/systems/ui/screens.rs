@@ -259,9 +259,7 @@ fn create_inventory_ui(commands: &mut Commands, inventory: Option<&Inventory>, w
             TextColor(Color::srgb(0.8, 0.3, 0.3)),
         ));
     }
-                
-            
-            // Add ammo display
+
             if let Some(weapon_state) = weapon_state {
                 let ammo_color = if weapon_state.current_ammo == 0 {
                     Color::srgb(0.8, 0.2, 0.2) // Red when empty
