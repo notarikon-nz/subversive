@@ -133,27 +133,27 @@
         "last_mission_day": 471,
         "times_visited": 4
       },
-      "panama_city": {
-        "completed": true,
-        "alert_level": "Green",
-        "last_mission_day": 466,
-        "times_visited": 2
-      },
       "miami": {
         "completed": true,
         "alert_level": "Green",
         "last_mission_day": 461,
         "times_visited": 2
+      },
+      "panama_city": {
+        "completed": true,
+        "alert_level": "Green",
+        "last_mission_day": 466,
+        "times_visited": 2
       }
     },
     "unlocked_cities": [
-      "chicago",
-      "miami",
-      "toronto",
+      "bogota",
       "mexico_city",
       "panama_city",
+      "chicago",
       "new_york",
-      "bogota"
+      "toronto",
+      "miami"
     ]
   }
 }

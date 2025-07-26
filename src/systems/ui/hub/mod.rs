@@ -170,7 +170,7 @@ pub fn hub_system(
         Query<&mut Node, With<ScrollableContent>>,
         Query<&mut Node, With<ScrollbarThumb>>,
     )>,
-
+    mut interaction_query: Query<(&Interaction, &TabButton), (Changed<Interaction>, With<Button>)>,
 ) {
     let mut tab_changed = false;
     
@@ -184,12 +184,18 @@ pub fn hub_system(
         tab_changed = true;
     }
     
-    if mouse.just_pressed(MouseButton::Left) {
-        for (interaction, tab_button) in tab_button_query.iter() {
-            if *interaction == Interaction::Pressed {
+    for (interaction, tab_button) in interaction_query.iter() {
+        match interaction {
+            Interaction::Pressed => {
                 hub_states.hub_state.active_tab = tab_button.tab;
                 tab_changed = true;
+                info!("Tab clicked: {:?}", tab_button.tab);
             }
+            Interaction::Hovered => {
+                tab_changed = true;
+                // Could add hover effects here if desired
+            }
+            Interaction::None => {}
         }
     }
 
@@ -332,12 +338,13 @@ fn create_merged_header(parent: &mut ChildSpawnerCommands, global_data: &GlobalD
             ..default()
         },
         BackgroundColor(Color::srgb(0.12, 0.12, 0.22)),
+
     )).with_children(|header| {
         
         // Left 25% - Progress section
         header.spawn((
             Node {
-                width: Val::Percent(25.0),
+                width: Val::Percent(20.0),
                 justify_content: JustifyContent::FlexStart,
                 align_items: AlignItems::Center,
                 ..default()
@@ -353,12 +360,14 @@ fn create_merged_header(parent: &mut ChildSpawnerCommands, global_data: &GlobalD
             ));
         });
         
+
+
         // Center 50% - Tab bar
         header.spawn((
             Node {
-                width: Val::Percent(50.0),
+                width: Val::Percent(60.0),
                 flex_direction: FlexDirection::Row,
-                justify_content: JustifyContent::Center,
+                justify_content: JustifyContent::Center,    //::SpaceEvenly
                 align_items: AlignItems::Center,
                 ..default()
             },
@@ -381,15 +390,16 @@ fn create_merged_header(parent: &mut ChildSpawnerCommands, global_data: &GlobalD
             
             // Main tabs
             let tabs_config = [
-                (HubTab::GlobalMap, "Map"),
-                (HubTab::Research, "Research"),
-                (HubTab::Agents, "Agents"),
-                (HubTab::Manufacture, "Gear"),
-                (HubTab::Missions, "Mission"),
+                (HubTab::GlobalMap, "Map", "TAB"),
+                (HubTab::Research, "Research", "TAB"),
+                (HubTab::Agents, "Agents", "TAB"),
+                (HubTab::Manufacture, "Gear", "TAB"),
+                (HubTab::Missions, "Mission", "TAB"),
             ];
             
-            for (tab, title) in tabs_config {
+            for (tab, title, _key) in tabs_config {
                 let is_active = tab == active_tab;
+
                 let bg_color = if is_active { 
                     Color::srgb(0.2, 0.6, 0.8) 
                 } else { 
@@ -400,19 +410,35 @@ fn create_merged_header(parent: &mut ChildSpawnerCommands, global_data: &GlobalD
                 } else { 
                     Color::srgb(0.7, 0.7, 0.7) 
                 };
+                let TAB_FONT_SIZE = if is_active { 
+                    12.0
+                } else { 
+                    12.0
+                };                
                 
                 tabs.spawn((
+                    Button, 
                     Node {
-                        width: Val::Px(70.0),
-                        height: Val::Px(30.0),
-                        justify_content: JustifyContent::Center,
-                        align_items: AlignItems::Center,
-                        margin: UiRect::horizontal(Val::Px(2.0)),
+                        padding: UiRect::all(Val::Px(15.0)),
+                        //width: Val::Px(70.0),   
+                        //height: Val::Px(30.0),
+                        //justify_content: JustifyContent::Center,
+                        //align_items: AlignItems::Center,
+                        //margin: UiRect::horizontal(Val::Px(2.0)),
                         ..default()
                     },
                     BackgroundColor(bg_color),
+                    TabButton {tab},
                 )).with_children(|tab_button| {
-                    tab_button.spawn(UIBuilder::text(title, 14.0, text_color));
+                    tab_button.spawn((
+                        Text::new(title),
+                        TextFont { font_size: TAB_FONT_SIZE, ..default() },
+                        TextColor(if is_active {
+                            Color::srgb(0.8, 0.8, 0.2)
+                        } else {
+                            Color::WHITE
+                        }),
+                    ));
                 });
             }
             
@@ -435,7 +461,7 @@ fn create_merged_header(parent: &mut ChildSpawnerCommands, global_data: &GlobalD
         // Right 25% - Day and Credits
         header.spawn((
             Node {
-                width: Val::Percent(25.0),
+                width: Val::Percent(20.0),
                 flex_direction: FlexDirection::Row,
                 justify_content: JustifyContent::FlexEnd,
                 align_items: AlignItems::Center,
@@ -446,83 +472,6 @@ fn create_merged_header(parent: &mut ChildSpawnerCommands, global_data: &GlobalD
             info.spawn(UIBuilder::text(&format!("Day {}", global_data.current_day), 18.0, Color::WHITE));
             info.spawn(UIBuilder::text(&format!("${}", global_data.credits), 18.0, Color::srgb(0.8, 0.8, 0.2)));
         });
-    });
-}
-
-fn create_header(parent: &mut ChildSpawnerCommands, global_data: &GlobalData, fonts: Option<&GameFonts>) {
-    parent.spawn((
-        Node {
-            width: Val::Percent(100.0),
-            height: Val::Px(80.0),
-            flex_shrink: 0.0,
-            justify_content: JustifyContent::SpaceBetween,
-            align_items: AlignItems::Center,
-            padding: UiRect::all(Val::Px(20.0)),
-            ..default()
-        },
-        BackgroundColor(Color::srgb(0.15, 0.15, 0.25)),
-    )).with_children(|header| {
-        header.spawn(UIBuilder::text("SUBVERSIVE", 32.0, Color::WHITE));
-        
-        header.spawn(UIBuilder::row(30.0)).with_children(|info| {
-            info.spawn(UIBuilder::text(&format!("Day {}", global_data.current_day), 18.0, Color::WHITE));
-            info.spawn(UIBuilder::text(&UIBuilder::credits_display(global_data.credits), 18.0, Color::srgb(0.8, 0.8, 0.2)));
-        });
-    });
-}
-
-fn create_tab_bar(parent: &mut ChildSpawnerCommands, active_tab: HubTab, fonts: Option<&GameFonts>) {
-    parent.spawn((
-        Node {
-            width: Val::Percent(100.0),
-            height: Val::Px(50.0),
-            flex_shrink: 0.0,
-            flex_direction: FlexDirection::Row,
-            ..default()
-        },
-        BackgroundColor(Color::srgb(0.08, 0.08, 0.15)),
-    )).with_children(|tabs| {
-        // Q/E navigation indicators
-        tabs.spawn((
-            Node {
-                width: Val::Percent(5.0),
-                height: Val::Percent(100.0),
-                justify_content: JustifyContent::Center,
-                align_items: AlignItems::Center,
-                ..default()
-            },
-            BackgroundColor(Color::srgb(0.12, 0.12, 0.2)),
-        )).with_children(|tab_button| {
-            tab_button.spawn(UIBuilder::text("Q", 14.0, Color::WHITE));
-        });
-
-        let tabs_config = [
-            (HubTab::GlobalMap, "GLOBAL MAP"),
-            (HubTab::Research, "RESEARCH"),
-            (HubTab::Agents, "AGENTS"),
-            (HubTab::Manufacture, "MANUFACTURE"),
-            (HubTab::Missions, "MISSIONS"),
-        ];
-
-        for (tab, title) in tabs_config {
-            let (node, bg, text) = UIBuilder::tab_button(title, tab == active_tab);
-            tabs.spawn((node, bg)).with_children(|tab_button| {
-                tab_button.spawn(text);
-            });
-        }
-
-        tabs.spawn((
-            Node {
-                width: Val::Percent(5.0),
-                height: Val::Percent(100.0),
-                justify_content: JustifyContent::Center,
-                align_items: AlignItems::Center,
-                ..default()
-            },
-            BackgroundColor(Color::srgb(0.12, 0.12, 0.2)),
-        )).with_children(|tab_button| {
-            tab_button.spawn(UIBuilder::text("E", 14.0, Color::WHITE));
-        });        
     });
 }
 
