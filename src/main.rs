@@ -120,6 +120,7 @@ fn main() {
             setup_police_system,
             sprites::load_sprites,
         ))
+        
         .add_systems(PostStartup, (
             preload_common_scenes,
         ))

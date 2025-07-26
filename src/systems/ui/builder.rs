@@ -14,23 +14,23 @@ impl UIBuilder {
     }
 
     pub fn header(text: &str) -> impl Bundle {
-        Self::text(text, 24.0, Color::WHITE)
+        Self::text(text, 15.0, Color::WHITE)
     }
 
     pub fn title(text: &str) -> impl Bundle {
-        Self::text(text, 20.0, Color::srgb(0.8, 0.8, 0.2))
+        Self::text(text, 14.0, Color::srgb(0.8, 0.8, 0.2))
     }
 
     pub fn subtitle(text: &str) -> impl Bundle {
-        Self::text(text, 16.0, Color::WHITE)
+        Self::text(text, 13.0, Color::WHITE)
     }
 
     pub fn body(text: &str) -> impl Bundle {
-        Self::text(text, 14.0, Color::WHITE)
+        Self::text(text, 12.0, Color::WHITE)
     }
 
     pub fn small(text: &str) -> impl Bundle {
-        Self::text(text, 12.0, Color::srgb(0.7, 0.7, 0.7))
+        Self::text(text, 11.0, Color::srgb(0.7, 0.7, 0.7))
     }
 
     pub fn selected_text(text: &str, size: f32) -> impl Bundle {
@@ -38,11 +38,11 @@ impl UIBuilder {
     }
 
     pub fn error_text(text: &str) -> impl Bundle {
-        Self::text(text, 14.0, Color::srgb(0.8, 0.2, 0.2))
+        Self::text(text, 12.0, Color::srgb(0.8, 0.2, 0.2))
     }
 
     pub fn success_text(text: &str) -> impl Bundle {
-        Self::text(text, 14.0, Color::srgb(0.2, 0.8, 0.2))
+        Self::text(text, 12.0, Color::srgb(0.2, 0.8, 0.2))
     }
 
     // Node creation helpers
@@ -82,6 +82,7 @@ impl UIBuilder {
             width: Val::Percent(100.0),
             flex_grow: 1.0,
             padding: UiRect::all(Val::Px(20.0)),
+            height: Val::Px(510.0), // 550 - 2x 20px padding
             flex_direction: FlexDirection::Column,
             row_gap: Val::Px(15.0),
             ..default()

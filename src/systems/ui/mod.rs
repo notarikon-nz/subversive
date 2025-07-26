@@ -14,8 +14,8 @@ pub fn cleanup_mission_ui(
     mut commands: Commands,
     mut inventory_state: ResMut<InventoryState>,
     mut game_mode: ResMut<GameMode>,
-    inventory_ui_query: Query<Entity, With<InventoryUI>>,
-    pause_ui_query: Query<Entity, With<PauseScreen>>,
+    inventory_ui_query: Query<Entity, (With<InventoryUI>, Without<MarkedForDespawn>)>,
+    pause_ui_query: Query<Entity, (With<PauseScreen>, Without<MarkedForDespawn>)>,
 ) {
     inventory_state.ui_open = false;
     inventory_state.selected_agent = None;
@@ -35,7 +35,7 @@ pub fn cleanup_global_map_ui(
     mut commands: Commands,
     mut inventory_state: ResMut<InventoryState>,
     inventory_ui_query: Query<Entity, With<InventoryUI>>,
-    post_mission_ui_query: Query<Entity, With<PostMissionScreen>>,
+    post_mission_ui_query: Query<Entity, (With<PostMissionScreen>, Without<MarkedForDespawn>)>,
 ) {
     inventory_state.ui_open = false;
     inventory_state.selected_agent = None;

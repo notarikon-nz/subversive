@@ -59,8 +59,6 @@ pub fn handle_input(
     cameras: &Query<(&Camera, &GlobalTransform)>,
     mouse: &ButtonInput<MouseButton>,
     city_query: &Query<(Entity, &Transform, &InteractiveCity)>,
-    mut scroll_events: EventReader<MouseWheel>,
-    time: &Time,
 ) -> bool {
     let mut needs_rebuild = false;
 
@@ -162,9 +160,9 @@ fn create_world_map_section(
     parent.spawn((
         Node {
             width: Val::Percent(100.0),
-            height: Val::Px(400.0),
+            height: Val::Px(550.0),
             border: UiRect::all(Val::Px(2.0)),
-            padding: UiRect::all(Val::Px(10.0)),
+            padding: UiRect::all(Val::Px(0.0)),
             position_type: PositionType::Relative,
             ..default()
         },
@@ -172,7 +170,7 @@ fn create_world_map_section(
         BackgroundColor(Color::srgb(0.05, 0.05, 0.1)),
     )).with_children(|map_container| {
         let map_width = 1200.0;
-        let map_height = 500.0;
+        let map_height = 550.0;
         map_state.map_projection = Some(MapProjection::new(map_width, map_height));
         
         let projection = map_state.map_projection.as_ref().unwrap();
@@ -338,7 +336,7 @@ fn get_global_map_mouse_position(
     if let Some(cursor_pos) = window.cursor_position() {
         // Convert to world coordinates and flip Y to match our coordinate system
         if let Ok(world_pos) = camera.viewport_to_world_2d(camera_transform, cursor_pos) {
-            Some(Vec2::new(world_pos.x, -world_pos.y))
+            Some(Vec2::new(world_pos.x, -(world_pos.y)))
         } else {
             None
         }

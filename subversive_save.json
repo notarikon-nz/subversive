@@ -1,20 +1,20 @@
 {
-  "credits": 74700,
-  "current_day": 469,
+  "credits": 82100,
+  "current_day": 473,
   "agent_levels": [
     10,
     10,
     10
   ],
   "agent_experience": [
-    807465,
-    807465,
-    807465
+    807485,
+    807485,
+    807485
   ],
   "agent_recovery": [
-    467,
-    467,
-    467
+    472,
+    472,
+    472
   ],
   "regions": [
     {
@@ -125,12 +125,18 @@
     "credits_invested": 0
   },
   "cities_progress": {
-    "current_city": "panama_city",
+    "current_city": "new_york",
     "city_states": {
       "new_york": {
         "completed": true,
         "alert_level": "Green",
-        "last_mission_day": 456,
+        "last_mission_day": 471,
+        "times_visited": 4
+      },
+      "panama_city": {
+        "completed": true,
+        "alert_level": "Green",
+        "last_mission_day": 466,
         "times_visited": 2
       },
       "miami": {
@@ -138,22 +144,16 @@
         "alert_level": "Green",
         "last_mission_day": 461,
         "times_visited": 2
-      },
-      "panama_city": {
-        "completed": true,
-        "alert_level": "Green",
-        "last_mission_day": 466,
-        "times_visited": 2
       }
     },
     "unlocked_cities": [
-      "bogota",
-      "new_york",
-      "mexico_city",
-      "toronto",
       "miami",
       "panama_city",
-      "chicago"
+      "mexico_city",
+      "new_york",
+      "chicago",
+      "bogota",
+      "toronto"
     ]
   }
 }
