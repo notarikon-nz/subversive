@@ -94,6 +94,10 @@ impl WeaponConfig {
             ],
             WeaponType::Minigun => vec![AttachmentSlot::Sight, AttachmentSlot::Grip],
             WeaponType::Flamethrower => vec![AttachmentSlot::Grip],
+            WeaponType::GrenadeLauncher => vec![AttachmentSlot::Grip],
+            WeaponType::RocketLauncher => vec![AttachmentSlot::Grip],
+            WeaponType::LaserRifle => vec![AttachmentSlot::Grip],
+            WeaponType::PlasmaGun => vec![AttachmentSlot::Grip],
         }
     }
 }

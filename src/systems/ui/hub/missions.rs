@@ -39,7 +39,7 @@ pub fn handle_input(
     mut scroll_events: EventReader<MouseWheel>,
     windows: &Query<&Window>,  // Changed from Query<&Window>
     cameras: &Query<(&Camera, &GlobalTransform)>,  // Changed from Query<...>
-    mut scroll_params: ParamSet<(
+    scroll_params: ParamSet<(
         Query<(Entity, &mut ScrollContainer, &GlobalTransform)>,
         Query<&mut Node, With<ScrollableContent>>,
         Query<&mut Node, With<ScrollbarThumb>>,

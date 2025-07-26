@@ -4,7 +4,7 @@ use bevy::prelude::*;
 // https://github.com/Noxime/steamworks-rs/tree/master
 
 use bevy_rapier2d::prelude::*;
-use bevy_light_2d::prelude::*;
+// use bevy_light_2d::prelude::*;
 use leafwing_input_manager::prelude::*;
 
 use systems::ui::hub::{CyberneticsDatabase, HubStates, HubDatabases, HubProgress};
@@ -186,9 +186,9 @@ fn main() {
             despawn::despawn_marked_entities,
         ).run_if(in_state(GameState::GlobalMap)))
 
-        .add_systems(OnExit(GameState::GlobalMap), (
+        .add_systems(OnExit(GameState::GlobalMap), 
             mission::restart_system_optimized
-        ))
+        )
 
 
         // MAIN GAME / MISSION
@@ -245,6 +245,21 @@ fn main() {
             ui::screens::pause_system,
 
         ).run_if(in_state(GameState::Mission)))
+
+        .add_systems(Update, (
+            // Add these to your existing combat systems section
+            
+            projectiles::projectile_movement_system,
+            projectiles::grenade_movement_system,
+            projectiles::energy_beam_system,
+            projectiles::impact_effect_system,
+            projectiles::flamethrower_stream_system,
+
+            //projectiles::rocket_trail_system,
+            //projectiles::energy_weapon_effects_system,
+                        
+            combat::cleanup_miss_targets,
+        ).run_if(in_state(GameState::Mission)))        
 
         // Mission management systems
         .add_systems(Update, (            
@@ -493,7 +508,7 @@ fn setup_attachments(mut commands: Commands) {
 }
 
 fn load_global_data_or_default() -> (GlobalData, ResearchProgress) {
-    if let Some((mut loaded_global_data)) = crate::systems::save::load_game() {
+    if let Some(mut loaded_global_data) = crate::systems::save::load_game() {
         // Merge the loaded cities progress into global data
         loaded_global_data.cities_progress = loaded_global_data.cities_progress;
         let research_progress = loaded_global_data.research_progress.clone();

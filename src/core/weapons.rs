@@ -3,13 +3,19 @@ use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use crate::core::attachments::WeaponConfig;
+use crate::systems::projectiles::*;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum WeaponType {
     Pistol,
     Rifle,
     Minigun,
     Flamethrower,
+    GrenadeLauncher,
+    RocketLauncher,
+    LaserRifle,
+    PlasmaGun,
+
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -28,6 +34,11 @@ pub struct WeaponBehavior {
     pub requires_cover: bool,
     pub area_effect: bool,
     pub reload_retreat: bool,
+
+    pub projectile_type: ProjectileType,
+    pub area_damage: Option<f32>,
+    pub penetration: bool,
+    pub energy_cost: Option<f32>, // For energy weapons    
 }
 
 impl WeaponBehavior {
@@ -39,6 +50,10 @@ impl WeaponBehavior {
                 requires_cover: false,
                 area_effect: false,
                 reload_retreat: false,
+                projectile_type: ProjectileType::Bullet,
+                area_damage: None,
+                energy_cost: None,
+                penetration: false,
             },
             WeaponType::Rifle => Self {
                 preferred_range: 150.0,
@@ -46,6 +61,10 @@ impl WeaponBehavior {
                 requires_cover: true,
                 area_effect: false,
                 reload_retreat: true,
+                projectile_type: ProjectileType::Bullet,
+                area_damage: None,
+                energy_cost: None,
+                penetration: true,
             },
             WeaponType::Minigun => Self {
                 preferred_range: 200.0,
@@ -53,6 +72,10 @@ impl WeaponBehavior {
                 requires_cover: false,
                 area_effect: true,
                 reload_retreat: false,
+                projectile_type: ProjectileType::Bullet,
+                area_damage: None,
+                energy_cost: None,
+                penetration: false,
             },
             WeaponType::Flamethrower => Self {
                 preferred_range: 60.0,
@@ -60,7 +83,58 @@ impl WeaponBehavior {
                 requires_cover: false,
                 area_effect: true,
                 reload_retreat: true,
+                projectile_type: ProjectileType::Bullet, //??
+                area_damage: None,
+                energy_cost: None,
+                penetration: false,
             },
+            WeaponType::GrenadeLauncher => Self {
+                preferred_range: 200.0,
+                burst_fire: false,
+                requires_cover: true,
+                area_effect: true,
+                reload_retreat: true,
+              
+                projectile_type: ProjectileType::Grenade { fuse_time: 3.0 },
+                area_damage: Some(80.0),
+                penetration: false,
+                energy_cost: None,
+            },
+            WeaponType::RocketLauncher => Self {
+                preferred_range: 300.0,
+                burst_fire: false,
+                requires_cover: false,
+                projectile_type: ProjectileType::Rocket { fuel_time: 2.0 },
+                area_effect: true,
+                area_damage: Some(120.0),
+                reload_retreat: true,
+                energy_cost: None,
+                penetration: false,
+            },
+            WeaponType::LaserRifle => Self {
+                preferred_range: 250.0,
+                burst_fire: false,
+                requires_cover: false,
+                projectile_type: ProjectileType::Energy { beam_width: 2.0 },
+                penetration: true,
+                energy_cost: Some(10.0),
+                reload_retreat: true,
+                area_effect: false,
+                area_damage: None,
+                // ...
+            },
+            WeaponType::PlasmaGun => Self {
+                preferred_range: 500.0,
+                burst_fire: false,
+                requires_cover: false,
+                projectile_type: ProjectileType::Energy { beam_width: 1.5 },
+                penetration: true,
+                reload_retreat: true,
+                area_effect: true,
+                area_damage: Some(60.0),
+                energy_cost: Some(40.0),
+                // ...
+            },                  
         }
     }
 }
@@ -125,6 +199,11 @@ impl WeaponState {
             WeaponType::Rifle => (30, 2.0),
             WeaponType::Minigun => (100, 4.0),
             WeaponType::Flamethrower => (50, 3.0),
+
+            WeaponType::GrenadeLauncher => (1, 7.5),
+            WeaponType::RocketLauncher => (1, 10.0),
+            WeaponType::LaserRifle => (10, 5.0),
+            WeaponType::PlasmaGun => (5, 5.0),
         };
         
         Self {
@@ -179,6 +258,11 @@ impl WeaponState {
             WeaponType::Rifle => 30,
             WeaponType::Minigun => 100,
             WeaponType::Flamethrower => 50,
+
+            WeaponType::GrenadeLauncher => 1,
+            WeaponType::RocketLauncher => 1,
+            WeaponType::LaserRifle => 10,
+            WeaponType::PlasmaGun => 5,
         };
         
         self.max_ammo = (base_ammo as f32 * (1.0 + stats.ammo_capacity as f32 * 0.2)) as u32;

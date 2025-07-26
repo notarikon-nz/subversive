@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use crate::core::GameState;
+use crate::core::*;
 
 #[derive(Component)]
 pub struct CreditsUI;
@@ -49,9 +49,9 @@ pub fn credits_input(
 
 pub fn cleanup_credits(
     mut commands: Commands,
-    credits_ui: Query<Entity, With<CreditsUI>>,
+    credits_ui: Query<Entity, (With<CreditsUI>, Without<MarkedForDespawn>)>,
 ) {
     for entity in credits_ui.iter() {
-        commands.entity(entity).despawn_recursive();
+        commands.entity(entity).insert(MarkedForDespawn);
     }
 }

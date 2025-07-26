@@ -1,9 +1,6 @@
 // src/systems/mission.rs - Updated for Bevy 0.16
 use bevy::prelude::*;
 use crate::core::*;
-use crate::systems::scenes::*;
-
-use crate::systems::ui::*;
 
 pub fn timer_system(
     mut mission_data: ResMut<MissionData>,
@@ -67,7 +64,7 @@ pub fn restart_system_optimized(
     restart_check: Option<Res<ShouldRestart>>,
     ui_entities: Query<Entity, Or<(With<Node>, With<Text>)>>,
     sprites: Option<Res<GameSprites>>,
-    mut scene_cache: ResMut<SceneCache>,
+    scene_cache: ResMut<SceneCache>,
     mut mission_data: ResMut<MissionData>,
     mut game_mode: ResMut<GameMode>,
     mut selection: ResMut<SelectionState>,
@@ -86,7 +83,7 @@ pub fn restart_system_optimized(
     
     // Despawn UI entities
     for entity in ui_entities.iter() {
-        if let Ok(mut entity_commands) = commands.get_entity(entity) {
+        if let Ok(entity_commands) = commands.get_entity(entity) {
             commands.entity(entity).insert(MarkedForDespawn);
             despawn_count += 1;
         }

@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use crate::core::GameState;
+use crate::core::*;
 
 #[derive(Component)]
 pub struct SettingsUI;
@@ -42,9 +43,9 @@ pub fn settings_input(
 
 pub fn cleanup_settings(
     mut commands: Commands,
-    settings_ui: Query<Entity, With<SettingsUI>>,
+    settings_ui: Query<Entity, (With<SettingsUI>, Without<MarkedForDespawn>)>,
 ) {
     for entity in settings_ui.iter() {
-        commands.entity(entity).despawn_recursive();
+        commands.entity(entity).insert(MarkedForDespawn);
     }
 }

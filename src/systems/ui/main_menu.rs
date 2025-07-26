@@ -205,7 +205,7 @@ pub fn menu_input_system(
 pub fn menu_mouse_system(
     mut menu_state: ResMut<MainMenuState>,
     mut next_state: ResMut<NextState<GameState>>,
-    mut interaction_query: Query<(&Interaction, &MenuOption), (Changed<Interaction>, With<Button>)>,
+    interaction_query: Query<(&Interaction, &MenuOption), (Changed<Interaction>, With<Button>)>,
     mut app_exit: EventWriter<bevy::app::AppExit>,
     mut global_data: ResMut<GlobalData>,
 ) {
@@ -250,7 +250,7 @@ fn execute_menu_option(
             next_state.set(GameState::Credits);
         },
         MenuOptionType::Quit => {
-            app_exit.send(bevy::app::AppExit::Success);
+            app_exit.write(bevy::app::AppExit::Success);
         },
     }
 }

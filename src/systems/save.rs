@@ -26,8 +26,8 @@ pub struct SaveRegion {
     pub alert_decay_timer: u32,
 }
 
-impl From<(&GlobalData)> for SaveData {
-    fn from((data): (&GlobalData)) -> Self {
+impl From<&GlobalData> for SaveData {
+    fn from(data: &GlobalData) -> Self {
         Self {
             credits: data.credits,
             current_day: data.current_day,
@@ -52,7 +52,7 @@ impl From<(&GlobalData)> for SaveData {
     }
 }
 
-impl From<SaveData> for (GlobalData) {
+impl From<SaveData> for GlobalData {
     fn from(save: SaveData) -> Self {
         let global_data = GlobalData {
             credits: save.credits,
@@ -77,7 +77,7 @@ impl From<SaveData> for (GlobalData) {
             cities_progress: save.cities_progress.clone(),
         };
         
-        (global_data)
+        global_data
     }
 }
 
@@ -89,7 +89,7 @@ pub fn save_game_complete(
     let mut updated_global_data = global_data.clone();
     updated_global_data.research_progress = research_progress.clone();
     
-    let save_data = SaveData::from((&updated_global_data));
+    let save_data = SaveData::from(&updated_global_data);
     if let Ok(json) = serde_json::to_string_pretty(&save_data) {
         if fs::write(SAVE_FILE, json).is_ok() {
             info!("Game saved successfully - {} research projects completed, {} cities unlocked", 
@@ -101,7 +101,7 @@ pub fn save_game_complete(
     }
 }
 
-pub fn load_game() -> Option<(GlobalData)> {
+pub fn load_game() -> Option<GlobalData> {
     fs::read_to_string(SAVE_FILE)
         .ok()
         .and_then(|content| serde_json::from_str::<SaveData>(&content).ok())

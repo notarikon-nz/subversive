@@ -63,7 +63,6 @@ pub fn update_health_bars(
         // Remove if dead or healed
         if health.0 <= 0.0 || health.0 >= 100.0 {
             for child in children.iter() {
-                // commands.entity(child).despawn();
                 commands.entity(entity).insert(MarkedForDespawn);
             }
             commands.entity(entity).remove::<HealthBar>();
@@ -86,7 +85,6 @@ pub fn cleanup_dead_health_bars(
 ) {
     for (entity, children) in query.iter() {
         for child in children.iter() {
-            // commands.entity(child).despawn();
             commands.entity(entity).insert(MarkedForDespawn);
         }
         commands.entity(entity).remove::<HealthBar>();

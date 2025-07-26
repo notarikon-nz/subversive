@@ -98,7 +98,7 @@ impl Default for CombatTextSettings {
 
 // === ENHANCED EXPLOSION DAMAGE SYSTEM ===
 pub fn explosion_damage_system(
-    mut explosion_query: Query<(Entity, &mut Explosion, &Transform)>,
+    mut explosion_query: Query<(Entity, &mut Explosion, &Transform), Without<MarkedForDespawn>>,
     mut damageable_query: Query<(Entity, &Transform, &mut Health), (Without<Explosion>, Without<Dead>)>,
     explodable_query: Query<(Entity, &Transform, &Explodable), Without<PendingExplosion>>,
     mut commands: Commands,
@@ -175,7 +175,6 @@ pub fn explosion_damage_system(
         }
         
         if explosion.duration <= 0.0 {
-            // commands.entity(explosion_entity).despawn();
             commands.entity(explosion_entity).insert(MarkedForDespawn);
         }
     }
@@ -203,7 +202,6 @@ pub fn time_bomb_system(
                 bomb.damage,
                 ExplosionType::TimeBomb,
             );
-            // commands.entity(entity).despawn();
             commands.entity(entity).insert(MarkedForDespawn);
         }
     }
@@ -421,7 +419,6 @@ pub fn floating_text_system(
         floating_text.lifetime -= time.delta_secs();
         
         if floating_text.lifetime <= 0.0 {
-            // commands.entity(entity).despawn();
             commands.entity(entity).insert(MarkedForDespawn);
         } else {
             // Move text upward and fade
@@ -465,7 +462,6 @@ pub fn handle_vehicle_explosions(
             ExplosionType::Vehicle,
         );
         
-        // commands.entity(entity).despawn();
         commands.entity(entity).insert(MarkedForDespawn);
     }
 }

@@ -38,7 +38,7 @@ pub fn vehicle_explosion_system(
 }
 
 pub fn explosion_damage_system(
-    mut explosion_query: Query<(Entity, &mut VehicleExplosion, &Transform)>,
+    mut explosion_query: Query<(Entity, &mut VehicleExplosion, &Transform), Without<MarkedForDespawn>>,
     mut damageable_query: Query<(&Transform, &mut Health), (Without<VehicleExplosion>, Without<Dead>)>,
     mut commands: Commands,
     time: Res<Time>,

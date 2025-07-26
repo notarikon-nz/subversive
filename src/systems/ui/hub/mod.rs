@@ -161,16 +161,16 @@ pub fn hub_system(
     // cameras: Query<(&Camera, &GlobalTransform)>,
     mouse: Res<ButtonInput<MouseButton>>,
     // city_query: Query<(Entity, &Transform, &global_map::InteractiveCity)>,
-    mut queries: HubSystemQueries,  // This replaces 4 parameters!
+    queries: HubSystemQueries,  // This replaces 4 parameters!
     tab_button_query: Query<(&Interaction, &TabButton)>,
 
-    mut scroll_events: EventReader<MouseWheel>,
-    mut scroll_params: ParamSet<(
+    scroll_events: EventReader<MouseWheel>,
+    scroll_params: ParamSet<(
         Query<(Entity, &mut ScrollContainer, &GlobalTransform)>,
         Query<&mut Node, With<ScrollableContent>>,
         Query<&mut Node, With<ScrollbarThumb>>,
     )>,
-    mut interaction_query: Query<(&Interaction, &TabButton), (Changed<Interaction>, With<Button>)>,
+    interaction_query: Query<(&Interaction, &TabButton), (Changed<Interaction>, With<Button>)>,
 ) {
     let mut tab_changed = false;
     

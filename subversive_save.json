@@ -1,27 +1,27 @@
 {
-  "credits": 82100,
-  "current_day": 473,
+  "credits": 248800,
+  "current_day": 79,
   "agent_levels": [
-    10,
-    10,
-    10
+    1,
+    1,
+    1
   ],
   "agent_experience": [
-    807485,
-    807485,
-    807485
+    115,
+    115,
+    115
   ],
   "agent_recovery": [
-    472,
-    472,
-    472
+    76,
+    76,
+    76
   ],
   "regions": [
     {
       "name": "Neo-Tokyo Central",
       "threat_level": 1,
       "alert_level": 3,
-      "alert_decay_timer": 480
+      "alert_decay_timer": 89
     },
     {
       "name": "Corporate District",
@@ -47,7 +47,11 @@
             "burst_fire": true,
             "requires_cover": true,
             "area_effect": false,
-            "reload_retreat": true
+            "reload_retreat": true,
+            "projectile_type": "Bullet",
+            "area_damage": null,
+            "penetration": true,
+            "energy_cost": null
           }
         }
       ],
@@ -56,11 +60,36 @@
         "Scanner"
       ],
       "cybernetics": [
-        "CombatEnhancer",
-        "CombatEnhancer",
-        "StealthModule",
-        "TechInterface",
-        "Neurovector",
+        "CombatEnhancer"
+      ]
+    },
+    {
+      "weapon_configs": [
+        {
+          "base_weapon": "LaserRifle",
+          "attachments": {},
+          "behavior": {
+            "preferred_range": 250.0,
+            "burst_fire": false,
+            "requires_cover": false,
+            "area_effect": false,
+            "reload_retreat": false,
+            "projectile_type": {
+              "Energy": {
+                "beam_width": 2.0
+              }
+            },
+            "area_damage": null,
+            "penetration": true,
+            "energy_cost": 10.0
+          }
+        }
+      ],
+      "equipped_weapon_idx": 0,
+      "tools": [
+        "Scanner"
+      ],
+      "cybernetics": [
         "CombatEnhancer"
       ]
     },
@@ -74,7 +103,11 @@
             "burst_fire": true,
             "requires_cover": true,
             "area_effect": false,
-            "reload_retreat": true
+            "reload_retreat": true,
+            "projectile_type": "Bullet",
+            "area_damage": null,
+            "penetration": true,
+            "energy_cost": null
           }
         }
       ],
@@ -83,39 +116,6 @@
         "Scanner"
       ],
       "cybernetics": [
-        "CombatEnhancer",
-        "CombatEnhancer",
-        "CombatEnhancer",
-        "StealthModule",
-        "TechInterface",
-        "Neurovector",
-        "CombatEnhancer"
-      ]
-    },
-    {
-      "weapon_configs": [
-        {
-          "base_weapon": "Rifle",
-          "attachments": {},
-          "behavior": {
-            "preferred_range": 150.0,
-            "burst_fire": true,
-            "requires_cover": true,
-            "area_effect": false,
-            "reload_retreat": true
-          }
-        }
-      ],
-      "equipped_weapon_idx": 0,
-      "tools": [
-        "Scanner"
-      ],
-      "cybernetics": [
-        "CombatEnhancer",
-        "CombatEnhancer",
-        "StealthModule",
-        "TechInterface",
-        "Neurovector",
         "CombatEnhancer"
       ]
     }
@@ -130,30 +130,15 @@
       "new_york": {
         "completed": true,
         "alert_level": "Green",
-        "last_mission_day": 471,
-        "times_visited": 4
-      },
-      "miami": {
-        "completed": true,
-        "alert_level": "Green",
-        "last_mission_day": 461,
-        "times_visited": 2
-      },
-      "panama_city": {
-        "completed": true,
-        "alert_level": "Green",
-        "last_mission_day": 466,
-        "times_visited": 2
+        "last_mission_day": 75,
+        "times_visited": 3
       }
     },
     "unlocked_cities": [
-      "bogota",
-      "mexico_city",
-      "panama_city",
+      "miami",
       "chicago",
       "new_york",
-      "toronto",
-      "miami"
+      "toronto"
     ]
   }
 }

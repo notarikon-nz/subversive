@@ -1,6 +1,5 @@
 // src/systems/ui/hub/global_map.rs - Simplified using UIBuilder
 use bevy::prelude::*;
-use bevy::input::mouse::*;
 use crate::core::*;
 use crate::systems::ui::builder::*;
 

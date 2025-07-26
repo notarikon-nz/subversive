@@ -27,6 +27,7 @@ pub mod power_grid;
 pub mod hacking_feedback;
 pub mod message_window;
 pub mod scanner;
+pub mod projectiles;
 
 pub use message_window::*;
 pub use urban_simulation::*;

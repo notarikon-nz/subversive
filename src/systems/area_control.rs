@@ -137,8 +137,8 @@ fn handle_minigun_suppression(
 
 pub fn area_effect_system(
     mut area_query: Query<(Entity, &mut AreaDenial, &Transform)>,
-    mut suppression_query: Query<(Entity, &mut SuppressionZone, &Transform), Without<AreaDenial>>,
-    mut agent_query: Query<(&Transform, &mut Health), With<Agent>>,
+    mut suppression_query: Query<(Entity, &mut SuppressionZone, &Transform), (Without<AreaDenial>, Without<MarkedForDespawn>)>,
+    mut agent_query: Query<(&Transform, &mut Health), (With<Agent>, Without<MarkedForDespawn>)>,
     mut commands: Commands,
     time: Res<Time>,
     game_mode: Res<GameMode>,

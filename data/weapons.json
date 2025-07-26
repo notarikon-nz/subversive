@@ -10,7 +10,11 @@
         "burst_fire": false,
         "requires_cover": false,
         "area_effect": false,
-        "reload_retreat": false
+        "reload_retreat": false,
+        "projectile_type": "Bullet",
+        "area_damage": null,
+        "penetration": false,
+        "energy_cost": null
       }
     },
     "Rifle": {
@@ -23,7 +27,11 @@
         "burst_fire": true,
         "requires_cover": true,
         "area_effect": false,
-        "reload_retreat": true
+        "reload_retreat": true,
+        "projectile_type": "Bullet",
+        "area_damage": null,
+        "penetration": true,
+        "energy_cost": null
       }
     },
     "Minigun": {
@@ -36,7 +44,11 @@
         "burst_fire": true,
         "requires_cover": false,
         "area_effect": true,
-        "reload_retreat": false
+        "reload_retreat": false,
+        "projectile_type": "Bullet",
+        "area_damage": null,
+        "penetration": false,
+        "energy_cost": null
       }
     },
     "Flamethrower": {
@@ -49,7 +61,79 @@
         "burst_fire": false,
         "requires_cover": false,
         "area_effect": true,
-        "reload_retreat": true
+        "reload_retreat": true,
+        "projectile_type": "Bullet",
+        "area_damage": null,
+        "penetration": false,
+        "energy_cost": null
+      }
+    },
+    "GrenadeLauncher": {
+      "name": "M79 Grenade Launcher",
+      "max_ammo": 6,
+      "reload_time": 3.5,
+      "damage": 80.0,
+      "behavior": {
+        "preferred_range": 200.0,
+        "burst_fire": false,
+        "requires_cover": true,
+        "area_effect": true,
+        "reload_retreat": true,
+        "projectile_type": { "Grenade": { "fuse_time": 3.0 } },
+        "area_damage": 80.0,
+        "penetration": false,
+        "energy_cost": null
+      }
+    },
+    "RocketLauncher": {
+      "name": "Heat-Seeking RPG",
+      "max_ammo": 3,
+      "reload_time": 5.0,
+      "damage": 120.0,
+      "behavior": {
+        "preferred_range": 300.0,
+        "burst_fire": false,
+        "requires_cover": true,
+        "area_effect": true,
+        "reload_retreat": true,
+        "projectile_type": { "Rocket": { "fuel_time": 2.0 } },
+        "area_damage": 120.0,
+        "penetration": false,
+        "energy_cost": null
+      }
+    },
+    "LaserRifle": {
+      "name": "Photon Beam Rifle",
+      "max_ammo": 25,
+      "reload_time": 2.5,
+      "damage": 50.0,
+      "behavior": {
+        "preferred_range": 250.0,
+        "burst_fire": false,
+        "requires_cover": false,
+        "area_effect": false,
+        "reload_retreat": false,
+        "projectile_type": { "Energy": { "beam_width": 2.0 } },
+        "area_damage": null,
+        "penetration": true,
+        "energy_cost": 10.0
+      }
+    },
+    "PlasmaGun": {
+      "name": "Ion Plasma Cannon",
+      "max_ammo": 15,
+      "reload_time": 3.0,
+      "damage": 65.0,
+      "behavior": {
+        "preferred_range": 180.0,
+        "burst_fire": false,
+        "requires_cover": false,
+        "area_effect": true,
+        "reload_retreat": false,
+        "projectile_type": { "Energy": { "beam_width": 1.5 } },
+        "area_damage": 65.0,
+        "penetration": true,
+        "energy_cost": 40.0
       }
     }
   }

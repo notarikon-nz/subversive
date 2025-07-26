@@ -1,21 +1,18 @@
-// src/systems/combat.rs - Streamlined and simplified
+// src/systems/combat.rs - Updated with projectile system
 use bevy::prelude::*;
 use leafwing_input_manager::prelude::*;
 use crate::core::*;
-use crate::systems::explosions::*;
-use crate::core::spawn_damage_text::*;
-
+use crate::systems::projectiles::*;
 
 pub fn system(
+    mut commands: Commands,
     mut gizmos: Gizmos,
     input: Query<&ActionState<PlayerAction>>,
     mut action_events: EventReader<ActionEvent>,
-    mut combat_events: EventWriter<CombatEvent>,
     mut audio_events: EventWriter<AudioEvent>,
-    mut damage_text_events: EventWriter<DamageTextEvent>,
     agent_query: Query<(&Transform, &Inventory), With<Agent>>,
     mut agent_weapon_query: Query<&mut WeaponState, With<Agent>>,
-    mut target_query: Query<(Entity, &Transform, &mut Health), Or<(With<Enemy>, With<Vehicle>)>>,
+    target_query: Query<(Entity, &Transform, &Health), Or<(With<Enemy>, With<Vehicle>)>>,
     game_mode: Res<GameMode>,
     windows: Query<&Window>,
     cameras: Query<(&Camera, &GlobalTransform)>,
@@ -24,29 +21,27 @@ pub fn system(
 
     // Handle combat targeting mode
     if let Some(TargetingMode::Combat { agent }) = &game_mode.targeting {
-        handle_combat_targeting(*agent, &input, &agent_query, &mut agent_weapon_query, 
-                               &mut target_query, &mut combat_events, &mut audio_events, &mut damage_text_events, 
-                               &mut gizmos, &windows, &cameras);
+        handle_combat_targeting(*agent, &mut commands, &input, &agent_query, &mut agent_weapon_query, 
+                               &target_query, &mut audio_events, &mut gizmos, &windows, &cameras);
     }
 
     // Process attack events
     for event in action_events.read() {
         if let Action::Attack(target) = event.action {
-            execute_attack(event.entity, target, &agent_query, &mut agent_weapon_query, 
-                         &mut target_query, &mut combat_events, &mut audio_events, &mut damage_text_events);
+            execute_attack(event.entity, target, &mut commands, &agent_query, &mut agent_weapon_query, 
+                         &target_query, &mut audio_events);
         }
     }
 }
 
 fn handle_combat_targeting(
     agent: Entity,
+    commands: &mut Commands,
     input: &Query<&ActionState<PlayerAction>>,
     agent_query: &Query<(&Transform, &Inventory), With<Agent>>,
     agent_weapon_query: &mut Query<&mut WeaponState, With<Agent>>,
-    target_query: &mut Query<(Entity, &Transform, &mut Health), Or<(With<Enemy>, With<Vehicle>)>>,
-    combat_events: &mut EventWriter<CombatEvent>,
+    target_query: &Query<(Entity, &Transform, &Health), Or<(With<Enemy>, With<Vehicle>)>>,
     audio_events: &mut EventWriter<AudioEvent>,
-    damage_text_events: &mut EventWriter<DamageTextEvent>,
     gizmos: &mut Gizmos,
     windows: &Query<&Window>,
     cameras: &Query<(&Camera, &GlobalTransform)>,
@@ -64,7 +59,7 @@ fn handle_combat_targeting(
     // Handle mouse click for target selection
     if action_state.just_pressed(&PlayerAction::Move) {
         if let Some(target) = find_target_at_mouse(target_query, agent_pos, range, windows, cameras) {
-            execute_attack(agent, target, agent_query, agent_weapon_query, target_query, combat_events, audio_events, damage_text_events);
+            execute_attack(agent, target, commands, agent_query, agent_weapon_query, target_query, audio_events);
         }
     }
 }
@@ -72,12 +67,11 @@ fn handle_combat_targeting(
 fn execute_attack(
     attacker: Entity,
     target: Entity,
+    commands: &mut Commands,
     agent_query: &Query<(&Transform, &Inventory), With<Agent>>,
     agent_weapon_query: &mut Query<&mut WeaponState, With<Agent>>,
-    target_query: &mut Query<(Entity, &Transform, &mut Health), Or<(With<Enemy>, With<Vehicle>)>>,
-    combat_events: &mut EventWriter<CombatEvent>,
+    target_query: &Query<(Entity, &Transform, &Health), Or<(With<Enemy>, With<Vehicle>)>>,
     audio_events: &mut EventWriter<AudioEvent>,
-    damage_text_events: &mut EventWriter<DamageTextEvent>,
 ) {
     // Validate and consume ammo
     if let Ok(mut weapon_state) = agent_weapon_query.get_mut(attacker) {
@@ -86,39 +80,85 @@ fn execute_attack(
         }
     }
     
-    // Calculate damage and accuracy
-    let (damage, accuracy, noise) = get_attack_stats(
-        agent_query.get(attacker).ok(), 
-        agent_weapon_query.get(attacker).ok()
-    );
+    // Get positions and weapon info
+    let Ok((attacker_transform, inventory)) = agent_query.get(attacker) else { return; };
+    let Ok((_, target_transform, _)) = target_query.get(target) else { return; };
+    
+    let attacker_pos = attacker_transform.translation.truncate();
+    let target_pos = target_transform.translation.truncate();
+    
+    // Get weapon type and calculate damage
+    let weapon_type = inventory.equipped_weapon
+        .as_ref()
+        .map(|w| w.base_weapon.clone())
+        .unwrap_or(WeaponType::Pistol);
+    
+    let (damage, accuracy, noise) = get_attack_stats(Some((attacker_transform, inventory)), 
+                                                   agent_weapon_query.get(attacker).ok());
+    
+    // Check if shot hits (accuracy check)
     let hit = rand::random::<f32>() < accuracy;
     
-    // Apply damage to target
-    let final_damage = if let Ok((_, target_transform, mut health)) = target_query.get_mut(target) {
-        if hit {
-            let actual_damage = damage; // Simplified: no damage multiplier for now
-            damage_text_events.write(DamageTextEvent {
-                position: target_transform.translation.truncate(),
-                damage: actual_damage,
-            });            
-            health.0 = (health.0 - actual_damage).max(0.0);
-            actual_damage
-        } else {
-            0.0
-        }
-    } else {
-        0.0
-    };
-    
-    // Send events
-    if hit && final_damage > 0.0 {
+    if hit {
+        // Spawn projectile
+        spawn_projectile(
+            commands,
+            attacker,
+            target,
+            attacker_pos,
+            target_pos,
+            damage,
+            weapon_type.clone(),
+        );
+        
+        // Play audio
         audio_events.write(AudioEvent { 
             sound: AudioType::Gunshot, 
             volume: (0.7 * noise).clamp(0.1, 1.0) 
         });
+    } else {
+        // Miss - could spawn a projectile that goes past the target
+        let miss_offset = Vec2::new(
+            (rand::random::<f32>() - 0.5) * 100.0,
+            (rand::random::<f32>() - 0.5) * 100.0,
+        );
+        let miss_target_pos = target_pos + miss_offset;
+        
+        // Spawn a temporary target entity for the miss projectile
+        let miss_target = commands.spawn((
+            Transform::from_translation(miss_target_pos.extend(0.0)),
+            MissTarget,
+        )).id();
+        
+        spawn_projectile(
+            commands,
+            attacker,
+            miss_target,
+            attacker_pos,
+            miss_target_pos,
+            0.0, // No damage for misses
+            weapon_type,
+        );
     }
-    
-    combat_events.write(CombatEvent { attacker, target, damage: final_damage, hit });
+}
+
+#[derive(Component)]
+pub struct MissTarget;
+
+// System to clean up miss targets after projectiles are done
+pub fn cleanup_miss_targets(
+    mut commands: Commands,
+    miss_targets: Query<Entity, (With<MissTarget>, Without<MarkedForDespawn>)>,
+    projectiles: Query<&Projectile>,
+) {
+    for miss_target in miss_targets.iter() {
+        // Check if any projectile is targeting this miss target
+        let still_targeted = projectiles.iter().any(|p| p.target == miss_target);
+        
+        if !still_targeted {
+            commands.entity(miss_target).insert(MarkedForDespawn);
+        }
+    }
 }
 
 fn get_weapon_range(inventory: &Inventory, weapon_state: Option<&WeaponState>) -> f32 {
@@ -149,7 +189,7 @@ fn get_attack_stats(
 
 fn draw_targets_in_range(
     gizmos: &mut Gizmos,
-    target_query: &mut Query<(Entity, &Transform, &mut Health), Or<(With<Enemy>, With<Vehicle>)>>,
+    target_query: &Query<(Entity, &Transform, &Health), Or<(With<Enemy>, With<Vehicle>)>>,
     agent_pos: Vec2,
     range: f32,
 ) {
@@ -163,7 +203,7 @@ fn draw_targets_in_range(
 }
 
 fn find_target_at_mouse(
-    target_query: &mut Query<(Entity, &Transform, &mut Health), Or<(With<Enemy>, With<Vehicle>)>>,
+    target_query: &Query<(Entity, &Transform, &Health), Or<(With<Enemy>, With<Vehicle>)>>,
     agent_pos: Vec2,
     range: f32,
     windows: &Query<&Window>,
@@ -183,13 +223,11 @@ fn find_target_at_mouse(
         .map(|(entity, _, _)| entity)
 }
 
-
 fn draw_crosshair(gizmos: &mut Gizmos, position: Vec2, size: f32, color: Color) {
     let h = size / 2.0;
     gizmos.line_2d(position + Vec2::new(-h, 0.0), position + Vec2::new(h, 0.0), color);
     gizmos.line_2d(position + Vec2::new(0.0, -h), position + Vec2::new(0.0, h), color);
 }
-
 
 pub fn death_system(
     mut commands: Commands,

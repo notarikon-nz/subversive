@@ -1,6 +1,5 @@
 // src/systems/scanner.rs
 use bevy::prelude::*;
-use bevy_rapier2d::prelude::*;
 use crate::core::*;
 use crate::core::factions::*;
 use crate::systems::npc_barks::*;

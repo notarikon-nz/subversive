@@ -144,6 +144,11 @@ fn weapon_value(weapon_config: &Option<WeaponConfig>) -> u32 {
         WeaponType::Rifle => 30,
         WeaponType::Minigun => 50,
         WeaponType::Flamethrower => 40,
+
+        WeaponType::GrenadeLauncher => 60,
+        WeaponType::RocketLauncher => 90,
+        WeaponType::LaserRifle => 40,
+        WeaponType::PlasmaGun => 80,
     };
     
     let attachment_bonus = config.attachments.len() as u32 * 5;
