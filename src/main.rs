@@ -24,6 +24,7 @@ use systems::*;
 use pool::*;
 use systems::scenes::*;
 use systems::explosions::*;
+use systems::projectiles::*;
 
 fn main() {
 
@@ -69,6 +70,7 @@ fn main() {
         .init_resource::<MessageLog>()
         .init_resource::<ScannerState>()
         .init_resource::<MainMenuState>()
+        .init_resource::<ProjectilePool>()
 
         .insert_resource(GameConfig::load())
         .insert_resource(global_data)
@@ -247,18 +249,22 @@ fn main() {
         ).run_if(in_state(GameState::Mission)))
 
         .add_systems(Update, (
-            // Add these to your existing combat systems section
+
+            projectiles::unified_projectile_system,
+            projectiles::impact_effect_system,            
             
+            /*
             projectiles::projectile_movement_system,
             projectiles::grenade_movement_system,
             projectiles::energy_beam_system,
             projectiles::impact_effect_system,
             projectiles::flamethrower_stream_system,
-
+            
             // TESTING
             // PARTICLE SYSTEM INCOMING
             projectiles::rocket_trail_system,
             projectiles::energy_weapon_effects_system,
+            */
                         
             combat::cleanup_miss_targets,
         ).run_if(in_state(GameState::Mission)))        

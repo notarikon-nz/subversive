@@ -48,7 +48,6 @@
             "requires_cover": true,
             "area_effect": false,
             "reload_retreat": true,
-            "projectile_type": "Bullet",
             "area_damage": null,
             "penetration": true,
             "energy_cost": null
@@ -74,11 +73,6 @@
             "requires_cover": false,
             "area_effect": false,
             "reload_retreat": false,
-            "projectile_type": {
-              "Energy": {
-                "beam_width": 2.0
-              }
-            },
             "area_damage": null,
             "penetration": true,
             "energy_cost": 10.0
@@ -104,7 +98,6 @@
             "requires_cover": true,
             "area_effect": false,
             "reload_retreat": true,
-            "projectile_type": "Bullet",
             "area_damage": null,
             "penetration": true,
             "energy_cost": null
@@ -133,26 +126,26 @@
         "last_mission_day": 80,
         "times_visited": 1
       },
-      "new_york": {
-        "completed": true,
-        "alert_level": "Green",
-        "last_mission_day": 75,
-        "times_visited": 3
-      },
       "panama_city": {
         "completed": true,
         "alert_level": "Green",
         "last_mission_day": 83,
         "times_visited": 1
+      },
+      "new_york": {
+        "completed": true,
+        "alert_level": "Green",
+        "last_mission_day": 75,
+        "times_visited": 3
       }
     },
     "unlocked_cities": [
-      "mexico_city",
-      "bogota",
-      "chicago",
-      "panama_city",
-      "new_york",
       "miami",
+      "new_york",
+      "mexico_city",
+      "chicago",
+      "bogota",
+      "panama_city",
       "toronto"
     ]
   }
