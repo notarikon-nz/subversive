@@ -209,6 +209,7 @@ fn spawn_urban_civilian(commands: &mut Commands, pos: Vec2, sprites: &GameSprite
             movement_urgency: 0.0,
         },
         create_physics_bundle(7.5, CIVILIAN_GROUP),
+        Scannable,
     ));
 }
 
@@ -228,6 +229,7 @@ pub fn spawn_civilian_with_config(commands: &mut Commands, pos: Vec2, sprites: &
         Controllable,
         NeurovectorTarget,
         create_physics_bundle(7.5, CIVILIAN_GROUP),
+        Scannable,
     ));
 }
 
@@ -254,6 +256,7 @@ fn spawn_enemy(commands: &mut Commands, pos: Vec2, patrol: Vec<Vec2>, global_dat
         WeaponState::new_from_type(&weapon),
         inventory,
         create_physics_bundle(9.0, ENEMY_GROUP),
+        Scannable,
     ));
 }
 
@@ -273,6 +276,7 @@ fn spawn_terminal(commands: &mut Commands, pos: Vec2, terminal_type: &str, sprit
         RigidBody::Fixed,
         Collider::ball(12.0),
         CollisionGroups::new(TERMINAL_GROUP, Group::ALL),
+        Scannable,
     ));
 }
 

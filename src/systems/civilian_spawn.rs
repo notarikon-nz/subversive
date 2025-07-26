@@ -154,7 +154,7 @@ pub fn civilian_wander_system(
 
 pub fn civilian_cleanup_system(
     mut commands: Commands,
-    civilian_query: Query<(Entity, &Transform), With<Civilian>>,
+    civilian_query: Query<(Entity, &Transform), (With<Civilian>, Without<MarkedForDespawn>)>,
     agent_query: Query<&Transform, With<Agent>>,
 ) {
     let agent_positions: Vec<Vec2> = agent_query.iter()

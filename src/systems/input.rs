@@ -1,6 +1,8 @@
 use bevy::prelude::*;
 use leafwing_input_manager::prelude::*;
 use crate::core::*;
+use crate::systems::scanner::*;
+use crate::systems::npc_barks::*;
 
 pub fn handle_input(
     input: Query<&ActionState<PlayerAction>>,
@@ -14,6 +16,9 @@ pub fn handle_input(
     windows: Query<&Window>,
     cameras: Query<(&Camera, &GlobalTransform)>,
     game_state: Res<State<GameState>>,
+    // SCANNER
+    mut scanner_state: ResMut<ScannerState>,
+    scannable_query: Query<(Entity, &Transform), (With<Scannable>, Without<ChatBubble>, Without<MarkedForDespawn>)>,
 ) {
     // Toggle FPS counter with F3 key (works in all states)
     if keyboard.just_pressed(KeyCode::F3) {
@@ -99,6 +104,9 @@ pub fn handle_input(
     if keyboard.just_pressed(KeyCode::KeyG) {
         // Clear formations - handled by formations::formation_input_system
     }
+
+    // Handle scanner input
+    handle_scanner_input(&keyboard, &mouse, &windows, &cameras, &mut scanner_state, &scannable_query);
 
     if game_mode.paused { return; }
 

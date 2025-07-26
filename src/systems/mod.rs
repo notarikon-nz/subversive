@@ -26,6 +26,7 @@ pub mod npc_barks;
 pub mod power_grid;
 pub mod hacking_feedback;
 pub mod message_window;
+pub mod scanner;
 
 pub use message_window::*;
 pub use urban_simulation::*;
@@ -34,6 +35,7 @@ pub use enhanced_neurovector::*;
 pub use civilian_spawn::*;
 pub use npc_barks::*;
 pub use power_grid::*;
+pub use scanner::*;
 
 pub mod scenes;
 

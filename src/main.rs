@@ -63,6 +63,7 @@ fn main() {
         .init_resource::<CitiesDatabase>()
         .init_resource::<CitiesProgress>()
         .init_resource::<MessageLog>()
+        .init_resource::<ScannerState>()
 
         .insert_resource(GameConfig::load())
         .insert_resource(global_data)
@@ -287,12 +288,14 @@ fn main() {
             explosions::explosion_damage_system,
             explosions::floating_text_system,
             explosions::handle_grenade_events,
-            explosions::handle_vehicle_explosions,            
+            explosions::handle_vehicle_explosions,
             // NEW
             explosions::time_bomb_system,
             explosions::pending_explosion_system,
-            explosions::status_effect_system,            
+            explosions::status_effect_system,
             
+            scanner::scanner_ui_system,
+            scanner::scanner_cleanup_system,
         ).run_if(in_state(GameState::Mission)))
 
         // Hacking and infrastructure
@@ -340,7 +343,6 @@ fn main() {
         .add_systems(Update, (
             mission::process_mission_results,  
             ui::screens::post_mission_ui_system,
-
             
         ).run_if(in_state(GameState::PostMission)))
         

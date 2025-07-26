@@ -11,7 +11,7 @@ pub fn system(
     keyboard: Res<ButtonInput<KeyCode>>,
     windows: Query<&Window>,
     cameras: Query<(&Camera, &GlobalTransform)>,
-    selection_box_query: Query<Entity, With<SelectionBox>>,
+    selection_box_query: Query<Entity, (With<SelectionBox>, Without<MarkedForDespawn>)>,
 ) {
     let Some(world_pos) = get_world_mouse_position(&windows, &cameras) else { 
         return; 
@@ -112,7 +112,7 @@ fn add_to_selection(
 fn update_selection_box(
     commands: &mut Commands,
     drag_state: &SelectionDrag,
-    selection_box_query: &Query<Entity, With<SelectionBox>>,
+    selection_box_query: &Query<Entity, (With<SelectionBox>, Without<MarkedForDespawn>)>,
 ) {
     // Safe cleanup existing selection box
     for entity in selection_box_query.iter() {

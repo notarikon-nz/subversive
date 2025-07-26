@@ -156,10 +156,10 @@ pub fn bark_handler_system(
 // Update bubbles and cooldowns in one system
 pub fn update_bubble_system(
     mut commands: Commands,
-    mut bubble_query: Query<(Entity, &mut ChatBubble, &mut Transform, &Children)>,
+    mut bubble_query: Query<(Entity, &mut ChatBubble, &mut Transform, &Children), Without<MarkedForDespawn>>,
     mut sprite_query: Query<&mut Sprite>,
     mut text_query: Query<&mut TextColor>,
-    mut cooldown_query: Query<(Entity, &mut BarkCooldown)>,
+    mut cooldown_query: Query<(Entity, &mut BarkCooldown), Without<MarkedForDespawn>>,
     time: Res<Time>,
     game_mode: Res<GameMode>,
 ) {

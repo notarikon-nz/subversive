@@ -401,6 +401,7 @@ pub fn spawn_police_unit(
             Restitution::coefficient(0.1),
             LockedAxes::ROTATION_LOCKED,
             GravityScale(0.0),
+            Scannable,
         )).id()
 }
 

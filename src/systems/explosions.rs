@@ -410,7 +410,7 @@ fn spawn_fire_text(commands: &mut Commands, position: Vec2, damage: f32) {
 
 
 pub fn floating_text_system(
-    mut text_query: Query<(Entity, &mut Transform, &mut FloatingText, &mut TextColor)>,
+    mut text_query: Query<(Entity, &mut Transform, &mut FloatingText, &mut TextColor), Without<MarkedForDespawn>>,
     mut commands: Commands,
     time: Res<Time>,
     game_mode: Res<GameMode>,

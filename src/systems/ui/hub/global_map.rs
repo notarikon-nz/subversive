@@ -332,8 +332,8 @@ fn get_global_map_mouse_position(
     windows: &Query<&Window>,
     cameras: &Query<(&Camera, &GlobalTransform)>,
 ) -> Option<Vec2> {
-    let window = windows.get_single().ok()?;
-    let (camera, camera_transform) = cameras.get_single().ok()?;
+    let window = windows.single().ok()?;
+    let (camera, camera_transform) = cameras.single().ok()?;
     
     if let Some(cursor_pos) = window.cursor_position() {
         // Convert to world coordinates and flip Y to match our coordinate system

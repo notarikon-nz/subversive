@@ -2,6 +2,7 @@
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 use crate::core::*;
+use crate::systems::scanner::*;
 
 pub fn vehicle_explosion_system(
     mut commands: Commands,
@@ -120,6 +121,7 @@ pub fn spawn_vehicle(
         Health(max_health),
         RigidBody::Fixed,
         Collider::cuboid(size.x / 2.0, size.y / 2.0),
+        Scannable,
     ));
 }
 
