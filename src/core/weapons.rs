@@ -3,6 +3,8 @@ use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use crate::core::attachments::WeaponConfig;
+use crate::core::components::*;
+use crate::core::resources::*;
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum WeaponType {
@@ -188,6 +190,7 @@ impl WeaponState {
             WeaponType::RocketLauncher => (1, 10.0),
             WeaponType::LaserRifle => (10, 5.0),
             WeaponType::PlasmaGun => (5, 5.0),
+            _ => (15, 2.0), // Default fallback
         };
         
         Self {
@@ -203,6 +206,12 @@ impl WeaponState {
         self.current_ammo > 0 && !self.is_reloading
     }
     
+    pub fn reload_to_full(&mut self) {
+        info!("Reloading weapon: {}/{} -> {}/{}", 
+                 self.current_ammo, self.max_ammo, self.max_ammo, self.max_ammo);
+        self.current_ammo = self.max_ammo;
+    }
+
     pub fn needs_reload(&self) -> bool {
         self.current_ammo < self.max_ammo / 4
     }
@@ -259,5 +268,24 @@ impl WeaponState {
 impl Default for WeaponState {
     fn default() -> Self {
         Self::new_from_type(&WeaponType::Pistol)
+    }
+}
+
+pub fn enemy_weapon_update_system(
+    mut enemy_query: Query<&mut WeaponState, With<Enemy>>,
+    time: Res<Time>,
+    game_mode: Res<GameMode>,
+) {
+    if game_mode.paused { return; }
+    
+    for mut weapon_state in enemy_query.iter_mut() {
+        if weapon_state.is_reloading {
+            weapon_state.reload_timer -= time.delta_secs();
+            
+            if weapon_state.reload_timer <= 0.0 {
+                weapon_state.complete_reload();
+                // println!("Enemy weapon reload completed: {}/{} ammo", weapon_state.current_ammo, weapon_state.max_ammo);
+            }
+        }
     }
 }

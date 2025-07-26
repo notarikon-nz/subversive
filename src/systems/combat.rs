@@ -66,16 +66,19 @@ fn handle_combat_targeting(
     }
 }
 
+
+// Fix for existing execute_attack function - make it agent-specific
 fn execute_attack(
     attacker: Entity,
     target: Entity,
     commands: &mut Commands,
-    agent_query: &Query<(&Transform, &Inventory), With<Agent>>,
+    agent_query: &Query<(&Transform, &Inventory), With<Agent>>, // Keep this for agents only
     agent_weapon_query: &mut Query<&mut WeaponState, With<Agent>>,
     target_query: &Query<(Entity, &Transform, &Health), Or<(With<Enemy>, With<Vehicle>)>>,
     audio_events: &mut EventWriter<AudioEvent>,
     weapon_db: &WeaponDatabase,
 ) {
+    // This function now only handles Agent attacks
     // Validate and consume ammo
     if let Ok(mut weapon_state) = agent_weapon_query.get_mut(attacker) {
         if !weapon_state.can_fire() || !weapon_state.consume_ammo() {
@@ -96,10 +99,11 @@ fn execute_attack(
         .map(|w| w.base_weapon.clone())
         .unwrap_or(WeaponType::Pistol);
     
-    let (damage, accuracy, noise) = get_attack_stats(Some((attacker_transform, inventory)), 
-                                                   agent_weapon_query.get(attacker).ok(),
-                                                   weapon_db
-                                                );
+    let (damage, accuracy, noise) = get_attack_stats(
+        Some((attacker_transform, inventory)), 
+        agent_weapon_query.get(attacker).ok(),
+        weapon_db
+    );
     
     // Check if shot hits (accuracy check)
     let hit = rand::random::<f32>() < accuracy;
@@ -122,14 +126,13 @@ fn execute_attack(
             volume: (0.7 * noise).clamp(0.1, 1.0) 
         });
     } else {
-        // Miss - could spawn a projectile that goes past the target
+        // Miss logic stays the same...
         let miss_offset = Vec2::new(
             (rand::random::<f32>() - 0.5) * 100.0,
             (rand::random::<f32>() - 0.5) * 100.0,
         );
         let miss_target_pos = target_pos + miss_offset;
         
-        // Spawn a temporary target entity for the miss projectile
         let miss_target = commands.spawn((
             Transform::from_translation(miss_target_pos.extend(0.0)),
             MissTarget,
@@ -141,7 +144,7 @@ fn execute_attack(
             miss_target,
             attacker_pos,
             miss_target_pos,
-            0.0, // No damage for misses
+            0.0,
             weapon_type,
         );
     }
@@ -257,4 +260,182 @@ pub fn death_system(
             }
         }
     }
+}
+
+
+// ENEMY SYSTEM
+pub fn enemy_combat_system(
+    mut commands: Commands,
+    mut action_events: EventReader<ActionEvent>,
+    mut audio_events: EventWriter<AudioEvent>,
+    mut enemy_query: Query<(&Transform, &Inventory, &mut WeaponState), With<Enemy>>,
+    agent_query: Query<(Entity, &Transform, &Health), With<Agent>>,
+    weapon_db: Res<WeaponDatabase>,
+    game_mode: Res<GameMode>,
+) {
+    if game_mode.paused { return; }
+
+    for event in action_events.read() {
+        match event.action {
+            Action::Attack(target) => {
+                // Check if this is an enemy attacking
+                if let Ok((enemy_transform, inventory, mut weapon_state)) = enemy_query.get_mut(event.entity) {
+                    // Simple validation: target should be a valid agent
+                    if agent_query.get(target).is_ok() {
+                        execute_enemy_attack(
+                            event.entity,
+                            target,
+                            &mut commands,
+                            enemy_transform,
+                            inventory,
+                            &mut weapon_state,
+                            &agent_query,
+                            &mut audio_events,
+                            &weapon_db,
+                        );
+                    } else {
+                        // println!("Enemy {:?} target {:?} is not a valid agent - skipping", event.entity, target);
+                    }
+                }
+            },
+            Action::Reload => {
+                // Handle enemy reload - use the proper reload system
+                if let Ok((_, _, mut weapon_state)) = enemy_query.get_mut(event.entity) {
+                    if !weapon_state.is_reloading {
+                        let old_ammo = weapon_state.current_ammo;
+                        weapon_state.start_reload(); // Use start_reload instead of reload_to_full
+                        // println!("Enemy {:?} started reloading: {}/{} ammo, {:.1}s reload time", event.entity, old_ammo, weapon_state.max_ammo, weapon_state.reload_time);
+                    } else {
+                        // println!("Enemy {:?} already reloading, ignoring reload command", event.entity);
+                    }
+                }
+            },
+            Action::UseMedKit => {
+                info!("Using MedKit!");
+            },
+            _ => {} // Ignore other actions
+        }
+    }
+}
+
+fn execute_enemy_attack(
+    attacker: Entity,
+    target: Entity,
+    commands: &mut Commands,
+    attacker_transform: &Transform,
+    inventory: &Inventory,
+    weapon_state: &mut WeaponState,
+    target_query: &Query<(Entity, &Transform, &Health), With<Agent>>,
+    audio_events: &mut EventWriter<AudioEvent>,
+    weapon_db: &WeaponDatabase,
+) {
+    // Debug output
+    // println!("Enemy {:?} executing attack on agent {:?}. Ammo: {}/{}", attacker, target, weapon_state.current_ammo, weapon_state.max_ammo);
+    
+    // Validate and consume ammo
+    if !weapon_state.can_fire() {
+        // println!("Enemy {:?} cannot fire - no ammo", attacker);
+        return;
+    }
+    
+    if !weapon_state.consume_ammo() {
+        // println!("Enemy {:?} failed to consume ammo", attacker);
+        return;
+    }
+    
+    // Get positions
+    let Ok((_, target_transform, _)) = target_query.get(target) else { 
+        // println!("Enemy {:?} target {:?} not found in agent query", attacker, target);
+        return; 
+    };
+    
+    let attacker_pos = attacker_transform.translation.truncate();
+    let target_pos = target_transform.translation.truncate();
+    
+    // println!("Enemy {:?} firing at agent {:?}! Distance: {:.1}, Remaining ammo: {}", attacker, target, attacker_pos.distance(target_pos), weapon_state.current_ammo);
+    
+    // Get weapon type and calculate damage
+    let weapon_type = inventory.equipped_weapon
+        .as_ref()
+        .map(|w| w.base_weapon.clone())
+        .unwrap_or(WeaponType::Pistol);
+    
+    let (damage, accuracy, noise) = get_enemy_attack_stats(inventory, weapon_state, weapon_db);
+    
+    // Check if shot hits (accuracy check)
+    let hit = rand::random::<f32>() < accuracy;
+    
+    // println!("Enemy attack: damage={:.1}, accuracy={:.2}, hit={}", damage, accuracy, hit);
+    
+    if hit {
+        // Spawn projectile that will hit
+        spawn_projectile(
+            commands,
+            attacker,
+            target,
+            attacker_pos,
+            target_pos,
+            damage,
+            weapon_type.clone(),
+        );
+        
+        // println!("Enemy {:?} HIT agent {:?} for {:.1} damage", attacker, target, damage);
+        
+        // Play audio
+        audio_events.write(AudioEvent { 
+            sound: AudioType::Gunshot, 
+            volume: (0.7 * noise).clamp(0.1, 1.0) 
+        });
+    } else {
+        // Miss - spawn projectile that goes past target
+        let miss_offset = Vec2::new(
+            (rand::random::<f32>() - 0.5) * 80.0,
+            (rand::random::<f32>() - 0.5) * 80.0,
+        );
+        let miss_target_pos = target_pos + miss_offset;
+        
+        let miss_target = commands.spawn((
+            Transform::from_translation(miss_target_pos.extend(0.0)),
+            MissTarget,
+        )).id();
+        
+        spawn_projectile(
+            commands,
+            attacker,
+            miss_target,
+            attacker_pos,
+            miss_target_pos,
+            0.0,
+            weapon_type,
+        );
+
+        // println!("Enemy {:?} MISSED agent {:?}", attacker, target);
+
+        // Still play audio for misses
+        audio_events.write(AudioEvent { 
+            sound: AudioType::Gunshot, 
+            volume: (0.5 * noise).clamp(0.1, 1.0) 
+        });
+    }
+}
+
+fn get_enemy_attack_stats(
+    inventory: &Inventory,
+    _weapon_state: &WeaponState,
+    weapon_db: &WeaponDatabase,
+) -> (f32, f32, f32) {
+    if let Some(weapon_config) = &inventory.equipped_weapon {
+        let stats = weapon_config.calculate_total_stats();
+        
+        // Get base damage from weapon database
+        let base_damage = weapon_db.get(&weapon_config.base_weapon)
+            .map(|weapon_data| weapon_data.damage)
+            .unwrap_or(25.0); // Slightly lower than player default
+        
+        let damage = base_damage * (1.0 + stats.accuracy as f32 * 0.02);
+        let accuracy = (0.6 + stats.accuracy as f32 * 0.03).clamp(0.1, 0.85); // Lower than player
+        let noise = (1.0 + stats.noise as f32 * 0.1).max(0.1);
+        return (damage, accuracy, noise);
+    }
+    (25.0, 0.6, 1.0) // Default enemy values - lower than player
 }

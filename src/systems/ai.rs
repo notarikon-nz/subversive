@@ -9,6 +9,9 @@ pub struct AIState {
     pub investigation_timer: f32,
     pub alert_cooldown: f32,
     pub use_goap: bool, // Toggle between GOAP and legacy AI
+    
+    pub current_target: Option<Entity>,
+    pub target_last_seen: f32,
 }
 
 #[derive(Debug, Clone)]
@@ -25,6 +28,8 @@ impl Default for AIState {
         Self {
             mode: AIMode::Patrol,
             last_known_target: None,
+            current_target: None,      // Initialize as None
+            target_last_seen: 0.0,    // Initialize as 0            
             investigation_timer: 0.0,
             alert_cooldown: 0.0,
             use_goap: true, // Enable GOAP by default for new enemies

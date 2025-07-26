@@ -239,6 +239,7 @@ fn main() {
             collision_feedback_system,
 
             combat::system,
+            combat::enemy_combat_system,
             combat::death_system,
             damage_text_event_system,
 
@@ -333,6 +334,7 @@ fn main() {
             police::police_cleanup_system,
             police::police_deescalation_system,
             
+            weapons::enemy_weapon_update_system,
         ).run_if(in_state(GameState::Mission)))
 
         .add_systems(Update, (
@@ -608,4 +610,3 @@ fn setup_police_system(mut commands: Commands) {
     commands.insert_resource(PoliceResponse::default());
     commands.insert_resource(PoliceEscalation::default());
 }
-

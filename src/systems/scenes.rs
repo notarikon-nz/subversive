@@ -235,21 +235,27 @@ fn spawn_enemy(commands: &mut Commands, pos: Vec2, patrol: Vec<Vec2>, global_dat
     
     let faction = random_enemy_faction();
     let weapon = select_weapon_for_faction(&faction);
+    
+    // Create inventory with weapon
     let mut inventory = Inventory::default();
     inventory.equipped_weapon = Some(WeaponConfig::new(weapon.clone()));
+
+    // Create weapon state with proper ammo - THIS WAS THE ISSUE
+    let mut weapon_state = WeaponState::new_from_type(&weapon);
+    weapon_state.complete_reload(); // Ensure enemies start with full ammo    
 
     commands.spawn((
         sprite,
         Transform::from_translation(pos.extend(1.0)),
         Enemy,
         faction,
-        create_base_unit_bundle(100.0 * difficulty, 100.0), // 120.0 * difficulty),
+        create_base_unit_bundle(100.0 * difficulty, 100.0),
         Morale::new(100.0 * difficulty, 25.0),
         Vision::new(120.0 * difficulty, 60.0),
         Patrol::new(patrol),
         AIState::default(),
         GoapAgent::default(),
-        WeaponState::new_from_type(&weapon),
+        weapon_state,  // Now properly initialized
         inventory,
         create_physics_bundle(9.0, ENEMY_GROUP),
         Scannable,
@@ -367,11 +373,12 @@ fn random_enemy_faction() -> Faction {
 }
 
 fn select_weapon_for_faction(faction: &Faction) -> WeaponType {
+
     match faction {
         Faction::Corporate => if rand::random::<f32>() < 0.7 { WeaponType::Rifle } else { WeaponType::Pistol },
         Faction::Syndicate => match rand::random::<f32>() {
-            x if x < 0.5 => WeaponType::Minigun,
-            x if x < 0.8 => WeaponType::Flamethrower,
+            x if x < 0.5 => WeaponType::Pistol,
+            // x if x < 0.8 => WeaponType::Flamethrower,
             _ => WeaponType::Rifle,
         },
         _ => WeaponType::Pistol,

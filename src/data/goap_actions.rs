@@ -22,7 +22,13 @@ vec![
         effects: world_state![WorldKey::IsAlert => false],
         action_type: ActionType::Patrol,
     },
-    
+    GoapAction {
+        name: "calm_down_from_panic",
+        cost: 1.0,
+        preconditions: world_state![WorldKey::AtSafeDistance => true],
+        effects: world_state![WorldKey::IsPanicked => false],
+        action_type: ActionType::Patrol,
+    },    
     // Investigation
     GoapAction {
         name: "investigate",
@@ -63,21 +69,61 @@ vec![
     },
     
     // Defensive
+    // Fixed version with more accessible preconditions:
     GoapAction {
         name: "take_cover",
         cost: 2.0,
-        preconditions: world_state![WorldKey::HasTarget => true, WorldKey::InCover => false, WorldKey::CoverAvailable => true],
+        preconditions: world_state![
+            WorldKey::InCover => false, 
+            WorldKey::CoverAvailable => true
+        ], // Removed HasTarget requirement - injured enemies should seek cover regardless
+        effects: world_state![WorldKey::InCover => true],
+        action_type: ActionType::TakeCover,
+    },
+
+    // Add an emergency cover action for when hurt:
+    GoapAction {
+        name: "emergency_cover",
+        cost: 1.5,
+        preconditions: world_state![
+            WorldKey::IsInjured => true,
+            WorldKey::InCover => false
+        ], // No CoverAvailable check - desperate times
+        effects: world_state![WorldKey::InCover => true, WorldKey::UnderFire => false],
+        action_type: ActionType::TakeCover,
+    },
+
+    // Add an action that can set UnderFire => false:
+    GoapAction {
+        name: "break_line_of_sight",
+        cost: 1.0,
+        preconditions: world_state![WorldKey::InCover => true],
+        effects: world_state![WorldKey::UnderFire => false],
+        action_type: ActionType::TakeCover, // Reuse cover action
+    },
+
+    // Make sure we have a fallback if no cover is available:
+    GoapAction {
+        name: "find_improvised_cover",
+        cost: 3.0,
+        preconditions: world_state![WorldKey::IsInjured => true], // Emergency only
         effects: world_state![WorldKey::InCover => true],
         action_type: ActionType::TakeCover,
     },
     GoapAction {
         name: "retreat",
         cost: 1.5,
-        preconditions: world_state![WorldKey::IsInjured => true, WorldKey::Outnumbered => true, WorldKey::IsRetreating => false],
+        preconditions: world_state![WorldKey::IsRetreating => false], // Simplified preconditions
         effects: world_state![WorldKey::AtSafeDistance => true, WorldKey::IsRetreating => true, WorldKey::IsAlert => false],
         action_type: ActionType::Retreat { retreat_point: Vec2::ZERO },
     },
-    
+    GoapAction {
+        name: "retreat_to_safety",
+        cost: 2.0,
+        preconditions: world_state![],  // No preconditions - emergency action
+        effects: world_state![WorldKey::AtSafeDistance => true],
+        action_type: ActionType::Retreat { retreat_point: Vec2::ZERO },
+    },
     // Support
     GoapAction {
         name: "call_for_help",
@@ -89,17 +135,32 @@ vec![
     GoapAction {
         name: "reload",
         cost: 2.0,
-        preconditions: world_state![WorldKey::HasWeapon => true, WorldKey::WeaponLoaded => false],
+        preconditions: world_state![
+            WorldKey::HasWeapon => true, 
+            WorldKey::WeaponLoaded => false,
+            WorldKey::IsReloading => false  // Only reload if not already reloading
+        ],
+        effects: world_state![WorldKey::IsReloading => true], // Set reloading state
+        action_type: ActionType::Reload,
+    },
+    GoapAction {
+        name: "emergency_reload",
+        cost: 3.0,
+        preconditions: world_state![
+            WorldKey::HasWeapon => true, 
+            WorldKey::WeaponLoaded => false
+        ],
         effects: world_state![WorldKey::WeaponLoaded => true],
         action_type: ActionType::Reload,
     },
     GoapAction {
-        name: "tactical_reload",
-        cost: 1.5,
-        preconditions: world_state![WorldKey::HasWeapon => true, WorldKey::WeaponLoaded => true, WorldKey::HasTarget => false],
-        effects: world_state![WorldKey::WeaponLoaded => true],
-        action_type: ActionType::Reload,
+        name: "wait_for_reload", // New action to wait during reload
+        cost: 0.5,
+        preconditions: world_state![WorldKey::IsReloading => true],
+        effects: world_state![], // No effects, just waiting
+        action_type: ActionType::Wait,
     },
+
     
     // Advanced Tactics
     GoapAction {

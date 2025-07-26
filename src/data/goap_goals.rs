@@ -11,10 +11,16 @@ vec![
         desired_state: world_state![WorldKey::AtSafeDistance => true, WorldKey::IsInjured => false],
     },
     Goal {
+        name: "reload_weapon",
+        priority: 11.0,
+        desired_state: world_state![WorldKey::WeaponLoaded => true]
+    },
+    Goal {
         name: "eliminate_threat",
         priority: 10.0,
         desired_state: world_state![WorldKey::HasTarget => false],
     },
+    /*
     Goal {
         name: "coordinate_defense",
         priority: 9.0,
@@ -35,16 +41,27 @@ vec![
         priority: 6.0,
         desired_state: world_state![WorldKey::AreaSearched => true, WorldKey::HeardSound => false],
     },
+    */
+    Goal {
+        name: "take_cover_when_hurt",
+        priority: 8.0,
+        desired_state: world_state![
+            WorldKey::InCover => true, 
+            WorldKey::UnderFire => false
+        ],
+    },
     Goal {
         name: "investigate_disturbance",
         priority: 5.0,
         desired_state: world_state![WorldKey::HeardSound => false],
     },
+    /*
     Goal {
         name: "weapon_upgrade",
         priority: 4.0,
         desired_state: world_state![WorldKey::HasBetterWeapon => false],
     },
+    */
     Goal {
         name: "patrol_area",
         priority: 1.0,
