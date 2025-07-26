@@ -14,6 +14,7 @@ pub fn system(
     mut agent_weapon_query: Query<&mut WeaponState, With<Agent>>,
     target_query: Query<(Entity, &Transform, &Health), Or<(With<Enemy>, With<Vehicle>)>>,
     game_mode: Res<GameMode>,
+    weapon_db: Res<WeaponDatabase>,
     windows: Query<&Window>,
     cameras: Query<(&Camera, &GlobalTransform)>,
 ) {
@@ -22,14 +23,14 @@ pub fn system(
     // Handle combat targeting mode
     if let Some(TargetingMode::Combat { agent }) = &game_mode.targeting {
         handle_combat_targeting(*agent, &mut commands, &input, &agent_query, &mut agent_weapon_query, 
-                               &target_query, &mut audio_events, &mut gizmos, &windows, &cameras);
+                               &target_query, &mut audio_events, &weapon_db, &mut gizmos, &windows, &cameras);
     }
 
     // Process attack events
     for event in action_events.read() {
         if let Action::Attack(target) = event.action {
             execute_attack(event.entity, target, &mut commands, &agent_query, &mut agent_weapon_query, 
-                         &target_query, &mut audio_events);
+                         &target_query, &mut audio_events, &weapon_db);
         }
     }
 }
@@ -42,6 +43,7 @@ fn handle_combat_targeting(
     agent_weapon_query: &mut Query<&mut WeaponState, With<Agent>>,
     target_query: &Query<(Entity, &Transform, &Health), Or<(With<Enemy>, With<Vehicle>)>>,
     audio_events: &mut EventWriter<AudioEvent>,
+    weapon_db: &WeaponDatabase,
     gizmos: &mut Gizmos,
     windows: &Query<&Window>,
     cameras: &Query<(&Camera, &GlobalTransform)>,
@@ -59,7 +61,7 @@ fn handle_combat_targeting(
     // Handle mouse click for target selection
     if action_state.just_pressed(&PlayerAction::Move) {
         if let Some(target) = find_target_at_mouse(target_query, agent_pos, range, windows, cameras) {
-            execute_attack(agent, target, commands, agent_query, agent_weapon_query, target_query, audio_events);
+            execute_attack(agent, target, commands, agent_query, agent_weapon_query, target_query, audio_events, weapon_db);
         }
     }
 }
@@ -72,6 +74,7 @@ fn execute_attack(
     agent_weapon_query: &mut Query<&mut WeaponState, With<Agent>>,
     target_query: &Query<(Entity, &Transform, &Health), Or<(With<Enemy>, With<Vehicle>)>>,
     audio_events: &mut EventWriter<AudioEvent>,
+    weapon_db: &WeaponDatabase,
 ) {
     // Validate and consume ammo
     if let Ok(mut weapon_state) = agent_weapon_query.get_mut(attacker) {
@@ -94,7 +97,7 @@ fn execute_attack(
         .unwrap_or(WeaponType::Pistol);
     
     let (damage, accuracy, noise) = get_attack_stats(Some((attacker_transform, inventory)), 
-                                                   agent_weapon_query.get(attacker).ok());
+                                                   agent_weapon_query.get(attacker).ok(), weapon_db);
     
     // Check if shot hits (accuracy check)
     let hit = rand::random::<f32>() < accuracy;
@@ -173,12 +176,19 @@ fn get_weapon_range(inventory: &Inventory, weapon_state: Option<&WeaponState>) -
 
 fn get_attack_stats(
     agent_data: Option<(&Transform, &Inventory)>, 
-    _weapon_state: Option<&WeaponState>
+    _weapon_state: Option<&WeaponState>,
+    weapon_db: &WeaponDatabase,
 ) -> (f32, f32, f32) {
     if let Some((_, inventory)) = agent_data {
         if let Some(weapon_config) = &inventory.equipped_weapon {
             let stats = weapon_config.calculate_total_stats();
-            let damage = 35.0 * (1.0 + stats.accuracy as f32 * 0.02);
+            
+            // Get base damage from weapon database
+            let base_damage = weapon_db.get(&weapon_config.base_weapon)
+                .map(|weapon_data| weapon_data.damage)
+                .unwrap_or(35.0);
+            
+            let damage = base_damage * (1.0 + stats.accuracy as f32 * 0.02);
             let accuracy = (0.8 + stats.accuracy as f32 * 0.05).clamp(0.1, 0.95);
             let noise = (1.0 + stats.noise as f32 * 0.1).max(0.1);
             return (damage, accuracy, noise);

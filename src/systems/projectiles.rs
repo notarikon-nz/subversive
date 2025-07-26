@@ -525,3 +525,76 @@ pub fn flamethrower_stream_system(
         ));
     }
 }
+
+
+// Rocket trail system
+pub fn rocket_trail_system(
+    mut commands: Commands,
+    mut rockets: Query<(&Transform, &mut RocketTrail), With<GuidedProjectile>>,
+    time: Res<Time>,
+) {
+    let dt = time.delta_secs();
+    
+    for (transform, mut trail) in rockets.iter_mut() {
+        trail.spawn_timer -= dt;
+        
+        if trail.spawn_timer <= 0.0 {
+            trail.spawn_timer = 0.05; // Spawn trail particle every 50ms
+            
+            let pos = transform.translation.truncate();
+            let behind_rocket = transform.rotation * Vec3::new(-15.0, 0.0, 0.0); // Behind the rocket
+            
+            commands.spawn((
+                Sprite {
+                    color: Color::srgb(1.0, 0.3 + fastrand::f32() * 0.4, 0.1),
+                    custom_size: Some(Vec2::splat(4.0 + fastrand::f32() * 3.0)),
+                    ..default()
+                },
+                Transform::from_translation((pos + behind_rocket.truncate()).extend(8.0)),
+                ImpactEffect { lifetime: trail.particle_lifetime },
+            ));
+        }
+    }
+}
+
+// Energy weapon effects system
+pub fn energy_weapon_effects_system(
+    mut commands: Commands,
+    energy_beams: Query<(&EnergyBeam, &Transform), Added<EnergyBeam>>,
+) {
+    for (beam, transform) in energy_beams.iter() {
+        let direction = (beam.end_pos - beam.start_pos).normalize();
+        let distance = beam.start_pos.distance(beam.end_pos);
+        
+        // Spawn glow effect around the beam
+        for i in 0..3 {
+            let offset_distance = (i as f32 + 1.0) * 2.0;
+            let glow_color = match i {
+                0 => Color::srgba(0.1, 0.9, 1.0, 0.8),
+                1 => Color::srgba(0.1, 0.7, 1.0, 0.4),
+                _ => Color::srgba(0.1, 0.5, 1.0, 0.2),
+            };
+            
+            commands.spawn((
+                Sprite {
+                    color: glow_color,
+                    custom_size: Some(Vec2::new(distance, beam.beam_width + offset_distance)),
+                    ..default()
+                },
+                *transform,
+                ImpactEffect { lifetime: 0.15 },
+            ));
+        }
+        
+        // Spawn muzzle flash
+        commands.spawn((
+            Sprite {
+                color: Color::srgb(0.8, 1.0, 1.0),
+                custom_size: Some(Vec2::splat(12.0)),
+                ..default()
+            },
+            Transform::from_translation(beam.start_pos.extend(12.0)),
+            ImpactEffect { lifetime: 0.1 },
+        ));
+    }
+}
