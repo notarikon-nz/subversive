@@ -4,6 +4,7 @@ use bevy_rapier2d::prelude::*;
 
 use crate::core::*;
 use crate::systems::*;
+use crate::systems::explosions::*;
 
 // === DEATH COMPONENTS ===
 
@@ -109,6 +110,30 @@ pub fn death_system(
                 entity_type: corpse_type,
                 decay_timer: None, // Persistent corpses
             });
+        }
+    }
+}
+
+pub fn explodable_death_system(
+    mut commands: Commands,
+    mut explodables: Query<(Entity, &Health, &Explodable, &Transform), (Without<Dead>, Without<PendingExplosion>)>,
+) {
+    for (entity, health, explodable, transform) in explodables.iter_mut() {
+        if health.0 <= 0.0 {
+            let pos = transform.translation.truncate();
+            
+            // Mark as dead
+            commands.entity(entity).insert(Dead);
+            
+            // Create pending explosion
+            commands.entity(entity).insert(PendingExplosion {
+                timer: explodable.delay,
+                damage: explodable.damage,
+                radius: explodable.radius,
+                explosion_type: ExplosionType::Cascading,
+            });
+            
+            info!("Explodable at {:?} destroyed, pending explosion in {}s", pos, explodable.delay);
         }
     }
 }

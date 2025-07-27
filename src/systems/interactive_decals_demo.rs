@@ -23,6 +23,7 @@ pub enum DecalDemoAction {
 
 pub fn interactive_decals_demo_system(
     mut commands: Commands,
+    keyboard: Res<ButtonInput<KeyCode>>,
     input: Query<&ActionState<DecalDemoAction>>,
     cameras: Query<(&Camera, &GlobalTransform)>,
     windows: Query<&Window>,
@@ -38,25 +39,21 @@ pub fn interactive_decals_demo_system(
     // Handle demo actions
     if action_state.just_pressed(&DecalDemoAction::SpawnOilSpill) {
         spawn_oil_spill(&mut commands, mouse_pos, 50.0);
-        info!("Spawned oil spill at {:?}", mouse_pos);
     }
     
     if action_state.just_pressed(&DecalDemoAction::SpawnGasSpill) {
         spawn_gasoline_spill(&mut commands, mouse_pos, 45.0);
-        info!("Spawned gasoline spill at {:?}", mouse_pos);
     }
     
     if action_state.just_pressed(&DecalDemoAction::SpawnElectricPuddle) {
         spawn_electric_puddle(&mut commands, mouse_pos, 40.0);
-        info!("Spawned electric puddle at {:?}", mouse_pos);
     }
     
     if action_state.just_pressed(&DecalDemoAction::SpawnFuelBarrel) {
         spawn_explodable(&mut commands, mouse_pos, ExplodableType::FuelBarrel);
-        info!("Spawned fuel barrel at {:?}", mouse_pos);
     }
     
-    if action_state.just_pressed(&DecalDemoAction::CreateExplosion) {
+    if keyboard.just_pressed(KeyCode::Digit0) {
         spawn_explosion(
             &mut commands,
             mouse_pos,
@@ -64,10 +61,9 @@ pub fn interactive_decals_demo_system(
             80.0,
             ExplosionType::Grenade,
         );
-        info!("Created explosion at {:?}", mouse_pos);
     }
     
-    if action_state.just_pressed(&DecalDemoAction::IgniteAll) {
+    if keyboard.just_pressed(KeyCode::KeyF) {
         // Ignite all flammable decals for testing
         for entity in decal_query.iter() {
             commands.entity(entity).insert(OnFire {
@@ -90,7 +86,6 @@ pub fn interactive_decals_demo_system(
         for entity in fire_query.iter() {
             commands.entity(entity).insert(MarkedForDespawn);
         }
-        info!("Cleared all decals and explodables!");
     }
 }
 
@@ -111,24 +106,12 @@ pub fn setup_interactive_decals_demo(mut commands: Commands) {
         input_map,
         ActionState::<DecalDemoAction>::default(),
     ));
-    
-    info!("=== INTERACTIVE DECALS DEMO ===");
-    info!("Controls:");
-    info!("1 - Spawn Oil Spill at mouse");
-    info!("2 - Spawn Gasoline Spill at mouse");
-    info!("3 - Spawn Electric Puddle at mouse");
-    info!("4 - Spawn Fuel Barrel at mouse");
-    info!("5 - Create Explosion at mouse");
-    info!("F - Ignite all flammable decals");
-    info!("C - Clear all decals");
-    info!("================================");
 }
 
 // === PRE-BUILT TEST SCENARIOS ===
 
 /// Creates a pre-built test scenario for chain reactions
 pub fn setup_chain_reaction_test_scenario(mut commands: Commands) {
-    info!("Setting up chain reaction test scenario...");
     
     // Gas station scenario
     let center = Vec2::new(200.0, 100.0);
@@ -160,12 +143,10 @@ pub fn setup_chain_reaction_test_scenario(mut commands: Commands) {
         spawn_oil_spill(&mut commands, pos, 35.0);
     }
     
-    info!("Chain reaction scenario ready! Use explosion (key 5) near the center to start the chain reaction!");
 }
 
 /// Creates an industrial zone with mixed hazards
 pub fn setup_industrial_zone_scenario(mut commands: Commands) {
-    info!("Setting up industrial zone scenario...");
     
     let base = Vec2::new(-200.0, -100.0);
     
@@ -191,26 +172,24 @@ pub fn setup_industrial_zone_scenario(mut commands: Commands) {
         spawn_explodable(&mut commands, pos, ExplodableType::PowerCell);
     }
     
-    info!("Industrial zone ready! Mix of electrical damage and fire hazards!");
 }
 
 // === PERFORMANCE TESTING ===
 
 /// Stress test system that creates many decals
 pub fn create_stress_test_scenario(mut commands: Commands) {
-    info!("Creating stress test scenario with many decals...");
     
-    let grid_size = 10;
-    let spacing = 60.0;
+    let grid_size = 20;
+    let spacing = 30.0;
     let start = Vec2::new(-300.0, -300.0);
     
     for x in 0..grid_size {
         for y in 0..grid_size {
             let pos = start + Vec2::new(x as f32 * spacing, y as f32 * spacing);
             
-            match (x + y) % 4 {
-                0 => { spawn_oil_spill(&mut commands, pos, 25.0); },
-                1 => { spawn_gasoline_spill(&mut commands, pos, 20.0); },
+            match (x) % 4 {
+                0 => { spawn_oil_spill(&mut commands, pos, 35.0); },
+                1 => { spawn_gasoline_spill(&mut commands, pos, 30.0); },
                 2 => { spawn_electric_puddle(&mut commands, pos, 30.0); },
                 3 => { spawn_explodable(&mut commands, pos, ExplodableType::GasCanister); },
                 _ => {}
@@ -218,6 +197,4 @@ pub fn create_stress_test_scenario(mut commands: Commands) {
         }
     }
     
-    info!("Stress test created: {} decals/explodables", grid_size * grid_size);
-    info!("Use 'F' to ignite all and test fire spread performance!");
 }

@@ -92,29 +92,29 @@ pub fn spawn_oil_spill(
             custom_size: Some(Vec2::splat(size)),
             ..default()
         },
-        Transform::from_translation(position.extend(-8.0)), // Below most things
+        Transform::from_translation(position.extend(0.0)), // Use z=0 for now
+        GlobalTransform::default(),
+        Visibility::default(),
+        ViewVisibility::default(),
         InteractiveDecal {
             decal_type: InteractiveDecalType::OilSpill,
             radius: size * 0.5,
             intensity: 1.0,
-            fuel_remaining: 30.0, // Burns for 30 seconds
+            fuel_remaining: 30.0,
         },
         MovementHindrance {
             slow_factor: 0.3,
             stuck_chance: 0.1,
         },
         Flammable {
-            ignition_temperature: 200.0, // Needs fire or explosion to ignite
+            ignition_temperature: 200.0,
             burn_rate: 1.0,
             spread_radius: size * 0.7,
             explosion_chance: 0.2,
         },
-        // Physics sensor to detect entities entering the area
         Collider::ball(size * 0.5),
         Sensor,
     )).id();
-
-    info!("Spawned oil spill at {:?} with radius {}", position, size * 0.5);
     oil_entity
 }
 
@@ -131,6 +131,9 @@ pub fn spawn_gasoline_spill(
             ..default()
         },
         Transform::from_translation(position.extend(-8.0)),
+        GlobalTransform::default(),
+        Visibility::default(),
+        ViewVisibility::default(),
         InteractiveDecal {
             decal_type: InteractiveDecalType::GasolineSpill,
             radius: size * 0.5,
@@ -165,6 +168,9 @@ pub fn spawn_electric_puddle(
             ..default()
         },
         Transform::from_translation(position.extend(-8.0)),
+        GlobalTransform::default(),
+        Visibility::default(),
+        ViewVisibility::default(),
         InteractiveDecal {
             decal_type: InteractiveDecalType::ElectricPuddle,
             radius: size * 0.5,
@@ -308,7 +314,7 @@ pub fn fire_ignition_system(
             let distance = explosion_pos.distance(decal_pos);
             
             if distance <= decal.radius + 50.0 { // Explosion can ignite nearby flammables
-                ignite_decal(&mut commands, entity, &mut decal, flammable);
+                ignite_decal(&mut commands, entity, decal_pos, &mut decal, flammable);
             }
         }
     }
@@ -322,7 +328,7 @@ pub fn fire_ignition_system(
             let distance = fire_pos.distance(decal_pos);
             
             if distance <= flammable.spread_radius {
-                ignite_decal(&mut commands, entity, &mut decal, flammable);
+                ignite_decal(&mut commands, entity, decal_pos, &mut decal, flammable);
             }
         }
     }
@@ -331,17 +337,65 @@ pub fn fire_ignition_system(
 fn ignite_decal(
     commands: &mut Commands,
     entity: Entity,
+    position: Vec2,
     decal: &mut InteractiveDecal,
     flammable: &Flammable,
 ) {
+    // Add the OnFire component
     commands.entity(entity).insert(OnFire {
         intensity: 1.0,
         spread_timer: 1.0 / flammable.burn_rate,
         burn_timer: decal.fuel_remaining,
     });
     
-    info!("Ignited {:?} decal!", decal.decal_type);
+    // Create a visual fire effect
+    let fire_entity = spawn_fire_visual(commands, position, decal.radius);
+    
+    // Link the fire visual to the decal
+    commands.entity(entity).insert(LinkedFireVisual(fire_entity));
 }
+
+#[derive(Component)]
+pub struct LinkedFireVisual(Entity);
+
+
+pub fn spawn_fire_visual(
+    commands: &mut Commands,
+    position: Vec2,
+    radius: f32,
+) -> Entity {
+    commands.spawn((
+        Sprite {
+            color: Color::srgba(1.0, 0.4, 0.1, 0.6),
+            custom_size: Some(Vec2::splat(radius * 1.5)),
+            ..default()
+        },
+        Transform::from_translation(position.extend(5.0)), // Above the decal
+        FireVisual {
+            flicker_timer: 0.0,
+        },
+    )).id()
+}
+
+#[derive(Component)]
+pub struct FireVisual {
+    pub flicker_timer: f32,
+}
+
+// System to make fire visuals flicker
+pub fn fire_visual_flicker_system(
+    mut fire_visuals: Query<(&mut Sprite, &mut FireVisual)>,
+    time: Res<Time>,
+) {
+    for (mut sprite, mut visual) in fire_visuals.iter_mut() {
+        visual.flicker_timer += time.delta_secs() * 10.0;
+        let flicker = (visual.flicker_timer.sin() * 0.2 + 0.8).clamp(0.4, 1.0);
+        sprite.color.set_alpha(0.6 * flicker);
+    }
+}
+
+
+
 
 // === FIRE BURN SYSTEM ===
 

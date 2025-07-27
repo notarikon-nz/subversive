@@ -253,6 +253,7 @@ fn main() {
             combat::system,
             
             death::death_system,
+            death::explodable_death_system,
             combat::auto_reload_system,
             combat::cleanup_miss_targets,
 
@@ -540,8 +541,7 @@ pub fn setup_mission_scene_optimized(
     spawn_gasoline_spill(&mut commands, Vec2::new(200.0, 100.0), 40.0);
     spawn_explodable(&mut commands, Vec2::new(250.0, 100.0), ExplodableType::FuelBarrel);
 
-    // setup_chain_reaction_test_scenario(commands);
-    create_stress_test_scenario(commands);
+    setup_chain_reaction_test_scenario(commands);
 }
 
 fn setup_camera_and_input(mut commands: Commands) {

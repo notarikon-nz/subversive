@@ -356,27 +356,36 @@ pub fn time_bomb_system(
 
 /// Process delayed explosions from chain reactions
 pub fn pending_explosion_system(
-    mut pending_query: Query<(Entity, &mut PendingExplosion, &Transform)>,
+    mut pending_query: Query<(Entity, &mut PendingExplosion, &Transform, Option<&Explodable>)>,
     mut commands: Commands,
     time: Res<Time>,
     game_mode: Res<GameMode>,
 ) {
     if game_mode.paused { return; }
 
-    for (entity, mut pending, transform) in pending_query.iter_mut() {
+    for (entity, mut pending, transform, explodable) in pending_query.iter_mut() {
         pending.timer -= time.delta_secs();
         
         if pending.timer <= 0.0 {
+            let pos = transform.translation.truncate();
+            
+            // Spawn the actual explosion
             spawn_explosion(
                 &mut commands,
-                transform.translation.truncate(),
+                pos,
                 pending.radius,
                 pending.damage,
                 pending.explosion_type.clone(),
             );
-            commands.entity(entity)
-                .remove::<Explodable>()
-                .remove::<PendingExplosion>();
+            
+            // Clean up the entity
+            if explodable.is_some() {
+                // This was an explodable object, remove it entirely
+                commands.entity(entity).insert(MarkedForDespawn);
+            } else {
+                // Something else with pending explosion, just remove the component
+                commands.entity(entity).remove::<PendingExplosion>();
+            }
         }
     }
 }
