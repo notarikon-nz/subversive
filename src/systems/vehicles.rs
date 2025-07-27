@@ -67,9 +67,12 @@ pub fn spawn_vehicle(
     let (color, size) = match vehicle_type {
         VehicleType::CivilianCar => (Color::srgb(0.6, 0.6, 0.8), Vec2::new(40.0, 20.0)),
         VehicleType::PoliceCar => (Color::srgb(0.2, 0.2, 0.8), Vec2::new(40.0, 20.0)),
+        VehicleType::ElectricCar => (Color::srgb(0.6, 0.6, 0.9), Vec2::new(40.0, 20.0)),
         VehicleType::APC => (Color::srgb(0.4, 0.6, 0.4), Vec2::new(50.0, 30.0)),
         VehicleType::VTOL => (Color::srgb(0.3, 0.3, 0.3), Vec2::new(60.0, 40.0)),
         VehicleType::Tank => (Color::srgb(0.5, 0.5, 0.2), Vec2::new(60.0, 35.0)),
+        VehicleType::Truck => (Color::srgb(0.4, 0.6, 0.4), Vec2::new(50.0, 30.0)), // change
+        VehicleType::FuelTruck => (Color::srgb(0.4, 0.6, 0.4), Vec2::new(50.0, 30.0)), // change
     };
     
     commands.spawn((

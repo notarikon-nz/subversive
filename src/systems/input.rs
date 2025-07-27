@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-use leafwing_input_manager::prelude::*;
 use crate::core::*;
 use crate::systems::scanner::*;
 use crate::systems::npc_barks::*;

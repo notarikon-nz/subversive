@@ -30,6 +30,9 @@ pub mod scanner;
 pub mod projectiles;
 pub mod death;
 pub mod decals;
+pub mod interactive_decals;
+pub mod explosion_decal_integration;
+pub mod interactive_decals_demo;
 
 pub use message_window::*;
 pub use urban_simulation::*;
@@ -41,6 +44,9 @@ pub use power_grid::*;
 pub use scanner::*;
 pub use death::*;
 pub use decals::*;
+pub use interactive_decals::*;
+pub use explosion_decal_integration::*;
+pub use interactive_decals_demo::*;
 
 pub mod scenes;
 

@@ -192,16 +192,22 @@ pub enum VehicleType {
     APC,
     VTOL,
     Tank,
+    Truck,
+    FuelTruck,
+    ElectricCar,    
 }
 
 impl Vehicle {
     pub fn new(vehicle_type: VehicleType) -> Self {
         let (health, cover_value) = match vehicle_type {
             VehicleType::CivilianCar => (50.0, 30.0),
+            VehicleType::ElectricCar => (50.0, 30.0),
             VehicleType::PoliceCar => (80.0, 40.0),
             VehicleType::APC => (200.0, 60.0),
             VehicleType::VTOL => (120.0, 25.0),
             VehicleType::Tank => (300.0, 80.0),
+            VehicleType::Truck => (120.0, 60.0),
+            VehicleType::FuelTruck => (200.0, 80.0),
         };
         
         Self {
@@ -214,7 +220,10 @@ impl Vehicle {
     pub fn max_health(&self) -> f32 {
         match self.vehicle_type {
             VehicleType::CivilianCar => 100.0,
+            VehicleType::ElectricCar => 100.0,
             VehicleType::PoliceCar => 150.0,
+            VehicleType::Truck => 200.0,
+            VehicleType::FuelTruck => 400.0,
             VehicleType::APC => 400.0,
             VehicleType::VTOL => 200.0,
             VehicleType::Tank => 600.0,
@@ -224,7 +233,10 @@ impl Vehicle {
     pub fn explosion_radius(&self) -> f32 {
         match self.vehicle_type {
             VehicleType::CivilianCar => 60.0,
+            VehicleType::ElectricCar => 60.0,
             VehicleType::PoliceCar => 70.0,
+            VehicleType::Truck => 100.0,
+            VehicleType::FuelTruck => 200.0,
             VehicleType::APC => 100.0,
             VehicleType::VTOL => 120.0,
             VehicleType::Tank => 150.0,
@@ -234,7 +246,10 @@ impl Vehicle {
     pub fn explosion_damage(&self) -> f32 {
         match self.vehicle_type {
             VehicleType::CivilianCar => 40.0,
+            VehicleType::ElectricCar => 40.0,
             VehicleType::PoliceCar => 50.0,
+            VehicleType::Truck => 60.0,
+            VehicleType::FuelTruck => 150.0,
             VehicleType::APC => 80.0,
             VehicleType::VTOL => 100.0,
             VehicleType::Tank => 120.0,

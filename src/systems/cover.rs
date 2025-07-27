@@ -2,6 +2,7 @@
 use bevy::prelude::*;
 use crate::core::*;
 
+// PLACEHOLDER - SHOULD BE IN MAP SYSTEM
 pub fn spawn_cover_points(commands: &mut Commands) {
     let cover_positions = [
         Vec2::new(50.0, -50.0),   // Near terminals
@@ -58,9 +59,6 @@ pub fn cover_exit_system(
             // If enemy moved far from cover, remove InCover component
             if distance > 30.0 {
                 commands.entity(enemy_entity).remove::<InCover>();
-
-                info!("Enemy {} left cover", enemy_entity.index());
-                
             }
         }
     }

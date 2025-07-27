@@ -2,7 +2,6 @@
 use bevy::prelude::*;
 use leafwing_input_manager::prelude::*;
 use crate::core::*;
-use crate::systems::death::*;
 use crate::systems::projectiles::*;
 
 // Separate system to process attack events
@@ -144,7 +143,7 @@ fn execute_attack(
             weapon_type.clone(),
         );
         
-        audio_events.send(AudioEvent { 
+        audio_events.write(AudioEvent { 
             sound: AudioType::Gunshot, 
             volume: (0.7 * noise).clamp(0.1, 1.0) 
         });
@@ -171,7 +170,7 @@ fn execute_attack(
             weapon_type,
         );
         
-        audio_events.send(AudioEvent { 
+        audio_events.write(AudioEvent { 
             sound: AudioType::Gunshot, 
             volume: (0.5 * noise).clamp(0.1, 1.0) 
         });

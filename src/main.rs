@@ -12,8 +12,8 @@ use systems::ui::hub::agents::AgentManagementState;
 use systems::ui::{main_menu, settings, credits};
 use systems::ui::{MainMenuState};
 use systems::ui::screens::InventoryUIState;
-use systems::death::*;
-
+use systems::interactive_decals::*;
+use systems::explosion_decal_integration::*;            
 use systems::police::{load_police_config, PoliceResponse, PoliceEscalation};
 
 mod core;
@@ -52,6 +52,7 @@ fn main() {
         // .add_plugins(bevy::diagnostic::EntityCountDiagnosticsPlugin::default())
 
         .register_type::<PlayerAction>()
+        .register_type::<DecalDemoAction>()
 
         .init_state::<GameState>()
 
@@ -75,6 +76,7 @@ fn main() {
         .init_resource::<ProjectilePool>()
         .init_resource::<ContinuousAttackState>()
         .init_resource::<DecalSettings>()
+        .init_resource::<InteractiveDecalSettings>()
 
         .insert_resource(GameConfig::load())
         .insert_resource(global_data)
@@ -207,6 +209,7 @@ fn main() {
                 factions::setup_factions_system,
                 factions::faction_color_system,
                 // message_window::setup_message_window,
+                setup_interactive_decals_demo,
             ).after(setup_mission_scene_optimized),
         ))
 
@@ -266,11 +269,11 @@ fn main() {
             decals::decal_fade_system,
             decals::decal_cleanup_system,
             death::corpse_cleanup_system,
-            // death::dead_entity_ai_cleanup,
             
             // Add decals for projectile impacts
             // projectile_impact_decals,
-            // explosion_scorch_decals,
+            enhanced_projectile_impact_decals,
+            explosion_scorch_decals,
         ).run_if(in_state(GameState::Mission)))
 
         .add_systems(Update, (
@@ -362,27 +365,32 @@ fn main() {
         ).run_if(in_state(GameState::Mission)))
 
         .add_systems(Update, (
-            explosions::explosion_damage_system,
+            // explosions::explosion_damage_system,
+            enhanced_explosion_damage_system,
             explosions::time_bomb_system,
             explosions::pending_explosion_system,
             explosions::status_effect_system,
             explosions::floating_text_system,
-            explosions::handle_grenade_events,
-            explosions::handle_vehicle_explosions,
+            // explosions::handle_grenade_events,
+            enhanced_handle_grenade_events,
+            // explosions::handle_vehicle_explosions,
+            enhanced_handle_vehicle_explosions,
 
-/*
-            explosions::explosion_damage_system,
-            explosions::floating_text_system,
-            explosions::handle_grenade_events,
-            explosions::handle_vehicle_explosions,
-            // NEW
-            explosions::time_bomb_system,
-            explosions::pending_explosion_system,
-            explosions::status_effect_system,
-*/            
             scanner::scanner_ui_system,
             scanner::scanner_cleanup_system,
         ).run_if(in_state(GameState::Mission)))
+
+        .add_systems(Update, (
+            // Movement and interaction systems
+            interactive_decal_movement_system,
+            electrical_hazard_system,
+            stuck_entities_system,
+            
+            // Fire systems
+            fire_ignition_system,
+            fire_burn_system,
+            
+        ).run_if(in_state(GameState::Mission)))        
 
         // Hacking and infrastructure
         .add_systems(Update, (
@@ -420,6 +428,11 @@ fn main() {
             despawn::despawn_marked_entities,
         ).run_if(in_state(GameState::Mission)))
 
+        // TESTING & DEBUG
+        .add_systems(Update, (
+            interactive_decals_demo_system,
+        ).run_if(in_state(GameState::Mission)))
+
         // POST MISSION
         .add_systems(OnEnter(GameState::PostMission), (
             ui::cleanup_mission_ui,
@@ -433,6 +446,33 @@ fn main() {
         
         .run();
 }
+
+// === TESTING SCENARIOS ===
+
+/*
+Great chain reaction scenarios to test:
+
+1. **The Gas Station**: 
+   - Place fuel barrels near gasoline spills
+   - Shoot or explode near the spills
+   - Watch fire spread and trigger barrel explosions
+
+2. **The Parking Lot**:
+   - Multiple cars with oil spills
+   - One explosion should create fire that spreads between vehicles
+   - Chain reaction of vehicle explosions
+
+3. **The Industrial Zone**:
+   - Mix of oil spills, gas spills, and electrical puddles
+   - Electric puddles damage entities walking through
+   - Fire spreads between flammable areas
+
+4. **The Convoy Ambush**:
+   - Fuel truck creates massive gasoline spill when destroyed
+   - Fire spreads to nearby vehicles and explodables
+   - Creates area denial as players/enemies avoid burning zones
+*/
+
 
 pub fn setup_mission_scene_optimized(
     mut commands: Commands,
@@ -495,6 +535,13 @@ pub fn setup_mission_scene_optimized(
             error!("Failed to load scene: {}. Creating fallback.", scene_name);
         }
     }
+
+    spawn_oil_spill(&mut commands, Vec2::new(100.0, 100.0), 50.0);
+    spawn_gasoline_spill(&mut commands, Vec2::new(200.0, 100.0), 40.0);
+    spawn_explodable(&mut commands, Vec2::new(250.0, 100.0), ExplodableType::FuelBarrel);
+
+    // setup_chain_reaction_test_scenario(commands);
+    create_stress_test_scenario(commands);
 }
 
 fn setup_camera_and_input(mut commands: Commands) {
