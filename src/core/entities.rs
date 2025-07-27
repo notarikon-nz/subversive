@@ -261,6 +261,24 @@ pub enum CyberneticType {
     CombatEnhancer,
     StealthModule,
     TechInterface,
+    ArmorPlating,
+    ReflexEnhancer,
+}
+
+use std::fmt;
+
+impl fmt::Display for CyberneticType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let name = match self {
+            CyberneticType::Neurovector => "Neurovector",
+            CyberneticType::CombatEnhancer => "Combat Enhancer",
+            CyberneticType::StealthModule => "Stealth Implant",
+            CyberneticType::TechInterface => "Hacking Booster",
+            CyberneticType::ArmorPlating => "Armor Plating",
+            CyberneticType::ReflexEnhancer => "Reflex Enhancer",
+        };
+        write!(f, "{}", name)
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

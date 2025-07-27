@@ -11,6 +11,7 @@ use systems::ui::hub::{CyberneticsDatabase, HubStates, HubDatabases, HubProgress
 use systems::ui::hub::agents::AgentManagementState;
 use systems::ui::{main_menu, settings, credits};
 use systems::ui::{MainMenuState};
+use systems::ui::screens::InventoryUIState;
 
 
 use systems::police::{load_police_config, PoliceResponse, PoliceEscalation};
@@ -59,6 +60,7 @@ fn main() {
         .init_resource::<SelectionState>()
         .init_resource::<MissionData>()
         .init_resource::<InventoryState>()
+        .init_resource::<InventoryUIState>()
         .init_resource::<PostMissionResults>()
         .init_resource::<MissionState>()
         .init_resource::<DayNightCycle>()
@@ -134,7 +136,8 @@ fn main() {
         ))
 
         .add_systems(Update, (
-            ui::screens::fps_system,
+            ui::fps_system,
+
             pool::cleanup_inactive_entities,
             save::auto_save_system,
             save::save_input_system,
@@ -253,7 +256,7 @@ fn main() {
 
             ui::world::system,
             ui::screens::inventory_system,
-            ui::screens::pause_system,
+            ui::pause_system,
 
         ).run_if(in_state(GameState::Mission)))
 
@@ -411,7 +414,7 @@ fn main() {
 
         .add_systems(Update, (
             mission::process_mission_results,  
-            ui::screens::post_mission_ui_system,
+            ui::post_mission_ui_system,
             
         ).run_if(in_state(GameState::PostMission)))
         

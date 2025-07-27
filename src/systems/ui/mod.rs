@@ -9,10 +9,18 @@ pub mod builder;
 pub mod main_menu;
 pub mod settings;
 pub mod credits;
+pub mod fps;
+pub mod pause;
+pub mod inventory;
+pub mod post_mission;
 
 pub use screens::*;
 pub use hub::*;
 pub use main_menu::*;
+pub use fps::*;
+pub use pause::*;
+pub use inventory::*;
+pub use post_mission::*;
 
 pub fn cleanup_mission_ui(
     mut commands: Commands,

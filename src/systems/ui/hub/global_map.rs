@@ -4,6 +4,9 @@ use crate::core::*;
 use crate::systems::ui::builder::*;
 
 #[derive(Component)]
+pub struct GlobalMapScreen;
+
+#[derive(Component)]
 pub struct InteractiveCity {
     pub city_id: String,
     pub accessible: bool,

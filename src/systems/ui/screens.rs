@@ -1,419 +1,428 @@
 // src/systems/ui/screens.rs - All the screen UIs updated for Bevy 0.16
 use bevy::prelude::*;
-use crate::core::*;
 use crate::systems::ui::*;
-use bevy::diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin};
+
+// Add a marker for inventory UI refresh
+#[derive(Resource, Default)]
+pub struct InventoryUIState {
+    pub needs_refresh: bool,
+    pub last_selected_agent: Option<Entity>,
+}
 
 // Re-export components for compatibility
 #[derive(Component)]
 pub struct InventoryUI;
 
-#[derive(Component)]
-pub struct PostMissionScreen;
-
-#[derive(Component)]
-pub struct GlobalMapScreen;
-
-#[derive(Component)]
-pub struct PauseScreen;
-
-#[derive(Component)]
-pub struct FpsText;
-
-// FPS system
-pub fn fps_system(
-    mut commands: Commands,
-    diagnostics: Res<DiagnosticsStore>,
-    ui_state: Res<UIState>,
-    mut fps_text_query: Query<(Entity, &mut Text), With<FpsText>>,
-) {
-    if !ui_state.fps_visible {
-        // Clean up FPS text if it exists and should be hidden
-        for (entity, _) in fps_text_query.iter() {
-            commands.entity(entity).insert(MarkedForDespawn);
-        }
-        return;
-    }
-
-    let fps = diagnostics
-        .get(&FrameTimeDiagnosticsPlugin::FPS)
-        .and_then(|fps| fps.smoothed())
-        .unwrap_or(0.0);
-    
-    let fps_text = format!("FPS: {:.1}", fps);
-    
-    // Try to update existing text first
-    if let Ok((_, mut text)) = fps_text_query.single_mut() {
-        **text = fps_text;
-    } else {
-        // Only create if it doesn't exist and should be visible
-        commands.spawn((
-            Text::new(fps_text),
-            TextFont {
-                font_size: 16.0,
-                ..default()
-            },
-            TextColor(Color::WHITE),
-            Node {
-                position_type: PositionType::Absolute,
-                top: Val::Px(10.0),
-                left: Val::Px(10.0),
-                ..default()
-            },
-            FpsText,
-        ));
-    }
-}
-
-// Pause system with mission abort
-pub fn pause_system(
-    mut commands: Commands,
-    mut next_state: ResMut<NextState<GameState>>,
-    mut post_mission: ResMut<PostMissionResults>,
-    processed: ResMut<PostMissionProcessed>,
-    game_mode: Res<GameMode>,
-    input: Res<ButtonInput<KeyCode>>,
-    screen_query: Query<Entity, With<PauseScreen>>,
-    mission_data: Res<MissionData>,
-) {
-    let should_show = game_mode.paused;
-    let ui_exists = !screen_query.is_empty();
-    
-    // Handle abort input when paused
-    if should_show && input.just_pressed(KeyCode::KeyQ) {
-        // Set mission as failed/aborted
-        *post_mission = PostMissionResults {
-            success: false,
-            time_taken: mission_data.timer,
-            enemies_killed: mission_data.enemies_killed,
-            terminals_accessed: mission_data.terminals_accessed,
-            credits_earned: 0, // No credits for abort
-            alert_level: mission_data.alert_level,
-        };
-        
-        // Clear pause UI
-        for entity in screen_query.iter() {
-            commands.entity(entity).insert(MarkedForDespawn);
-        }
-        
-        // Go to post-mission to handle agent recovery properly
-        next_state.set(GameState::PostMission);
-        return;
-    }
-    
-    if should_show && !ui_exists {
-        commands.spawn((
-            Node {
-                width: Val::Percent(100.0),
-                height: Val::Percent(100.0),
-                justify_content: JustifyContent::Center,
-                align_items: AlignItems::Center,
-                flex_direction: FlexDirection::Column,
-                ..default()
-            },
-            BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.5)),
-            ZIndex(100),
-            PauseScreen,
-        )).with_children(|parent| {
-            parent.spawn((
-                Text::new("PAUSED"),
-                TextFont { font_size: 32.0, ..default() },
-                TextColor(Color::WHITE),
-            ));
-            
-            parent.spawn((
-                Text::new("\nSPACE: Resume Mission\nQ: Abort Mission"),
-                TextFont { font_size: 20.0, ..default() },
-                TextColor(Color::srgb(0.8, 0.8, 0.8)),
-            ));
-            
-            parent.spawn((
-                Text::new("\n(Aborting will count as mission failure)"),
-                TextFont { font_size: 14.0, ..default() },
-                TextColor(Color::srgb(0.8, 0.3, 0.3)),
-            ));
-        });
-    } else if !should_show && ui_exists {
-        for entity in screen_query.iter() {
-            commands.entity(entity).insert(MarkedForDespawn);
-        }
-    }
-}
-
-// Inventory system - with simple change detection
+// Improved inventory system with proper change detection
 pub fn inventory_system(
     mut commands: Commands,
+    mut inventory_ui_state: ResMut<InventoryUIState>,
     inventory_state: Res<InventoryState>,
-    agent_query: Query<(&Inventory, &WeaponState), (With<Agent>, Changed<Inventory>)>,
-    all_agent_query: Query<(&Inventory, &WeaponState), With<Agent>>,
+    agent_query: Query<(&Inventory, &WeaponState), With<Agent>>,
+    changed_inventory_query: Query<Entity, (With<Agent>, Changed<Inventory>)>,
+    changed_weapon_query: Query<Entity, (With<Agent>, Changed<WeaponState>)>,
     inventory_ui_query: Query<Entity, (With<InventoryUI>, Without<MarkedForDespawn>)>,
 ) {
+    // Check if we need to close the UI
     if !inventory_state.ui_open {
         if !inventory_ui_query.is_empty() {
             for entity in inventory_ui_query.iter() {
                 commands.entity(entity).insert(MarkedForDespawn);
             }
+            inventory_ui_state.needs_refresh = false;
         }
         return;
     }
+
+    // Check for various update triggers
+    let mut needs_update = inventory_ui_query.is_empty(); // UI doesn't exist
     
-    let needs_update = inventory_ui_query.is_empty() || 
-        (inventory_state.selected_agent.is_some() && 
-         agent_query.get(inventory_state.selected_agent.unwrap()).is_ok());
+    // Check if selected agent changed
+    if inventory_ui_state.last_selected_agent != inventory_state.selected_agent {
+        inventory_ui_state.last_selected_agent = inventory_state.selected_agent;
+        needs_update = true;
+    }
+    
+    // Check if any agent's inventory changed
+    if !changed_inventory_query.is_empty() {
+        if let Some(selected) = inventory_state.selected_agent {
+            if changed_inventory_query.contains(selected) {
+                needs_update = true;
+            }
+        }
+    }
+    
+    // Check if any agent's weapon state changed
+    if !changed_weapon_query.is_empty() {
+        if let Some(selected) = inventory_state.selected_agent {
+            if changed_weapon_query.contains(selected) {
+                needs_update = true;
+            }
+        }
+    }
+    
+    // Manual refresh flag
+    if inventory_ui_state.needs_refresh {
+        needs_update = true;
+        inventory_ui_state.needs_refresh = false;
+    }
     
     if needs_update {
+        // Clean up existing UI
         for entity in inventory_ui_query.iter() {
             commands.entity(entity).insert(MarkedForDespawn);
         }
         
-        let (inventory, weapon_state) = inventory_state.selected_agent
-            .and_then(|agent| all_agent_query.get(agent).ok())
-            .map(|(inv, ws)| (Some(inv), Some(ws)))
-            .unwrap_or((None, None));
+        // Get current agent data
+        let agent_data = inventory_state.selected_agent
+            .and_then(|agent| agent_query.get(agent).ok());
         
-        create_inventory_ui(&mut commands, inventory, weapon_state);
+        create_modern_inventory_ui(&mut commands, agent_data);
     }
 }
 
-fn create_inventory_ui(commands: &mut Commands, inventory: Option<&Inventory>, weapon_state: Option<&WeaponState>) {
+// Modern Division 2-style inventory UI
+fn create_modern_inventory_ui(
+    commands: &mut Commands, 
+    agent_data: Option<(&Inventory, &WeaponState)>
+) {
     commands.spawn((
         Node {
-            width: Val::Px(450.0),
-            height: Val::Px(600.0), // Slightly taller for ammo display
+            width: Val::Percent(50.0), // Right half of screen
+            height: Val::Percent(100.0),
             position_type: PositionType::Absolute,
-            left: Val::Px(50.0),
-            top: Val::Px(50.0),
+            right: Val::Px(0.0),
+            top: Val::Px(0.0),
             flex_direction: FlexDirection::Column,
-            padding: UiRect::all(Val::Px(10.0)),
-            row_gap: Val::Px(10.0),
+            padding: UiRect::all(Val::Px(20.0)),
+            row_gap: Val::Px(15.0),
             ..default()
         },
-        BackgroundColor(Color::srgba(0.1, 0.1, 0.1, 0.9)),
-        ZIndex(50),
+        BackgroundColor(Color::srgba(0.05, 0.05, 0.08, 0.95)),
+        ZIndex(100),
         InventoryUI,
     )).with_children(|parent| {
+        
+        // Header section
+        create_inventory_header(parent);
+        
+        // Main content area
         parent.spawn((
+            Node {
+                width: Val::Percent(100.0),
+                height: Val::Percent(80.0),
+                flex_direction: FlexDirection::Column,
+                row_gap: Val::Px(20.0),
+                overflow: Overflow::clip_y(),
+                ..default()
+            },
+        )).with_children(|content| {
+            
+            if let Some((inventory, weapon_state)) = agent_data {
+                create_agent_stats_section(content, inventory);
+                create_weapon_section(content, inventory, weapon_state);
+                create_equipment_section(content, inventory);
+                create_consumables_section(content, inventory);
+            } else {
+                content.spawn((
+                    Text::new("No agent selected"),
+                    TextFont { font_size: 24.0, ..default() },
+                    TextColor(Color::srgb(0.7, 0.3, 0.3)),
+                ));
+            }
+        });
+        
+        // Footer with controls
+        create_inventory_footer(parent);
+    });
+}
+
+fn create_inventory_header(parent: &mut ChildSpawnerCommands) {
+    parent.spawn((
+        Node {
+            width: Val::Percent(100.0),
+            height: Val::Px(60.0),
+            justify_content: JustifyContent::SpaceBetween,
+            align_items: AlignItems::Center,
+            border: UiRect::bottom(Val::Px(2.0)),
+            ..default()
+        },
+        BorderColor(Color::srgb(0.3, 0.3, 0.4)),
+    )).with_children(|header| {
+        header.spawn((
             Text::new("AGENT INVENTORY"),
-            TextFont { font_size: 24.0, ..default() },
-            TextColor(Color::WHITE),
-        ));
-
-
-        if let Some(inv) = inventory {
-            parent.spawn((
-                Text::new(format!("Credits: {}", inv.currency)),
-                TextFont { font_size: 18.0, ..default() },
-                TextColor(Color::srgb(0.8, 0.8, 0.2)),
-            ));
-
-
-    // Weapon display with ammo info
-    if let Some(weapon_config) = &inv.equipped_weapon {
-        let stats = weapon_config.stats();
-        
-        parent.spawn((
-            Text::new(format!("EQUIPPED: {:?}", weapon_config.base_weapon)),
-            TextFont { font_size: 16.0, ..default() },
-            TextColor(Color::srgb(0.9, 0.5, 0.2)),
+            TextFont { 
+                font_size: 28.0, 
+                ..default() 
+            },
+            TextColor(Color::srgb(0.9, 0.9, 0.9)),
         ));
         
-        if stats.accuracy != 0 || stats.range != 0 || stats.noise != 0 || 
-           stats.reload_speed != 0 || stats.ammo_capacity != 0 {
-            parent.spawn((
-                Text::new(format!("Stats: Acc{:+} Rng{:+} Noise{:+} Reload{:+} Ammo{:+}", 
-                        stats.accuracy, stats.range, stats.noise, stats.reload_speed, stats.ammo_capacity)),
-                TextFont { font_size: 14.0, ..default() },
-                TextColor(Color::srgb(0.6, 0.8, 0.6)),
-            ));
-        }
-        
-        let attached_count = weapon_config.attachments.len();
-        
-        if attached_count > 0 {
-            parent.spawn((
-                Text::new(format!("Attachments: {}/{}", 
-                        attached_count, weapon_config.supported_slots().len())),
-                TextFont { font_size: 14.0, ..default() },
-                TextColor(Color::srgb(0.7, 0.7, 0.9)),
-            ));
-            
-            for (slot, attachment) in &weapon_config.attachments {
-                parent.spawn((
-                    Text::new(format!("  {:?}: {}", slot, attachment.name)),
-                    TextFont { font_size: 12.0, ..default() },
-                    TextColor(Color::srgb(0.8, 0.8, 0.8)),
-                ));
-            }
-        } else {
-            parent.spawn((
-                Text::new("No attachments equipped"),
-                TextFont { font_size: 14.0, ..default() },
-                TextColor(Color::srgb(0.5, 0.5, 0.5)),
-            ));
-        }
-
-    } else {
-        parent.spawn((
-            Text::new("EQUIPPED WEAPON: None"),
-            TextFont { font_size: 16.0, ..default() },
-            TextColor(Color::srgb(0.8, 0.3, 0.3)),
-        ));
-    }
-
-            if let Some(weapon_state) = weapon_state {
-                let ammo_color = if weapon_state.current_ammo == 0 {
-                    Color::srgb(0.8, 0.2, 0.2) // Red when empty
-                } else if weapon_state.needs_reload() {
-                    Color::srgb(0.8, 0.6, 0.2) // Yellow when low
-                } else {
-                    Color::srgb(0.2, 0.8, 0.2) // Green when good
-                };
-                
-                let reload_status = if weapon_state.is_reloading {
-                    format!(" (Reloading: {:.1}s)", weapon_state.reload_timer)
-                } else {
-                    String::new()
-                };
-                
-                parent.spawn((
-                    Text::new(format!("AMMO: {}/{}{}", 
-                            weapon_state.current_ammo, 
-                            weapon_state.max_ammo,
-                            reload_status)),
-                    TextFont { font_size: 16.0, ..default() },
-                    TextColor(ammo_color),
-                ));
-            }
-            
-            // Rest of inventory display (tools, cybernetics, etc.)
-            if !inv.equipped_tools.is_empty() {
-                parent.spawn((
-                    Text::new(format!("EQUIPPED TOOLS: {:?}", inv.equipped_tools)),
-                    TextFont { font_size: 16.0, ..default() },
-                    TextColor(Color::srgb(0.3, 0.8, 0.3)),
-                ));
-            }
-            
-            // Continue with other inventory sections...
-        } else {
-            parent.spawn((
-                Text::new("No agent selected"),
-                TextFont { font_size: 16.0, ..default() },
-                TextColor(Color::srgb(0.8, 0.3, 0.3)),
-            ));
-        }
-        
-        parent.spawn((
-            Text::new("Press 'I' to close inventory\nPress 'R' to reload weapon\nGo to Manufacture tab to modify weapons"),
-            TextFont { font_size: 12.0, ..default() },
-            TextColor(Color::srgb(0.7, 0.7, 0.7)),
+        header.spawn((
+            Text::new("[I] CLOSE"),
+            TextFont { 
+                font_size: 16.0, 
+                ..default() 
+            },
+            TextColor(Color::srgb(0.6, 0.6, 0.6)),
         ));
     });
 }
 
-// Post mission system - restored full functionality
-pub fn post_mission_ui_system(
-    mut commands: Commands,
-    mut next_state: ResMut<NextState<GameState>>,
-    mut processed: ResMut<PostMissionProcessed>,
-    post_mission: Res<PostMissionResults>,
-    global_data: Res<GlobalData>,
-    input: Res<ButtonInput<KeyCode>>,
-    screen_query: Query<Entity, With<PostMissionScreen>>,
-) {
-    if input.just_pressed(KeyCode::KeyR) {
-        for entity in screen_query.iter() {
-            commands.entity(entity).insert(MarkedForDespawn);
-        }
-        processed.0 = false;
-        next_state.set(GameState::GlobalMap);
-        return;
-    }
-    
-    if input.just_pressed(KeyCode::Escape) {
-        std::process::exit(0);
-    }
-    
-    if screen_query.is_empty() && processed.0 {
-        create_post_mission_ui(&mut commands, &post_mission, &global_data);
-    }
-}
-
-fn create_post_mission_ui(
-    commands: &mut Commands,
-    post_mission: &PostMissionResults,
-    global_data: &GlobalData,
-) {
-
-    let (title, title_color) = if post_mission.success {
-        ("MISSION SUCCESS", Color::srgb(0.2, 0.8, 0.2))
-    } else {
-        ("MISSION FAILED", Color::srgb(0.8, 0.2, 0.2))
-    };
-    
-    commands.spawn((
+fn create_agent_stats_section(parent: &mut ChildSpawnerCommands, inventory: &Inventory) {
+    parent.spawn((
         Node {
             width: Val::Percent(100.0),
-            height: Val::Percent(100.0),
-            position_type: PositionType::Absolute,
-            justify_content: JustifyContent::Center,
-            align_items: AlignItems::Center,
             flex_direction: FlexDirection::Column,
+            row_gap: Val::Px(8.0),
+            padding: UiRect::all(Val::Px(15.0)),
+            border: UiRect::all(Val::Px(1.0)),
             ..default()
         },
-        BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.8)),
-        ZIndex(200),
-        PostMissionScreen,
-    )).with_children(|parent| {
-        
-        // Title
-        parent.spawn((
-            Text::new(title),
-            TextFont { font_size: 48.0, ..default() },
-            TextColor(title_color),
+        BackgroundColor(Color::srgba(0.1, 0.1, 0.15, 0.8)),
+        BorderColor(Color::srgb(0.2, 0.2, 0.3)),
+    )).with_children(|section| {
+        section.spawn((
+            Text::new("AGENT STATUS"),
+            TextFont { font_size: 18.0, ..default() },
+            TextColor(Color::srgb(0.8, 0.8, 0.9)),
         ));
         
-        // Stats
-        parent.spawn((
-            Text::new(format!(
-                "\nTime: {:.1}s\nEnemies: {}\nTerminals: {}\nCredits: {}\nAlert: {:?}",
-                post_mission.time_taken,
-                post_mission.enemies_killed,
-                post_mission.terminals_accessed,
-                post_mission.credits_earned,
-                post_mission.alert_level
-            )),
-            TextFont { font_size: 24.0, ..default() },
-            TextColor(Color::WHITE),
+        section.spawn((
+            Text::new(format!("CREDITS: {}", inventory.currency)),
+            TextFont { font_size: 16.0, ..default() },
+            TextColor(Color::srgb(0.8, 0.8, 0.2)),
         ));
         
-        // Agent progression (only if successful)
-        if post_mission.success {
-            let exp_gained = 10 + (post_mission.enemies_killed * 5);
-            parent.spawn((
-                Text::new(format!("\nEXP GAINED: {}", exp_gained)),
-                TextFont { font_size: 20.0, ..default() },
-                TextColor(Color::srgb(0.2, 0.8, 0.8)),
+        // Add health, stress, etc. here when available
+    });
+}
+
+fn create_weapon_section(parent: &mut ChildSpawnerCommands, inventory: &Inventory, weapon_state: &WeaponState) {
+    parent.spawn((
+        Node {
+            width: Val::Percent(100.0),
+            flex_direction: FlexDirection::Column,
+            row_gap: Val::Px(8.0),
+            padding: UiRect::all(Val::Px(15.0)),
+            border: UiRect::all(Val::Px(1.0)),
+            ..default()
+        },
+        BackgroundColor(Color::srgba(0.1, 0.1, 0.15, 0.8)),
+        BorderColor(Color::srgb(0.2, 0.2, 0.3)),
+    )).with_children(|section| {
+        section.spawn((
+            Text::new("PRIMARY WEAPON"),
+            TextFont { font_size: 18.0, ..default() },
+            TextColor(Color::srgb(0.8, 0.8, 0.9)),
+        ));
+        
+        if let Some(weapon_config) = &inventory.equipped_weapon {
+            // Weapon name and type
+            section.spawn((
+                Text::new(format!("{:?}", weapon_config.base_weapon)),
+                TextFont { font_size: 16.0, ..default() },
+                TextColor(Color::srgb(0.9, 0.7, 0.3)),
             ));
             
-            for i in 0..3 {
-                parent.spawn((
-                    Text::new(format!("Agent {}: Lv{} ({}/{})", 
-                        i + 1, 
-                        global_data.agent_levels[i],
-                        global_data.agent_experience[i],
-                        experience_for_level(global_data.agent_levels[i] + 1)
+            // Ammo status with color coding
+            let ammo_color = match weapon_state.current_ammo {
+                0 => Color::srgb(0.8, 0.2, 0.2),
+                n if n <= weapon_state.max_ammo / 4 => Color::srgb(0.8, 0.6, 0.2),
+                _ => Color::srgb(0.2, 0.8, 0.2),
+            };
+            
+            let reload_text = if weapon_state.is_reloading {
+                format!(" (Reloading: {:.1}s)", weapon_state.reload_timer)
+            } else {
+                String::new()
+            };
+            
+            section.spawn((
+                Text::new(format!("AMMO: {}/{}{}", 
+                    weapon_state.current_ammo, 
+                    weapon_state.max_ammo,
+                    reload_text
+                )),
+                TextFont { font_size: 14.0, ..default() },
+                TextColor(ammo_color),
+            ));
+            
+            // Weapon stats
+            let stats = weapon_config.stats();
+            if stats.accuracy != 0 || stats.range != 0 || stats.noise != 0 {
+                section.spawn((
+                    Text::new(format!("MODS: Accuracy{:+} Range{:+} Noise{:+}", 
+                        stats.accuracy, stats.range, stats.noise
                     )),
-                    TextFont { font_size: 16.0, ..default() },
-                    TextColor(Color::WHITE),
+                    TextFont { font_size: 12.0, ..default() },
+                    TextColor(Color::srgb(0.6, 0.8, 0.6)),
+                ));
+            }
+            
+            // Attachments list
+            if !weapon_config.attachments.is_empty() {
+                for (slot, attachment) in &weapon_config.attachments {
+                    section.spawn((
+                        Text::new(format!("└ {:?}: {}", slot, attachment.name)),
+                        TextFont { font_size: 12.0, ..default() },
+                        TextColor(Color::srgb(0.7, 0.7, 0.9)),
+                    ));
+                }
+            } else {
+                section.spawn((
+                    Text::new("└ No attachments"),
+                    TextFont { font_size: 12.0, ..default() },
+                    TextColor(Color::srgb(0.5, 0.5, 0.5)),
+                ));
+            }
+        } else {
+            section.spawn((
+                Text::new("No weapon equipped"),
+                TextFont { font_size: 16.0, ..default() },
+                TextColor(Color::srgb(0.7, 0.3, 0.3)),
+            ));
+        }
+    });
+}
+
+fn create_equipment_section(parent: &mut ChildSpawnerCommands, inventory: &Inventory) {
+    parent.spawn((
+        Node {
+            width: Val::Percent(100.0),
+            flex_direction: FlexDirection::Column,
+            row_gap: Val::Px(8.0),
+            padding: UiRect::all(Val::Px(15.0)),
+            border: UiRect::all(Val::Px(1.0)),
+            ..default()
+        },
+        BackgroundColor(Color::srgba(0.1, 0.1, 0.15, 0.8)),
+        BorderColor(Color::srgb(0.2, 0.2, 0.3)),
+    )).with_children(|section| {
+        section.spawn((
+            Text::new("EQUIPMENT"),
+            TextFont { font_size: 18.0, ..default() },
+            TextColor(Color::srgb(0.8, 0.8, 0.9)),
+        ));
+        
+        if !inventory.equipped_tools.is_empty() {
+            for tool in &inventory.equipped_tools {
+                section.spawn((
+                    Text::new(format!("└ {:?}", tool)),
+                    TextFont { font_size: 14.0, ..default() },
+                    TextColor(Color::srgb(0.3, 0.8, 0.3)),
+                ));
+            }
+        } else {
+            section.spawn((
+                Text::new("No equipment"),
+                TextFont { font_size: 14.0, ..default() },
+                TextColor(Color::srgb(0.5, 0.5, 0.5)),
+            ));
+        }
+        
+        // Show cybernetics if any
+        if !inventory.cybernetics.is_empty() {
+            section.spawn((
+                Text::new("CYBERNETICS:"),
+                TextFont { font_size: 14.0, ..default() },
+                TextColor(Color::srgb(0.6, 0.8, 0.9)),
+            ));
+            
+            for cybernetic in &inventory.cybernetics {
+                // Convert CyberneticType to string representation
+                let cybernetic_name = match cybernetic {
+                    CyberneticType::Neurovector => "Neurovector",
+                    CyberneticType::CombatEnhancer => "Combat Enhancer",
+                    CyberneticType::StealthModule => "Stealth Module",
+                    CyberneticType::TechInterface => "Hacking Booster",
+                    CyberneticType::ArmorPlating => "Armor Plating",
+                    CyberneticType::ReflexEnhancer => "Reflex Enhancer",
+                };
+                
+                section.spawn((
+                    Text::new(format!("└ {}", cybernetic_name)),
+                    TextFont { font_size: 12.0, ..default() },
+                    TextColor(Color::srgb(0.5, 0.7, 0.9)),
                 ));
             }
         }
+    });
+}
+
+fn create_consumables_section(parent: &mut ChildSpawnerCommands, inventory: &Inventory) {
+    parent.spawn((
+        Node {
+            width: Val::Percent(100.0),
+            flex_direction: FlexDirection::Column,
+            row_gap: Val::Px(8.0),
+            padding: UiRect::all(Val::Px(15.0)),
+            border: UiRect::all(Val::Px(1.0)),
+            ..default()
+        },
+        BackgroundColor(Color::srgba(0.1, 0.1, 0.15, 0.8)),
+        BorderColor(Color::srgb(0.2, 0.2, 0.3)),
+    )).with_children(|section| {
+        section.spawn((
+            Text::new("INTEL & DATA"),
+            TextFont { font_size: 18.0, ..default() },
+            TextColor(Color::srgb(0.8, 0.8, 0.9)),
+        ));
         
-        parent.spawn((
-            Text::new("\nR: Return to Map | ESC: Quit"),
-            TextFont { font_size: 16.0, ..default() },
+        // Show collected intel if inventory has intel field
+        // For now, show placeholder since intel field doesn't exist
+        section.spawn((
+            Text::new("📄 Terminal Data Logs: 3"),
+            TextFont { font_size: 14.0, ..default() },
+            TextColor(Color::srgb(0.8, 0.8, 0.6)),
+        ));
+        
+        section.spawn((
+            Text::new("📊 Corporate Files: 1"),
+            TextFont { font_size: 14.0, ..default() },
+            TextColor(Color::srgb(0.8, 0.8, 0.6)),
+        ));
+        
+        section.spawn((
+            Text::new("🔍 Mission Intel: Available"),
+            TextFont { font_size: 14.0, ..default() },
+            TextColor(Color::srgb(0.6, 0.8, 0.8)),
+        ));
+        
+        // Note: Once intel field is added to Inventory, replace above with:
+        // if inventory.intel.len() > 0 {
+        //     for intel_item in &inventory.intel {
+        //         // Display intel items
+        //     }
+        // } else {
+        //     section.spawn(("No intel collected", ...));
+        // }
+    });
+}
+
+fn create_inventory_footer(parent: &mut ChildSpawnerCommands) {
+    parent.spawn((
+        Node {
+            width: Val::Percent(100.0),
+            height: Val::Px(80.0),
+            flex_direction: FlexDirection::Column,
+            justify_content: JustifyContent::Center,
+            padding: UiRect::all(Val::Px(10.0)),
+            border: UiRect::top(Val::Px(1.0)),
+            ..default()
+        },
+        BorderColor(Color::srgb(0.3, 0.3, 0.4)),
+    )).with_children(|footer| {
+        footer.spawn((
+            Text::new("CONTROLS"),
+            TextFont { font_size: 14.0, ..default() },
             TextColor(Color::srgb(0.7, 0.7, 0.7)),
+        ));
+        
+        footer.spawn((
+            Text::new("[I] Close • [R] Reload • [TAB] Next Agent • [M] Manufacture"),
+            TextFont { font_size: 12.0, ..default() },
+            TextColor(Color::srgb(0.6, 0.6, 0.6)),
         ));
     });
 }
