@@ -116,11 +116,11 @@
   "vehicles": [
     {
       "position": [120.0, 50.0],
-      "vehicle_type": "civilian_car"
+      "vehicle_type": "fuel_truck"
     },
     {
       "position": [250.0, -100.0],
-      "vehicle_type": "apc"
+      "vehicle_type": "fuel_truck"
     }
   ],
   "terminals": [
@@ -145,26 +145,26 @@
     "work_zones": [
       {
         "center": [200.0, -100.0],
-        "radius": 60.0,
+        "radius": 160.0,
         "capacity": 8
       },
       {
         "center": [350.0, -50.0],
-        "radius": 50.0,
+        "radius": 150.0,
         "capacity": 6
       }
     ],
     "shopping_zones": [
       {
         "center": [50.0, -200.0],
-        "radius": 40.0,
+        "radius": 140.0,
         "capacity": 4
       }
     ],
     "residential_zones": [
       {
         "center": [-150.0, 200.0],
-        "radius": 70.0,
+        "radius": 270.0,
         "capacity": 10
       }
     ],

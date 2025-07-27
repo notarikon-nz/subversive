@@ -86,6 +86,7 @@ impl WeaponConfig {
     pub fn supported_slots(&self) -> Vec<AttachmentSlot> {
         match self.base_weapon {
             WeaponType::Pistol => vec![AttachmentSlot::Sight, AttachmentSlot::Barrel],
+            WeaponType::Shotgun => vec![AttachmentSlot::Stock, AttachmentSlot::Barrel],
             WeaponType::Rifle => vec![
                 AttachmentSlot::Sight, 
                 AttachmentSlot::Barrel, 

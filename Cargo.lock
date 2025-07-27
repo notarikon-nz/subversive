@@ -4270,7 +4270,7 @@ dependencies = [
 
 [[package]]
 name = "subversive"
-version = "0.2.5"
+version = "0.2.53"
 dependencies = [
  "bevy",
  "bevy_light_2d",

@@ -1,10 +1,6 @@
 // src/main.rs - Fixed system tuple parentheses
 use bevy::prelude::*;
-
-// https://github.com/Noxime/steamworks-rs/tree/master
-
 use bevy_rapier2d::prelude::*;
-// use bevy_light_2d::prelude::*;
 use leafwing_input_manager::prelude::*;
 
 use systems::ui::hub::{CyberneticsDatabase, HubStates, HubDatabases, HubProgress};
@@ -30,7 +26,6 @@ use systems::projectiles::*;
 fn main() {
 
     let (global_data, research_progress) = load_global_data_or_default();
-    // systems::scenes::ensure_scenes_directory();
     ensure_data_directories();
 
     App::new()
@@ -44,12 +39,8 @@ fn main() {
         }))    
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.0))
         .add_plugins(InputManagerPlugin::<PlayerAction>::default())
-//        .add_plugins(Light2dPlugin) // bevy_light_2d
         .add_plugins(bevy_mod_imgui::ImguiPlugin::default())
-
-        // .add_plugins(bevy::diagnostic::LogDiagnosticsPlugin::default())
         .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin::default())
-        // .add_plugins(bevy::diagnostic::EntityCountDiagnosticsPlugin::default())
 
         .register_type::<PlayerAction>()
         .register_type::<DecalDemoAction>()
@@ -77,6 +68,7 @@ fn main() {
         .init_resource::<ContinuousAttackState>()
         .init_resource::<DecalSettings>()
         .init_resource::<InteractiveDecalSettings>()
+        .init_resource::<PathfindingGrid>() // 0.2.5.3
 
         .insert_resource(GameConfig::load())
         .insert_resource(global_data)
@@ -132,6 +124,7 @@ fn main() {
             setup_urban_areas,
             setup_police_system,
             sprites::load_sprites,
+            pathfinding::setup_pathfinding_grid, // 0.2.5.3
         ))
 
         .add_systems(PostStartup, (
@@ -222,7 +215,6 @@ fn main() {
         .add_systems(Update, (
             camera::movement,
             selection::system,
-            movement::system,
             systems::input::handle_input,
 
             goap::goap_ai_system,
@@ -237,6 +229,14 @@ fn main() {
             morale::flee_system,
         ).run_if(in_state(GameState::Mission)))
 
+        // MOVEMENT SYSTEMS 0.2.5.3
+        // Replaces original movement::system
+        .add_systems(Update, (
+            // movement::system,
+            pathfinding::update_pathfinding_grid,
+            pathfinding::add_pathfinding_to_agents,
+            pathfinding::pathfinding_movement_system, 
+        ).run_if(in_state(GameState::Mission)))        
         
         // Combat and interaction systems
         .add_systems(Update, (            
@@ -431,6 +431,7 @@ fn main() {
 
         // TESTING & DEBUG
         .add_systems(Update, (
+            debug_pathfinding_grid,
             interactive_decals_demo_system,
         ).run_if(in_state(GameState::Mission)))
 

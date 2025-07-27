@@ -16,6 +16,7 @@ pub enum WeaponType {
     RocketLauncher,
     LaserRifle,
     PlasmaGun,
+    Shotgun,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -122,6 +123,16 @@ impl WeaponBehavior {
                 area_damage: Some(60.0),
                 energy_cost: Some(40.0),
             },
+            WeaponType::Shotgun => Self {
+                preferred_range: 75.0,
+                burst_fire: false,
+                requires_cover: false,
+                penetration: true,
+                reload_retreat: false,
+                area_effect: true,
+                area_damage: Some(10.0),
+                energy_cost: None,
+            },            
         }
     }
 }
@@ -183,6 +194,7 @@ impl WeaponState {
     pub fn new_from_type(weapon_type: &WeaponType) -> Self {
         let (max_ammo, reload_time) = match weapon_type {
             WeaponType::Pistol => (12, 1.5),
+            WeaponType::Shotgun => (2, 2.0),
             WeaponType::Rifle => (30, 2.0),
             WeaponType::Minigun => (100, 4.0),
             WeaponType::Flamethrower => (50, 3.0),
@@ -248,6 +260,7 @@ impl WeaponState {
         // Apply ammo capacity modifier
         let base_ammo = match weapon_config.base_weapon {
             WeaponType::Pistol => 12,
+            WeaponType::Shotgun => 2,
             WeaponType::Rifle => 30,
             WeaponType::Minigun => 100,
             WeaponType::Flamethrower => 50,

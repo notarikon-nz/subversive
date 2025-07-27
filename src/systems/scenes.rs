@@ -131,6 +131,8 @@ fn parse_vehicle_type(type_str: &str) -> VehicleType {
         "apc" => VehicleType::APC,
         "vtol" => VehicleType::VTOL,
         "tank" => VehicleType::Tank,
+        "truck" => VehicleType::Truck,
+        "fuel_truck" => VehicleType::FuelTruck,
         _ => VehicleType::CivilianCar,
     }
 }
@@ -288,6 +290,7 @@ fn spawn_enemy(commands: &mut Commands, pos: Vec2, patrol: Vec<Vec2>, global_dat
     ));
 }
 
+// 0.2.5.3 - added Pathfinding Obstacle component
 fn spawn_terminal(commands: &mut Commands, pos: Vec2, terminal_type: &str, sprites: &GameSprites) {
     let (sprite, _) = create_terminal_sprite(sprites, &parse_terminal_type(terminal_type));
     
@@ -300,14 +303,19 @@ fn spawn_terminal(commands: &mut Commands, pos: Vec2, terminal_type: &str, sprit
             accessed: false 
         },
         Selectable { radius: 15.0 },
-        // Terminals are static and should block movement
         RigidBody::Fixed,
         Collider::ball(12.0),
         CollisionGroups::new(TERMINAL_GROUP, Group::ALL),
         Scannable,
+        PathfindingObstacle {
+            radius: 12.0,
+            blocks_movement: true, // Terminals block movement
+        },        
     ));
 }
 
+
+// 0.2.5.3 - added Pathfinding Obstacle component
 pub fn spawn_cover_points(commands: &mut Commands) {
     let positions = [
         Vec2::new(50.0, -50.0), Vec2::new(250.0, -150.0), Vec2::new(-50.0, 100.0),
@@ -327,10 +335,14 @@ pub fn spawn_cover_points(commands: &mut Commands) {
                 current_users: 0,
                 cover_direction: Vec2::X,
             },
-            // Cover provides partial collision
+            // Physics
             RigidBody::Fixed,
-            Collider::cuboid(10.0, 20.0), // Half the sprite size
+            Collider::cuboid(10.0, 20.0),
             CollisionGroups::new(COVER_GROUP, Group::ALL),
+            PathfindingObstacle {
+                radius: 15.0,
+                blocks_movement: false, // Cover provides concealment but can be moved around
+            },
         ));
     }
 }

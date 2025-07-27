@@ -11,7 +11,7 @@ pub fn process_attack_events(
     mut audio_events: EventWriter<AudioEvent>,
     agent_query: Query<(&Transform, &Inventory), With<Agent>>,
     mut agent_weapon_query: Query<&mut WeaponState, With<Agent>>,
-    target_query: Query<(Entity, &Transform, &Health), Or<(With<Enemy>, With<Vehicle>)>>,
+    target_query: Query<(Entity, &Transform, &Health), Or<(With<Enemy>, With<Vehicle>, With<Civilian>)>>,
     weapon_db: Res<WeaponDatabase>,
 ) {
     for event in action_events.read() {
@@ -30,7 +30,7 @@ pub fn system(
     mut audio_events: EventWriter<AudioEvent>,
     agent_query: Query<(&Transform, &Inventory), With<Agent>>,
     mut agent_weapon_query: Query<&mut WeaponState, With<Agent>>,
-    target_query: Query<(Entity, &Transform, &Health), Or<(With<Enemy>, With<Vehicle>)>>,
+    target_query: Query<(Entity, &Transform, &Health), Or<(With<Enemy>, With<Vehicle>, With<Civilian>)>>,
     game_mode: Res<GameMode>,
     weapon_db: Res<WeaponDatabase>,
     windows: Query<&Window>,
@@ -53,7 +53,7 @@ fn handle_combat_targeting(
     input: &Query<&ActionState<PlayerAction>>,
     agent_query: &Query<(&Transform, &Inventory), With<Agent>>,
     agent_weapon_query: &mut Query<&mut WeaponState, With<Agent>>,
-    target_query: &Query<(Entity, &Transform, &Health), Or<(With<Enemy>, With<Vehicle>)>>,
+    target_query: &Query<(Entity, &Transform, &Health), Or<(With<Enemy>, With<Vehicle>, With<Civilian>)>>,
     audio_events: &mut EventWriter<AudioEvent>,
     weapon_db: &WeaponDatabase,
     gizmos: &mut Gizmos,
@@ -92,7 +92,7 @@ fn execute_attack(
     commands: &mut Commands,
     agent_query: &Query<(&Transform, &Inventory), With<Agent>>,
     agent_weapon_query: &mut Query<&mut WeaponState, With<Agent>>,
-    target_query: &Query<(Entity, &Transform, &Health), Or<(With<Enemy>, With<Vehicle>)>>,
+    target_query: &Query<(Entity, &Transform, &Health), Or<(With<Enemy>, With<Vehicle>, With<Civilian>)>>,
     audio_events: &mut EventWriter<AudioEvent>,
     weapon_db: &WeaponDatabase,
 ) {
@@ -231,7 +231,7 @@ fn get_attack_stats(
 
 fn draw_targets_in_range(
     gizmos: &mut Gizmos,
-    target_query: &Query<(Entity, &Transform, &Health), Or<(With<Enemy>, With<Vehicle>)>>,
+    target_query: &Query<(Entity, &Transform, &Health), Or<(With<Enemy>, With<Vehicle>, With<Civilian>)>>,
     agent_pos: Vec2,
     range: f32,
 ) {
@@ -245,7 +245,7 @@ fn draw_targets_in_range(
 }
 
 fn find_target_at_mouse(
-    target_query: &Query<(Entity, &Transform, &Health), Or<(With<Enemy>, With<Vehicle>)>>,
+    target_query: &Query<(Entity, &Transform, &Health), Or<(With<Enemy>, With<Vehicle>, With<Civilian>)>>,
     agent_pos: Vec2,
     range: f32,
     windows: &Query<&Window>,
@@ -270,26 +270,6 @@ fn draw_crosshair(gizmos: &mut Gizmos, position: Vec2, size: f32, color: Color) 
     gizmos.line_2d(position + Vec2::new(-h, 0.0), position + Vec2::new(h, 0.0), color);
     gizmos.line_2d(position + Vec2::new(0.0, -h), position + Vec2::new(0.0, h), color);
 }
-
-/*
-pub fn death_system(
-    mut commands: Commands,
-    mut target_query: Query<(Entity, &mut Health, &mut Sprite), (Or<(With<Enemy>, With<Vehicle>)>, Without<Dead>)>,
-    enemy_query: Query<Entity, (With<Enemy>, Without<Dead>)>,
-    mut mission_data: ResMut<MissionData>,
-) {
-    for (entity, health, mut sprite) in target_query.iter_mut() {
-        if health.0 <= 0.0 {
-            commands.entity(entity).insert(Dead);
-            sprite.color = Color::srgb(0.3, 0.1, 0.1);
-            
-            if enemy_query.contains(entity) {
-                mission_data.enemies_killed += 1;
-            }
-        }
-    }
-}
-*/
 
 // ENEMY SYSTEM
 pub fn enemy_combat_system(
@@ -472,7 +452,7 @@ fn get_enemy_attack_stats(
 // Auto-reload system - add this to your main.rs update systems
 pub fn auto_reload_system(
     mut agent_weapon_query: Query<&mut WeaponState, With<Agent>>,
-    mut action_events: EventWriter<ActionEvent>,
+    action_events: EventWriter<ActionEvent>,
     agent_query: Query<Entity, With<Agent>>,
     time: Res<Time>,
     game_mode: Res<GameMode>,

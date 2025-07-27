@@ -141,6 +141,7 @@ fn weapon_value(weapon_config: &Option<WeaponConfig>) -> u32 {
     
     let base_value = match config.base_weapon {
         WeaponType::Pistol => 10,
+        WeaponType::Shotgun => 20,
         WeaponType::Rifle => 30,
         WeaponType::Minigun => 50,
         WeaponType::Flamethrower => 40,

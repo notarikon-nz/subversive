@@ -17,6 +17,23 @@
         "energy_cost": null
       }
     },
+    "Shotgun": {
+      "name": "Combat Shotgun",
+      "max_ammo": 2,
+      "reload_time": 2.0,
+      "damage": 75.0,
+      "behavior": {
+        "preferred_range": 75.0,
+        "burst_fire": false,
+        "requires_cover": false,
+        "area_effect": true,
+        "reload_retreat": false,
+        "projectile_type": "Bullet",
+        "area_damage": 10.0,
+        "penetration": true,
+        "energy_cost": null
+      }
+    },
     "Rifle": {
       "name": "Assault Rifle",
       "max_ammo": 30,

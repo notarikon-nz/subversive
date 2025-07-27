@@ -33,6 +33,7 @@ pub mod decals;
 pub mod interactive_decals;
 pub mod explosion_decal_integration;
 pub mod interactive_decals_demo;
+pub mod pathfinding;
 
 pub use message_window::*;
 pub use urban_simulation::*;
@@ -47,6 +48,7 @@ pub use decals::*;
 pub use interactive_decals::*;
 pub use explosion_decal_integration::*;
 pub use interactive_decals_demo::*;
+pub use pathfinding::*;
 
 pub mod scenes;
 

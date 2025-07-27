@@ -87,6 +87,13 @@ pub fn spawn_projectile(
             2.0, 
             ProjectileBehavior::Standard
         ),
+        WeaponType::Shotgun => (
+            700.0, 
+            Color::srgb(1.0, 1.0, 0.8), 
+            Vec2::new(4.0, 2.0), 
+            2.0, 
+            ProjectileBehavior::Standard
+        ),        
         WeaponType::Rifle => (
             1200.0, 
             Color::srgb(1.0, 0.9, 0.6), 
