@@ -1,6 +1,7 @@
 // src/systems/ai.rs - Updated to integrate with GOAP
 use bevy::prelude::*;
 use crate::core::*;
+use crate::systems::death::*;
 
 #[derive(Component)]
 pub struct AIState {
@@ -85,7 +86,7 @@ pub fn alert_system(
 
 // Keep the legacy AI system for backward compatibility
 pub fn legacy_enemy_ai_system(
-    mut enemy_query: Query<(Entity, &Transform, &mut AIState, &mut Vision, &mut Patrol), (With<Enemy>, Without<Dead>, Without<GoapAgent>)>,
+    mut enemy_query: Query<(Entity, &Transform, &mut AIState, &mut Vision, &mut Patrol), (With<Enemy>, Without<Dead>, Without<GoapAgent>, Without<Corpse>)>,
     agent_query: Query<(Entity, &Transform), With<Agent>>,
     mut audio_events: EventWriter<AudioEvent>,
     mut action_events: EventWriter<ActionEvent>,

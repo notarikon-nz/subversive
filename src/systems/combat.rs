@@ -2,6 +2,7 @@
 use bevy::prelude::*;
 use leafwing_input_manager::prelude::*;
 use crate::core::*;
+use crate::systems::death::*;
 use crate::systems::projectiles::*;
 
 // Separate system to process attack events
@@ -271,6 +272,7 @@ fn draw_crosshair(gizmos: &mut Gizmos, position: Vec2, size: f32, color: Color) 
     gizmos.line_2d(position + Vec2::new(0.0, -h), position + Vec2::new(0.0, h), color);
 }
 
+/*
 pub fn death_system(
     mut commands: Commands,
     mut target_query: Query<(Entity, &mut Health, &mut Sprite), (Or<(With<Enemy>, With<Vehicle>)>, Without<Dead>)>,
@@ -288,7 +290,7 @@ pub fn death_system(
         }
     }
 }
-
+*/
 
 // ENEMY SYSTEM
 pub fn enemy_combat_system(

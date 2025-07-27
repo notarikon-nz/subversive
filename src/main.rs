@@ -12,7 +12,7 @@ use systems::ui::hub::agents::AgentManagementState;
 use systems::ui::{main_menu, settings, credits};
 use systems::ui::{MainMenuState};
 use systems::ui::screens::InventoryUIState;
-
+use systems::death::*;
 
 use systems::police::{load_police_config, PoliceResponse, PoliceEscalation};
 
@@ -74,6 +74,7 @@ fn main() {
         .init_resource::<MainMenuState>()
         .init_resource::<ProjectilePool>()
         .init_resource::<ContinuousAttackState>()
+        .init_resource::<DecalSettings>()
 
         .insert_resource(GameConfig::load())
         .insert_resource(global_data)
@@ -248,7 +249,7 @@ fn main() {
 
             combat::system,
             
-            combat::death_system,
+            death::death_system,
             combat::auto_reload_system,
             combat::cleanup_miss_targets,
 
@@ -258,6 +259,18 @@ fn main() {
             ui::screens::inventory_system,
             ui::pause_system,
 
+        ).run_if(in_state(GameState::Mission)))
+
+        .add_systems(Update, (
+            // Death and decal systems
+            decals::decal_fade_system,
+            decals::decal_cleanup_system,
+            death::corpse_cleanup_system,
+            // death::dead_entity_ai_cleanup,
+            
+            // Add decals for projectile impacts
+            // projectile_impact_decals,
+            // explosion_scorch_decals,
         ).run_if(in_state(GameState::Mission)))
 
         .add_systems(Update, (

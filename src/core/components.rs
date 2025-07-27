@@ -14,6 +14,9 @@ impl Default for Agent {
         Self { experience: 0, level: 1 }
     }
 }
+/// Component to mark projectile impacts for decal creation
+#[derive(Component)]
+pub struct ProjectileImpact;
 
 // BETTER (?) DESPAWN HANDLING
 #[derive(Component)]

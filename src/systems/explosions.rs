@@ -27,6 +27,7 @@
 
 use bevy::prelude::*;
 use crate::core::*;
+use crate::systems::decals::*;
 
 // === CORE COMPONENTS ===
 #[derive(Component)]
@@ -294,6 +295,9 @@ pub fn explosion_damage_system(
                     if combat_text_settings.enabled {
                         spawn_damage_text(&mut commands, target_pos, damage, &combat_text_settings);
                     }
+
+                    // decals
+                    // add_explosion_decal(&mut commands, target_pos, explosion.radius, &decal_settings);
                 }
             }
             

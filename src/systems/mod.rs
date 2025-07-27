@@ -28,6 +28,8 @@ pub mod hacking_feedback;
 pub mod message_window;
 pub mod scanner;
 pub mod projectiles;
+pub mod death;
+pub mod decals;
 
 pub use message_window::*;
 pub use urban_simulation::*;
@@ -37,6 +39,8 @@ pub use civilian_spawn::*;
 pub use npc_barks::*;
 pub use power_grid::*;
 pub use scanner::*;
+pub use death::*;
+pub use decals::*;
 
 pub mod scenes;
 
