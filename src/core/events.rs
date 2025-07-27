@@ -23,6 +23,8 @@ pub enum Action {
     MaintainDistance,
     AreaDenial { weapon_type: WeaponType },
     SuppressionFire { weapon_type: WeaponType },    
+    SelectAgent(usize),
+    CenterCameraOnAgent(usize),
 }
 
 #[derive(Event)]

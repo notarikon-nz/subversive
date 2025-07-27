@@ -195,3 +195,32 @@ pub enum TimeOfDay {
     Night,
     Dawn,
 }
+
+// [PLACEHOLDER]
+// CURRENT HARD CODED, CHANGE BASED ON WEAPON RATE OF FIRE
+#[derive(Resource, Default)]
+pub struct ContinuousAttackState {
+    pub attacking: bool,
+    pub last_attack_time: f32,
+    pub attack_rate: f32, // Attacks per second
+    pub current_target: Option<Entity>,
+}
+
+impl ContinuousAttackState {
+    pub fn new() -> Self {
+        Self {
+            attacking: false,
+            last_attack_time: 0.0,
+            attack_rate: 3.0, // 3 attacks per second
+            current_target: None,
+        }
+    }
+    
+    pub fn can_attack(&self, current_time: f32) -> bool {
+        current_time - self.last_attack_time >= (1.0 / self.attack_rate)
+    }
+    
+    pub fn record_attack(&mut self, current_time: f32) {
+        self.last_attack_time = current_time;
+    }
+}

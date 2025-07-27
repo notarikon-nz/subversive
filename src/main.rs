@@ -71,6 +71,7 @@ fn main() {
         .init_resource::<ScannerState>()
         .init_resource::<MainMenuState>()
         .init_resource::<ProjectilePool>()
+        .init_resource::<ContinuousAttackState>()
 
         .insert_resource(GameConfig::load())
         .insert_resource(global_data)
@@ -133,7 +134,6 @@ fn main() {
         ))
 
         .add_systems(Update, (
-            systems::input::handle_input,
             ui::screens::fps_system,
             pool::cleanup_inactive_entities,
             save::auto_save_system,
@@ -198,7 +198,8 @@ fn main() {
         .add_systems(OnEnter(GameState::Mission), (
             setup_mission_scene_optimized,
             (
-                health_bars::spawn_health_bars,
+                health_bars::spawn_agent_status_bars,
+                health_bars::spawn_enemy_health_bars,
                 factions::setup_factions_system,
                 factions::faction_color_system,
                 // message_window::setup_message_window,
@@ -215,6 +216,7 @@ fn main() {
             camera::movement,
             selection::system,
             movement::system,
+            systems::input::handle_input,
 
             goap::goap_ai_system,
 
@@ -238,9 +240,15 @@ fn main() {
             interaction::system,
             collision_feedback_system,
 
-            combat::system,
+            combat::process_attack_events,
             combat::enemy_combat_system,
+
+            combat::system,
+            
             combat::death_system,
+            combat::auto_reload_system,
+            combat::cleanup_miss_targets,
+
             damage_text_event_system,
 
             ui::world::system,
@@ -254,7 +262,6 @@ fn main() {
             projectiles::unified_projectile_system,
             projectiles::impact_effect_system,            
                         
-            combat::cleanup_miss_targets,
         ).run_if(in_state(GameState::Mission)))
 
         // Mission management systems
@@ -304,7 +311,8 @@ fn main() {
             day_night::lighting_system,
             day_night::time_ui_system,
 
-            health_bars::update_health_bars,
+            health_bars::update_agent_status_bars,
+            health_bars::update_enemy_health_bars,
         ).run_if(in_state(GameState::Mission)))
 
         // Urban simulation
@@ -399,7 +407,6 @@ fn main() {
         // POST MISSION
         .add_systems(OnEnter(GameState::PostMission), (
             ui::cleanup_mission_ui,
-            health_bars::cleanup_dead_health_bars,
         ))
 
         .add_systems(Update, (
@@ -489,6 +496,7 @@ fn setup_camera_and_input(mut commands: Commands) {
         .with(PlayerAction::Pause, KeyCode::Space)
         .with(PlayerAction::Select, MouseButton::Left)
         .with(PlayerAction::Move, MouseButton::Right)
+        .with(PlayerAction::Attack, MouseButton::Right)
         .with(PlayerAction::Neurovector, KeyCode::KeyN)
         .with(PlayerAction::Combat, KeyCode::KeyF)
         .with(PlayerAction::Interact, KeyCode::KeyE)

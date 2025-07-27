@@ -9,6 +9,7 @@ use crate::systems::vehicles::spawn_vehicle;
 use crate::core::factions::Faction;
 use crate::systems::*;
 use crate::systems::police::*;
+use crate::systems::selection::*;
 
 // === SCENE DATA STRUCTURES ===
 #[derive(Clone, Serialize, Deserialize)]
@@ -139,7 +140,7 @@ pub fn spawn_fallback_mission(commands: &mut Commands, global_data: &GlobalData,
     
     let positions = [Vec2::new(-200.0, 0.0), Vec2::new(-170.0, 0.0), Vec2::new(-140.0, 0.0)];
     for (i, &pos) in positions.iter().enumerate() {
-        spawn_agent(commands, pos, global_data.agent_levels[i], i, global_data, sprites);
+        spawn_agent_with_index(commands, pos, global_data.agent_levels[i], i, global_data, sprites);
     }
     
     let civilian_positions = [Vec2::new(100.0, 100.0), Vec2::new(150.0, 80.0), Vec2::new(80.0, 150.0)];
@@ -170,6 +171,31 @@ fn spawn_agent(commands: &mut Commands, pos: Vec2, level: u8, idx: usize, global
         sprite,
         Transform::from_translation(pos.extend(1.0)),
         Agent { experience: 0, level },
+        Faction::Player,
+        create_base_unit_bundle(100.0, 150.0),
+        Controllable,
+        Selectable { radius: 15.0 },
+        Vision::new(150.0, 60.0),
+        NeurovectorCapability::default(),
+        inventory,
+        weapon_state,
+        create_physics_bundle(16.0, AGENT_GROUP),
+    ));
+}
+
+fn spawn_agent_with_index(commands: &mut Commands, pos: Vec2, level: u8, idx: usize, global_data: &GlobalData, sprites: &GameSprites) {
+    let (sprite, _) = create_agent_sprite(sprites);
+    let loadout = global_data.get_agent_loadout(idx);
+    let mut inventory = create_inventory_from_loadout(&loadout);
+    inventory.add_currency(100 * level as u32);
+
+    let weapon_state = create_weapon_state_from_loadout(&loadout);
+
+    commands.spawn((
+        sprite,
+        Transform::from_translation(pos.extend(1.0)),
+        Agent { experience: 0, level },
+        AgentIndex(idx),
         Faction::Player,
         create_base_unit_bundle(100.0, 150.0),
         Controllable,

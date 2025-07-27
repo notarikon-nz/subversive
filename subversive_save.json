@@ -1,27 +1,27 @@
 {
-  "credits": 266500,
-  "current_day": 26,
+  "credits": 1000,
+  "current_day": 1,
   "agent_levels": [
-    2,
-    2,
-    2
+    1,
+    1,
+    1
   ],
   "agent_experience": [
-    260,
-    260,
-    260
+    0,
+    0,
+    0
   ],
   "agent_recovery": [
-    24,
-    24,
-    24
+    0,
+    0,
+    0
   ],
   "regions": [
     {
       "name": "Neo-Tokyo Central",
       "threat_level": 1,
-      "alert_level": 3,
-      "alert_decay_timer": 37
+      "alert_level": 0,
+      "alert_decay_timer": 0
     },
     {
       "name": "Corporate District",
@@ -40,7 +40,7 @@
     {
       "weapon_configs": [
         {
-          "base_weapon": "Minigun",
+          "base_weapon": "Rifle",
           "attachments": {},
           "behavior": {
             "preferred_range": 150.0,
@@ -86,10 +86,10 @@
     {
       "weapon_configs": [
         {
-          "base_weapon": "LaserRifle",
+          "base_weapon": "Rifle",
           "attachments": {},
           "behavior": {
-            "preferred_range": 250.0,
+            "preferred_range": 150.0,
             "burst_fire": true,
             "requires_cover": true,
             "area_effect": false,
@@ -112,35 +112,10 @@
     "credits_invested": 0
   },
   "cities_progress": {
-    "current_city": "panama_city",
-    "city_states": {
-      "miami": {
-        "completed": true,
-        "alert_level": "Green",
-        "last_mission_day": 18,
-        "times_visited": 6
-      },
-      "panama_city": {
-        "completed": true,
-        "alert_level": "Green",
-        "last_mission_day": 23,
-        "times_visited": 2
-      },
-      "new_york": {
-        "completed": true,
-        "alert_level": "Green",
-        "last_mission_day": 3,
-        "times_visited": 2
-      }
-    },
+    "current_city": "new_york",
+    "city_states": {},
     "unlocked_cities": [
-      "chicago",
-      "miami",
-      "panama_city",
-      "new_york",
-      "toronto",
-      "bogota",
-      "mexico_city"
+      "new_york"
     ]
   }
 }

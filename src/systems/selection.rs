@@ -1,6 +1,10 @@
 use bevy::prelude::*;
 use crate::core::*;
 
+// AGENT SELECTION VIA 1,2,3
+#[derive(Component)]
+pub struct AgentIndex(pub usize);
+
 pub fn system(
     mut commands: Commands,
     mut selection: ResMut<SelectionState>,
@@ -180,6 +184,42 @@ fn complete_drag_selection(
                     add_to_selection(commands, selection, entity);
                 }
             }
+        }
+    }
+}
+
+// Modified selection system to handle agent-specific selection
+pub fn handle_agent_selection_events(
+    mut action_events: EventReader<ActionEvent>,
+    mut selection: ResMut<SelectionState>,
+    agents: Query<(Entity, &AgentIndex, &Transform), With<Agent>>,
+    mut camera_query: Query<&mut Transform, (With<Camera>, Without<Agent>)>,
+) {
+    for event in action_events.read() {
+        match event.action {
+            Action::SelectAgent(idx) => {
+                // Find agent with matching index
+                for (entity, agent_idx, _) in agents.iter() {
+                    if agent_idx.0 == idx {
+                        selection.selected.clear();
+                        selection.selected.push(entity);
+                        break;
+                    }
+                }
+            }
+            Action::CenterCameraOnAgent(idx) => {
+                // Find agent and center camera without changing selection
+                for (entity, agent_idx, agent_transform) in agents.iter() {
+                    if agent_idx.0 == idx {
+                        if let Ok(mut camera_transform) = camera_query.single_mut() {
+                            camera_transform.translation.x = agent_transform.translation.x;
+                            camera_transform.translation.y = agent_transform.translation.y;
+                        }
+                        break;
+                    }
+                }
+            }
+            _ => {}
         }
     }
 }

@@ -9,6 +9,7 @@ pub enum PlayerAction {
     Pause,
     Select,
     Move,
+    Attack,
     Neurovector,
     Combat,
     Interact,
@@ -22,6 +23,7 @@ pub enum PlayerAction {
 pub enum TargetingMode {
     Neurovector { agent: Entity },
     Combat { agent: Entity },
+    Scanning,
 }
 
 // === SELECTION ===
