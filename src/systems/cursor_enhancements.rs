@@ -304,13 +304,3 @@ pub fn range_indicator_system(
     }
 }
 
-// Add to your AudioType enum in core if not already present:
-/*
-#[derive(Clone, Copy)]
-pub enum AudioType {
-    // ... existing variants ...
-    CursorTarget,
-    CursorInteract,
-    CursorHack,
-}
-*/

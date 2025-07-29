@@ -7,7 +7,7 @@ use crate::systems::explosions::*;
 
 pub fn vehicle_explosion_system(
     mut commands: Commands,
-    mut vehicle_query: Query<(Entity, &Transform, &Vehicle, &Health), (With<Vehicle>, Added<Dead>)>,
+    mut vehicle_query: Query<(Entity, &Transform, &Vehicle, &Health), (With<Vehicle>, Added<Dead>, Without<MarkedForDespawn>)>,
     mut audio_events: EventWriter<AudioEvent>,
 ) {
     for (entity, transform, vehicle, health) in vehicle_query.iter_mut() {

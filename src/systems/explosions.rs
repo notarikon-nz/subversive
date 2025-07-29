@@ -529,3 +529,16 @@ pub struct VehicleExplosion {
     pub duration: f32,
 }
 
+// FROM TRAFFIC SYSTEM
+pub fn explosion_road_blocking_system(
+    mut explosion_events: EventReader<GrenadeEvent>,
+    mut traffic_system: ResMut<TrafficSystem>,
+) {
+    for explosion in explosion_events.read() {
+        // Block roads near explosions
+        mark_road_blocked(&mut traffic_system, explosion.target_pos, explosion.explosion_radius);
+        
+        // Roads should clear after some time (need to add a timer system for this)
+    }
+}
+

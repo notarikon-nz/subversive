@@ -367,7 +367,8 @@ fn main() {
             traffic::traffic_cleanup_system,
             
             // Civilian Handling
-            // traffic_upgrades::civilian_traffic_interaction_system,
+            traffic_upgrades::civilian_traffic_interaction_system,
+            traffic_upgrades::traffic_light_vehicle_system,
 
             // Emergency and military systems
             emergency_response_system,
