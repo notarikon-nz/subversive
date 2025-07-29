@@ -34,7 +34,9 @@ pub mod interactive_decals;
 pub mod explosion_decal_integration;
 pub mod interactive_decals_demo;
 pub mod pathfinding;
+pub mod minimap;
 
+pub use minimap::*;
 pub use message_window::*;
 pub use urban_simulation::*;
 pub use panic_spread::*;

@@ -111,8 +111,9 @@ fn main() {
         .insert_resource(HubState::default())
         .insert_resource(HubDatabases::default())
         // .insert_resource(HubProgress::default())
-
+        
         .init_resource::<SceneCache>()
+        .init_resource::<MinimapSettings>()
 
         .add_event::<ActionEvent>()
         .add_event::<CombatEvent>()
@@ -203,6 +204,7 @@ fn main() {
                 factions::faction_color_system,
                 // message_window::setup_message_window,
                 setup_interactive_decals_demo,
+                setup_minimap,
             ).after(setup_mission_scene_optimized),
         ))
 
@@ -275,6 +277,11 @@ fn main() {
             // projectile_impact_decals,
             enhanced_projectile_impact_decals,
             explosion_scorch_decals,
+
+            // Minimap systems
+            minimap::update_minimap_system,
+            minimap::apply_minimap_research_benefits,
+            minimap::minimap_toggle_system,            
         ).run_if(in_state(GameState::Mission)))
 
         .add_systems(Update, (
@@ -434,6 +441,10 @@ fn main() {
             debug_pathfinding_grid,
             interactive_decals_demo_system,
         ).run_if(in_state(GameState::Mission)))
+
+        .add_systems(OnExit(GameState::Mission), (
+            minimap::cleanup_minimap_ui,
+        ))
 
         // POST MISSION
         .add_systems(OnEnter(GameState::PostMission), (

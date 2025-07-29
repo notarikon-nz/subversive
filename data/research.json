@@ -118,6 +118,51 @@
         {"UnlockCybernetic": "TechInterface"},
         {"CreditsPerMission": 300}
       ]
-    }
+    },
+    {
+      "id": "tactical_scanner",
+      "name": "Tactical Scanner",
+      "description": "Enables color-coding of entities on the minimap",
+      "cost": 1500,
+      "category": "Equipment",
+      "prerequisites": ["surveillance_gear"],
+      "benefits": [
+        {"UnlockTool": "TacticalScanner"}
+      ]
+    },
+    {
+      "id": "enhanced_sensors", 
+      "name": "Enhanced Sensors",
+      "description": "Increases minimap detection range by 50%",
+      "cost": 2500,
+      "category": "Equipment",
+      "prerequisites": ["tactical_scanner"],
+      "benefits": [
+        {"UnlockTool": "EnhancedSensors"}
+      ]
+    },
+    {
+      "id": "satellite_uplink",
+      "name": "Satellite Uplink", 
+      "description": "Provides maximum minimap coverage via orbital relay",
+      "cost": 4500,
+      "category": "Intelligence",
+      "prerequisites": ["enhanced_sensors", "corporate_intelligence"],
+      "benefits": [
+        {"UnlockTool": "SatelliteUplink"},
+        {"CreditsPerMission": 150}
+      ]
+    },
+    {
+      "id": "network_scanner",
+      "name": "Network Scanner",
+      "description": "Reveals terminals and hackable devices on minimap",
+      "cost": 1200,
+      "category": "Equipment",
+      "prerequisites": ["surveillance_gear"],
+      "benefits": [
+        {"UnlockTool": "NetworkScanner"}
+      ]
+    }    
   ]
 }

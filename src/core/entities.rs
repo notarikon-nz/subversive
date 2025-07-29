@@ -302,4 +302,9 @@ pub enum ToolType {
     Scanner,
     Lockpick,
     MedKit,
+
+    EnhancedSensors,
+    SatelliteUplink,
+    TacticalScanner,
+    NetworkScanner,
 }
