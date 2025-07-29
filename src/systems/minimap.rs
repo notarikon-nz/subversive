@@ -76,7 +76,7 @@ pub fn update_minimap_system(
     mut commands: Commands,
     settings: Res<MinimapSettings>,
     minimap_canvas: Query<Entity, With<MinimapCanvas>>,
-    existing_dots: Query<Entity, With<MinimapDot>>,
+    existing_dots: Query<Entity, (With<MinimapDot>, Without<MarkedForDespawn>)>,
     
     // Entity queries
     agents: Query<(Entity, &Transform), (With<Agent>, Without<Dead>)>,
@@ -96,7 +96,7 @@ pub fn update_minimap_system(
     
     // Clear existing dots
     for dot_entity in existing_dots.iter() {
-        commands.entity(dot_entity).despawn();
+        commands.entity(dot_entity).insert(MarkedForDespawn);
     }
     
     let Ok(canvas_entity) = minimap_canvas.single() else { return; };

@@ -63,7 +63,7 @@ pub fn advanced_prompt_system(
 
     // Clean up existing prompts
     for entity in existing_prompts.iter() {
-        commands.entity(entity).despawn();
+        commands.entity(entity).insert(MarkedForDespawn);
     }
 
     for &selected_agent in &selection.selected {

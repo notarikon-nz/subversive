@@ -930,20 +930,20 @@ fn setup_prompt_settings(mut commands: Commands) {
 
 pub fn cursor_memory_cleanup(
     mut commands: Commands,
-    cursor_query: Query<Entity, With<CursorEntity>>,
-    prompt_query: Query<Entity, (With<InteractionPrompt>, Without<CursorEntity>)>,
+    cursor_query: Query<Entity, (With<CursorEntity>, Without<MarkedForDespawn>)>,
+    prompt_query: Query<Entity, (With<InteractionPrompt>, Without<CursorEntity>, Without<MarkedForDespawn>)>,
     game_state: Res<State<GameState>>,
 ) {
     // Clean up cursor/prompt entities when leaving mission
     if game_state.is_changed() && !matches!(*game_state.get(), GameState::Mission) {
         // Remove all cursor entities
         for entity in cursor_query.iter() {
-            commands.entity(entity).despawn();
+            commands.entity(entity).insert(MarkedForDespawn);
         }
         
         // Remove all prompt entities
         for entity in prompt_query.iter() {
-            commands.entity(entity).despawn();
+            commands.entity(entity).insert(MarkedForDespawn);
         }
     }
 }

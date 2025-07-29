@@ -58,14 +58,14 @@ pub fn interaction_prompt_system(
     hackable_query: Query<(Entity, &Transform, &Hackable, &DeviceState)>,
     
     // Cleanup old prompts
-    existing_prompts: Query<Entity, Or<(With<InteractionPrompt>, With<SecurityLevelDisplay>)>>,
+    existing_prompts: Query<Entity, Or<(With<InteractionPrompt>, With<SecurityLevelDisplay>, Without<MarkedForDespawn>)>>,
     game_mode: Res<GameMode>,
 ) {
     if game_mode.paused { return; }
 
     // Clean up existing prompts
     for entity in existing_prompts.iter() {
-        commands.entity(entity).despawn();
+        commands.entity(entity).insert(MarkedForDespawn);
     }
 
     // Show prompts for selected agents
@@ -290,21 +290,21 @@ pub fn animate_interaction_prompts(
 // Cleanup system to remove prompts when targets are despawned
 pub fn cleanup_orphaned_prompts(
     mut commands: Commands,
-    prompt_query: Query<(Entity, &InteractionPrompt)>,
-    security_query: Query<(Entity, &SecurityLevelDisplay)>,
+    prompt_query: Query<(Entity, &InteractionPrompt), Without<MarkedForDespawn>>,
+    security_query: Query<(Entity, &SecurityLevelDisplay), Without<MarkedForDespawn>>,
     entity_query: Query<Entity>, // All entities to check if targets still exist
 ) {
     // Check interaction prompts
     for (prompt_entity, prompt) in prompt_query.iter() {
         if entity_query.get(prompt.target_entity).is_err() {
-            commands.entity(prompt_entity).despawn();
+            commands.entity(prompt_entity).insert(MarkedForDespawn);
         }
     }
     
     // Check security displays
     for (display_entity, display) in security_query.iter() {
         if entity_query.get(display.target_entity).is_err() {
-            commands.entity(display_entity).despawn();
+            commands.entity(display_entity).insert(MarkedForDespawn);
         }
     }
 }

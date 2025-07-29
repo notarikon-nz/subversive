@@ -217,11 +217,11 @@ fn update_range_indicator(
     selection: &SelectionState,
     agent_query: &Query<(&Transform, &Inventory), With<Agent>>,
     settings: &CursorSettings,
-    existing_indicators: &Query<Entity, With<RangeIndicator>>,
+    existing_indicators: &Query<Entity, (With<RangeIndicator>,Without<MarkedForDespawn>)>,
 ) {
     // Clean up existing indicators
     for entity in existing_indicators.iter() {
-        commands.entity(entity).despawn();
+        commands.entity(entity).insert(MarkedForDespawn);
     }
     
     if !settings.show_range_indicator || cursor_type != CursorType::Crosshair {
@@ -289,13 +289,13 @@ pub fn weapon_specific_cursor_system(
 pub fn range_indicator_system(
     mut commands: Commands,
     time: Res<Time>,
-    mut indicator_query: Query<(Entity, &mut RangeIndicator, &mut Sprite)>,
+    mut indicator_query: Query<(Entity, &mut RangeIndicator, &mut Sprite), Without<MarkedForDespawn>>,
 ) {
     for (entity, mut indicator, mut sprite) in indicator_query.iter_mut() {
         indicator.fade_timer -= time.delta_secs();
         
         if indicator.fade_timer <= 0.0 {
-            commands.entity(entity).despawn();
+            commands.entity(entity).insert(MarkedForDespawn);
         } else {
             // Fade out over time
             let alpha = (indicator.fade_timer / 2.0).clamp(0.0, 0.3);
