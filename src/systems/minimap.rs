@@ -88,7 +88,7 @@ pub fn update_minimap_system(
     global_data: Res<GlobalData>,
 ) {
     // Get camera position for centering minimap
-    let camera_pos = if let Ok(cam_transform) = camera.get_single() {
+    let camera_pos = if let Ok(cam_transform) = camera.single() {
         cam_transform.translation.truncate()
     } else {
         Vec2::ZERO // Fallback if no camera found
@@ -284,7 +284,7 @@ pub fn minimap_toggle_system(
     keyboard: Res<ButtonInput<KeyCode>>,
 ) {
     if keyboard.just_pressed(KeyCode::KeyM) {
-        if let Ok(mut visibility) = minimap_container.get_single_mut() {
+        if let Ok(mut visibility) = minimap_container.single_mut() {
             *visibility = match *visibility {
                 Visibility::Visible => Visibility::Hidden,
                 _ => Visibility::Visible,

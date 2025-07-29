@@ -27,6 +27,9 @@ pub enum AudioType {
     Neurovector,
     Reload,
     ReloadComplete,    
+    CursorTarget,
+    CursorInteract,
+    CursorHack,    
 }
 
 impl Default for AudioEvent {
@@ -65,6 +68,7 @@ pub fn audio_system(
             AudioType::Neurovector => &audio.neurovector,
             AudioType::Reload => &audio.reload,
             AudioType::ReloadComplete => &audio.reload_complete,
+            _ => &audio.alert, // PLACEHOLDER
         };
         
         // FIXED: Use default settings for now, volume control can be added later

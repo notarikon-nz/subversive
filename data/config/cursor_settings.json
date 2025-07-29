@@ -1,0 +1,10 @@
+{
+    "show_range_indicator": true,
+    "cursor_scale": 1.0,
+    "animation_speed": 2.0,
+    "sound_enabled": true,
+    "max_prompt_distance": 100.0,
+    "fade_distance": 80.0,
+    "show_tooltips": true,
+    "stack_prompts": true
+}

@@ -269,7 +269,7 @@ fn find_target_under_mouse(
         .map(|(entity, _, _)| entity)
 }
 
-fn get_weapon_range_simple(inventory: &Inventory) -> f32 {
+pub fn get_weapon_range_simple(inventory: &Inventory) -> f32 {
     let base_range = 150.0;
     if let Some(weapon_config) = &inventory.equipped_weapon {
         let stats = weapon_config.stats();

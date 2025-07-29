@@ -4,7 +4,6 @@ use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts};
 use crate::core::*;
 use crate::systems::save::save_game_exists;
-use crate::core::resources::{StartupFrameCount};
 
 #[derive(PartialEq, Clone, Copy)]
 pub enum MenuOptionType {
@@ -56,16 +55,7 @@ pub fn main_menu_system_egui(
     mut app_exit: EventWriter<bevy::app::AppExit>,
     mut global_data: ResMut<GlobalData>,
     input: Res<ButtonInput<KeyCode>>,
-    mut frame_count: ResMut<StartupFrameCount>,
 ) {
-
-
-    // Increment frame count
-    //frame_count.0 += 1;
-    
-    // Skip first few frames to ensure egui is ready
-    //if frame_count.0 < 3 { return; }
-
 
     // Handle keyboard navigation - this works even without egui context
     if input.just_pressed(KeyCode::KeyW) || input.just_pressed(KeyCode::ArrowUp) {
@@ -93,7 +83,7 @@ pub fn main_menu_system_egui(
     // Use the same pattern that works in your other screens
     if let Ok(ctx) = contexts.ctx_mut() {
         egui::CentralPanel::default()
-            .frame(egui::Frame::none().fill(egui::Color32::from_rgb(26, 26, 51)))
+            .frame(egui::Frame::new().fill(egui::Color32::from_rgb(26, 26, 51)))
             .show(ctx, |ui| {
                 ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
                     let available_height = ui.available_height();
@@ -173,7 +163,7 @@ fn execute_menu_option(
             next_state.set(GameState::Credits);
         },
         MenuOptionType::Quit => {
-            app_exit.send(bevy::app::AppExit::Success);
+            app_exit.write(bevy::app::AppExit::Success);
         },
     }
 }

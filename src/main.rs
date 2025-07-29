@@ -2,6 +2,7 @@
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts, EguiPlugin};
 use bevy_rapier2d::prelude::*;
+use bevy::time::common_conditions::on_timer;
 use leafwing_input_manager::prelude::*;
 use std::sync::Arc; // fonts
 
@@ -11,7 +12,7 @@ use systems::police::{load_police_config, PoliceResponse, PoliceEscalation};
 
 mod core;
 mod systems;
-
+use systems::cursor_enhancements::*;
 
 use core::*;
 use core::factions;
@@ -140,10 +141,18 @@ fn main() {
             sprites::load_sprites,
             pathfinding::setup_pathfinding_grid, // 0.2.5.3
 
-            // setup_cyberpunk2077_theme, // 0.2.5.4
-
-            
+            setup_cyberpunk2077_theme, // 0.2.5.4
         ))
+
+        .add_systems(Startup, (
+            // Cursor and interaction systems
+            cursor::load_cursor_sprites,
+            interaction_prompts::load_interaction_sprites,
+            cursor::hide_system_cursor,
+            // Initialize settings resources
+            setup_cursor_settings,
+            setup_prompt_settings,
+        ))        
 
         .add_systems(PostStartup, (
             preload_common_scenes,
@@ -162,6 +171,37 @@ fn main() {
             scene_cache_debug_system,
 
         ))
+
+        .add_systems(Update, (
+            // OPTION 1: Basic cursor system
+            // cursor::cursor_system,
+            
+            // OPTION 2: Enhanced cursor system (recommended)
+            cursor_enhancements::cursor_detection_system,
+            cursor_enhancements::cursor_sprite_system,
+            cursor_enhancements::cursor_audio_system,
+
+            cursor_enhancements::weapon_specific_cursor_system,
+            cursor_enhancements::range_indicator_system,
+            
+            // Interaction prompt system (choose ONE of these options):
+            
+            // OPTION 1: Basic prompts
+            // interaction_prompts::interaction_prompt_system,
+            // interaction_prompts::animate_interaction_prompts,
+            // interaction_prompts::cleanup_orphaned_prompts,
+            
+            // OPTION 2: Advanced prompts (recommended)
+
+            advanced_prompts::advanced_prompt_system,
+            advanced_prompts::distance_fade_system,
+            
+        ).chain())    // Leave .chain() to ensure proper execution order
+
+        .add_systems(Update, (
+            // Cleanup systems - run less frequently for performance
+            interaction_prompts::cleanup_orphaned_prompts,
+        ).run_if(on_timer(std::time::Duration::from_secs_f32(1.0)))) // Only run every second
 
         // MAIN MENU
         .add_systems(Update, (
@@ -444,6 +484,7 @@ fn main() {
 
         .add_systems(OnExit(GameState::Mission), (
             minimap::cleanup_minimap_ui,
+            cursor_memory_cleanup,
         ))
 
         // POST MISSION
@@ -773,16 +814,16 @@ fn setup_cyberpunk2077_theme(mut contexts: EguiContexts) {
 
 
 fn sync_egui_mouse_input(
-    mut contexts: EguiContexts,
+    contexts: EguiContexts,
     windows: Query<&Window>,
     mouse: Res<ButtonInput<MouseButton>>,
 ) {
 
     // let mut ctx = contexts.ctx_mut();
-    let mut ctx = egui::Context::default();
+    let ctx = egui::Context::default();
     
     // Get window and cursor position
-    if let Ok(window) = windows.get_single() {
+    if let Ok(window) = windows.single() {
 
         if let Some(cursor_pos) = window.cursor_position() {
             // Convert Bevy's Y-down to egui's Y-up coordinate system
@@ -858,3 +899,43 @@ pub fn load_egui_fonts(mut contexts: EguiContexts, mut has_run: Local<bool>) {
     }
 }
 
+
+// === CURSOR FUNCTIONS ===
+fn setup_cursor_settings(mut commands: Commands) {
+    commands.insert_resource(CursorSettings {
+        show_range_indicator: true,
+        cursor_scale: 1.0,
+        animation_speed: 2.0,
+        sound_enabled: true,
+    });
+}
+
+fn setup_prompt_settings(mut commands: Commands) {
+    commands.insert_resource(PromptSettings {
+        max_distance: 100.0,
+        fade_distance: 80.0,
+        animation_enabled: true,
+        show_tooltips: true,
+        stack_prompts: true,
+    });
+}
+
+pub fn cursor_memory_cleanup(
+    mut commands: Commands,
+    cursor_query: Query<Entity, With<CursorEntity>>,
+    prompt_query: Query<Entity, (With<InteractionPrompt>, Without<CursorEntity>)>,
+    game_state: Res<State<GameState>>,
+) {
+    // Clean up cursor/prompt entities when leaving mission
+    if game_state.is_changed() && !matches!(*game_state.get(), GameState::Mission) {
+        // Remove all cursor entities
+        for entity in cursor_query.iter() {
+            commands.entity(entity).despawn();
+        }
+        
+        // Remove all prompt entities
+        for entity in prompt_query.iter() {
+            commands.entity(entity).despawn();
+        }
+    }
+}

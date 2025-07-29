@@ -34,7 +34,13 @@ pub mod interactive_decals;
 pub mod explosion_decal_integration;
 pub mod interactive_decals_demo;
 pub mod pathfinding;
+
+// 0.2.5.4
 pub mod minimap;
+pub mod cursor;
+pub mod interaction_prompts;
+pub mod cursor_enhancements;
+pub mod advanced_prompts;
 
 pub use minimap::*;
 pub use message_window::*;
@@ -45,11 +51,14 @@ pub use civilian_spawn::*;
 pub use npc_barks::*;
 pub use power_grid::*;
 pub use scanner::*;
-pub use death::*;
 pub use decals::*;
 pub use interactive_decals::*;
 pub use interactive_decals_demo::*;
 pub use pathfinding::*;
+pub use cursor::*;
+pub use interaction_prompts::*;
+pub use cursor_enhancements::*;
+pub use advanced_prompts::*;
 
 pub mod scenes;
 

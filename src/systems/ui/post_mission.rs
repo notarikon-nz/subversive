@@ -2,7 +2,7 @@
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts};
 // PLACEHOLDER
-use egui_plot::{Bar, BarChart, Line, Plot, PlotPoints};
+use egui_plot::{Bar, BarChart, Line, PlotPoints}; /*Plot,*/ 
 use crate::core::*;
 
 #[derive(Resource, Default)]
