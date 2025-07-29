@@ -27,6 +27,7 @@
 
 use bevy::prelude::*;
 use crate::core::*;
+use crate::systems::*;
 
 // === CORE COMPONENTS ===
 #[derive(Component)]

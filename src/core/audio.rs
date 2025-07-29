@@ -10,6 +10,19 @@ pub struct GameAudio {
     pub neurovector: Handle<AudioSource>,
     pub reload: Handle<AudioSource>,
     pub reload_complete: Handle<AudioSource>,
+    //
+    pub cursor_target: Handle<AudioSource>,
+    pub cursor_interact: Handle<AudioSource>,
+    pub cursor_hack: Handle<AudioSource>,
+
+    // 0.2.10
+    pub gate_open: Handle<AudioSource>,
+    pub gate_close: Handle<AudioSource>,
+    pub door_open: Handle<AudioSource>,
+    pub door_close: Handle<AudioSource>,
+    pub access_granted: Handle<AudioSource>,
+    pub access_denied: Handle<AudioSource>,
+    pub card_swipe: Handle<AudioSource>,    
 }
 
 #[derive(Event)]
@@ -27,9 +40,18 @@ pub enum AudioType {
     Neurovector,
     Reload,
     ReloadComplete,    
+    
     CursorTarget,
     CursorInteract,
-    CursorHack,    
+    CursorHack,
+    // 0.2.10
+    GateOpen,
+    GateClose,
+    DoorOpen,
+    DoorClose,
+    AccessGranted,
+    AccessDenied,
+    CardSwipe,    
 }
 
 impl Default for AudioEvent {
@@ -50,6 +72,18 @@ pub fn setup_audio(mut commands: Commands, asset_server: Res<AssetServer>) {
         neurovector: asset_server.load("audio/neurovector.ogg"),
         reload: asset_server.load("audio/reload.ogg"),
         reload_complete: asset_server.load("audio/reload_complete.ogg"),
+        // 
+        cursor_target: asset_server.load("audio/alert.ogg"),
+        cursor_interact: asset_server.load("audio/alert.ogg"),
+        cursor_hack: asset_server.load("audio/alert.ogg"),
+        // 0.2.10
+        gate_open: asset_server.load("audio/alert.ogg"),
+        gate_close: asset_server.load("audio/alert.ogg"),
+        door_open: asset_server.load("audio/alert.ogg"),
+        door_close: asset_server.load("audio/alert.ogg"),
+        access_granted: asset_server.load("audio/alert.ogg"),
+        access_denied: asset_server.load("audio/alert.ogg"),
+        card_swipe: asset_server.load("audio/alert.ogg"),
     };
     commands.insert_resource(audio);
 }

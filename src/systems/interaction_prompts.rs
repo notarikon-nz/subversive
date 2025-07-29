@@ -308,3 +308,94 @@ pub fn cleanup_orphaned_prompts(
         }
     }
 }
+
+use crate::systems::access_control::{AccessCard};
+
+pub fn access_card_pickup_system(
+    mut commands: Commands,
+    mut action_events: EventReader<ActionEvent>,
+    mut agent_query: Query<&mut Inventory, With<Agent>>,
+    card_query: Query<(Entity, &AccessCard), Without<Agent>>,
+    mut audio_events: EventWriter<AudioEvent>,
+) {
+    for event in action_events.read() {
+        if let Action::InteractWith(target) = event.action {
+            // Check if target is an access card
+            if let Ok((card_entity, access_card)) = card_query.get(target) {
+                if let Ok(mut inventory) = agent_query.get_mut(event.entity) {
+                    // Add card to inventory
+                    inventory.add_access_card(access_card.level, access_card.card_type);
+                    
+                    // Remove card from world
+                    commands.entity(card_entity).insert(MarkedForDespawn);
+                    
+                    // Play pickup sound
+                    audio_events.write(AudioEvent {
+                        sound: AudioType::CardSwipe,
+                        volume: 0.4,
+                    });
+                    
+                    info!("Agent picked up {:?} access card (level {})", 
+                          access_card.card_type, access_card.level);
+                }
+            }
+        }
+    }
+}
+
+pub fn access_card_interaction_prompts(
+    mut commands: Commands,
+    interaction_sprites: Res<InteractionSprites>,
+    selection: Res<SelectionState>,
+    agent_query: Query<&Transform, With<Agent>>,
+    card_query: Query<(Entity, &Transform, &AccessCard)>,
+    existing_prompts: Query<Entity, With<InteractionPrompt>>,
+    game_mode: Res<GameMode>,
+) {
+    if game_mode.paused { return; }
+
+    for &selected_agent in &selection.selected {
+        if let Ok(agent_transform) = agent_query.get(selected_agent) {
+            let agent_pos = agent_transform.translation.truncate();
+
+            // Check for nearby access cards
+            for (card_entity, card_transform, access_card) in card_query.iter() {
+                let card_pos = card_transform.translation.truncate();
+                let distance = agent_pos.distance(card_pos);
+                
+                if distance <= 30.0 {
+                    let prompt_pos = card_pos + Vec2::new(0.0, 15.0);
+                    
+                    // Background
+                    commands.spawn((
+                        Sprite {
+                            color: Color::srgba(0.0, 0.0, 0.0, 0.7),
+                            custom_size: Some(Vec2::new(20.0, 20.0)),
+                            ..default()
+                        },
+                        Transform::from_translation(prompt_pos.extend(100.0)),
+                        InteractionPrompt {
+                            target_entity: card_entity,
+                            prompt_type: InteractionType::Interact,
+                        },
+                    ));
+
+                    // Key sprite
+                    commands.spawn((
+                        Sprite {
+                            image: interaction_sprites.key_e.clone(),
+                            color: Color::srgb(0.8, 0.8, 0.2),
+                            custom_size: Some(Vec2::new(24.0, 24.0)),
+                            ..default()
+                        },
+                        Transform::from_translation(prompt_pos.extend(101.0)),
+                        InteractionPrompt {
+                            target_entity: card_entity,
+                            prompt_type: InteractionType::Interact,
+                        },
+                    ));
+                }
+            }
+        }
+    }
+}

@@ -132,6 +132,11 @@ fn main() {
         .add_event::<PowerGridEvent>()
         .add_event::<DamageTextEvent>()
 
+        // 0.2.10
+        .add_event::<AccessEvent>()
+        .add_event::<GateStateChange>()
+        .add_event::<DoorStateChange>()        
+
         .add_systems(Startup, (
             fonts::load_fonts,
             load_egui_fonts,
@@ -374,6 +379,16 @@ fn main() {
             emergency_response_system,
             military_convoy_system,
             
+        ).run_if(in_state(GameState::Mission)))
+
+        // 0.2.10
+        .add_systems(Update, (
+            // Access control systems
+            access_control::motion_sensor_system,
+            access_control::access_control_system,
+            access_control::access_control_prompts,
+            access_control::gate_door_visual_system,
+            access_control::gate_door_audio_system,
         ).run_if(in_state(GameState::Mission)))
 
         // Environmental systems

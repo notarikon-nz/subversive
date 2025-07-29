@@ -50,6 +50,10 @@ pub use traffic::*;
 pub use roads::*;
 pub use traffic_upgrades::*;
 
+// 0.2.10
+pub mod access_control;
+pub use access_control::*;
+
 pub use minimap::*;
 pub use message_window::*;
 pub use urban_simulation::*;
