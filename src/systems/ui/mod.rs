@@ -12,6 +12,7 @@ pub mod credits;
 pub mod fps;
 pub mod pause;
 pub mod post_mission;
+pub mod loading_system;
 
 pub use screens::*;
 pub use hub::*;
@@ -19,13 +20,13 @@ pub use main_menu::*;
 pub use fps::*;
 pub use pause::*;
 pub use post_mission::*;
+pub use loading_system::*;
 
 pub fn cleanup_mission_ui(
     mut commands: Commands,
     mut inventory_state: ResMut<InventoryState>,
     mut game_mode: ResMut<GameMode>,
     inventory_ui_query: Query<Entity, (With<InventoryUI>, Without<MarkedForDespawn>)>,
-    pause_ui_query: Query<Entity, (With<PauseScreen>, Without<MarkedForDespawn>)>,
 ) {
     inventory_state.ui_open = false;
     inventory_state.selected_agent = None;
@@ -36,16 +37,12 @@ pub fn cleanup_mission_ui(
         commands.entity(entity).insert(MarkedForDespawn);
     }
     
-    for entity in pause_ui_query.iter() {
-        commands.entity(entity).insert(MarkedForDespawn);
-    }
 }
 
 pub fn cleanup_global_map_ui(
     mut commands: Commands,
     mut inventory_state: ResMut<InventoryState>,
     inventory_ui_query: Query<Entity, With<InventoryUI>>,
-    post_mission_ui_query: Query<Entity, (With<PostMissionScreen>, Without<MarkedForDespawn>)>,
 ) {
     inventory_state.ui_open = false;
     inventory_state.selected_agent = None;
@@ -54,7 +51,4 @@ pub fn cleanup_global_map_ui(
         commands.entity(entity).insert(MarkedForDespawn);
     }
     
-    for entity in post_mission_ui_query.iter() {
-        commands.entity(entity).insert(MarkedForDespawn);
-    }
 }

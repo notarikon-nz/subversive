@@ -1,19 +1,17 @@
 // src/main.rs - Fixed system tuple parentheses
 use bevy::prelude::*;
+use bevy_egui::{egui, EguiContexts, EguiPlugin};
 use bevy_rapier2d::prelude::*;
 use leafwing_input_manager::prelude::*;
+use std::sync::Arc; // fonts
 
-use systems::ui::hub::{CyberneticsDatabase, HubStates, HubDatabases, HubProgress};
-use systems::ui::hub::agents::AgentManagementState;
-use systems::ui::{main_menu, settings, credits};
-use systems::ui::{MainMenuState};
-use systems::ui::screens::InventoryUIState;
 use systems::interactive_decals::*;
 use systems::explosion_decal_integration::*;            
 use systems::police::{load_police_config, PoliceResponse, PoliceEscalation};
 
 mod core;
 mod systems;
+
 
 use core::*;
 use core::factions;
@@ -22,6 +20,15 @@ use pool::*;
 use systems::scenes::*;
 use systems::explosions::*;
 use systems::projectiles::*;
+use systems::ui::{loading_system};
+
+// USER INTERFACE
+use systems::ui::hub::{CyberneticsDatabase, HubState, HubDatabases};
+use systems::ui::hub::agents::AgentManagementState;
+use systems::ui::{main_menu, settings, credits};
+use systems::ui::{MainMenuState};
+use systems::ui::screens::InventoryUIState;
+use systems::ui::post_mission::{PostMissionUIState};
 
 fn main() {
 
@@ -36,11 +43,11 @@ fn main() {
                 ..default()
             }),
             ..default()
-        }))    
+        }))
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.0))
         .add_plugins(InputManagerPlugin::<PlayerAction>::default())
-        .add_plugins(bevy_mod_imgui::ImguiPlugin::default())
         .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin::default())
+        .add_plugins(EguiPlugin::default()) // 0.2.5.4
 
         .register_type::<PlayerAction>()
         .register_type::<DecalDemoAction>()
@@ -70,6 +77,11 @@ fn main() {
         .init_resource::<InteractiveDecalSettings>()
         .init_resource::<PathfindingGrid>() // 0.2.5.3
 
+        .init_resource::<PostMissionUIState>() // 0.2.5.4
+        
+        .init_resource::<StartupFrameCount>()
+
+
         .insert_resource(GameConfig::load())
         .insert_resource(global_data)
         .insert_resource(research_progress)
@@ -96,9 +108,9 @@ fn main() {
         .init_resource::<PowerGrid>()
         .insert_resource(AgentManagementState::default())
         
-        .insert_resource(HubStates::default())
+        .insert_resource(HubState::default())
         .insert_resource(HubDatabases::default())
-        .insert_resource(HubProgress::default())
+        // .insert_resource(HubProgress::default())
 
         .init_resource::<SceneCache>()
 
@@ -116,6 +128,7 @@ fn main() {
 
         .add_systems(Startup, (
             fonts::load_fonts,
+            load_egui_fonts,
             setup_camera_and_input,
             audio::setup_audio,
             setup_attachments,
@@ -125,11 +138,18 @@ fn main() {
             setup_police_system,
             sprites::load_sprites,
             pathfinding::setup_pathfinding_grid, // 0.2.5.3
+
+            // setup_cyberpunk2077_theme, // 0.2.5.4
+
+            
         ))
 
         .add_systems(PostStartup, (
             preload_common_scenes,
+            main_menu::setup_main_menu_egui,
         ))
+
+        .add_systems(Update, loading_system::loading_system.run_if(in_state(GameState::Loading)))
 
         .add_systems(Update, (
             ui::fps_system,
@@ -143,39 +163,19 @@ fn main() {
         ))
 
         // MAIN MENU
-        .add_systems(OnEnter(GameState::MainMenu), (
-            main_menu::setup_main_menu,
-        ))
         .add_systems(Update, (
-            main_menu::menu_input_system,
-            main_menu::menu_mouse_system,
-            main_menu::update_menu_visuals,
+            main_menu::main_menu_system_egui,
         ).run_if(in_state(GameState::MainMenu)))
-        .add_systems(OnExit(GameState::MainMenu), (
-            main_menu::cleanup_main_menu,
-        ))        
 
         // SETTINGS
-        .add_systems(OnEnter(GameState::Settings), (
-            settings::setup_settings,
-        ))
         .add_systems(Update, (
-            settings::settings_input,
+            settings::settings_system_egui,
         ).run_if(in_state(GameState::Settings)))
-        .add_systems(OnExit(GameState::Settings), (
-            settings::cleanup_settings,
-        ))
 
         // CREDITS
-        .add_systems(OnEnter(GameState::Credits), (
-            credits::setup_credits,
-        ))
         .add_systems(Update, (
-            credits::credits_input,
+            credits::credits_system_egui,
         ).run_if(in_state(GameState::Credits)))
-        .add_systems(OnExit(GameState::Credits), (
-            credits::cleanup_credits,
-        ))
 
         // UI HUB
         .add_systems(OnEnter(GameState::GlobalMap), (
@@ -207,9 +207,9 @@ fn main() {
         ))
 
         .add_systems(Update, (
+            sync_egui_mouse_input,
             ui::hub::hub_system,
-        ).run_if(in_state(GameState::GlobalMap)))
-
+        ).chain().run_if(in_state(GameState::GlobalMap)))
 
         // Core mission systems
         .add_systems(Update, (
@@ -486,6 +486,7 @@ pub fn setup_mission_scene_optimized(
     mut scene_cache: ResMut<SceneCache>,
     agents: Query<Entity, With<Agent>>,
 ) {
+
     info!("setup_mission_scene_optimized");
     // Clean up existing agents
     // Doesn't cause the warnings
@@ -572,6 +573,7 @@ fn setup_camera_and_input(mut commands: Commands) {
         input_map,
         ActionState::<PlayerAction>::default(),
     ));
+
 }
 
 fn setup_attachments(mut commands: Commands) {
@@ -682,3 +684,166 @@ fn setup_police_system(mut commands: Commands) {
     commands.insert_resource(PoliceResponse::default());
     commands.insert_resource(PoliceEscalation::default());
 }
+
+fn setup_egui_theme(mut contexts: EguiContexts) {
+    if let Ok(ctx) = contexts.ctx_mut() {
+        ui::setup_cyberpunk_theme(ctx);
+    }
+}
+
+
+fn setup_cyberpunk2077_theme(mut contexts: EguiContexts) {
+    if let Ok(ctx) = contexts.ctx_mut() {
+        let mut style = (*ctx.style()).clone();
+        
+        // Cyberpunk 2077 color palette
+        let cp_yellow = egui::Color32::from_rgb(252, 255, 82);      // Signature yellow
+        let cp_cyan = egui::Color32::from_rgb(0, 255, 255);        // Bright cyan
+        let cp_magenta = egui::Color32::from_rgb(255, 0, 150);     // Hot pink/magenta
+        let cp_dark_bg = egui::Color32::from_rgb(8, 8, 12);        // Very dark background
+        let cp_panel_bg = egui::Color32::from_rgb(16, 18, 24);     // Dark panel
+        let cp_accent_bg = egui::Color32::from_rgb(24, 28, 35);    // Slightly lighter
+        let cp_border = egui::Color32::from_rgb(252, 255, 82);     // Yellow borders
+        
+        // Background colors - very dark with blue tint
+        style.visuals.window_fill = cp_dark_bg;
+        style.visuals.panel_fill = cp_panel_bg;
+        style.visuals.faint_bg_color = cp_accent_bg;
+        style.visuals.extreme_bg_color = cp_dark_bg;
+        
+        // Text colors - bright yellow as primary
+        style.visuals.override_text_color = Some(cp_yellow);
+        
+        // Widget colors
+        style.visuals.widgets.noninteractive.bg_fill = cp_panel_bg;
+        style.visuals.widgets.noninteractive.bg_stroke = egui::Stroke::new(1.0, cp_border);
+        
+        style.visuals.widgets.inactive.bg_fill = cp_accent_bg;
+        style.visuals.widgets.inactive.bg_stroke = egui::Stroke::new(1.0, cp_border);
+        
+        style.visuals.widgets.hovered.bg_fill = cp_magenta.gamma_multiply(0.3);
+        style.visuals.widgets.hovered.bg_stroke = egui::Stroke::new(2.0, cp_magenta);
+        
+        style.visuals.widgets.active.bg_fill = cp_cyan.gamma_multiply(0.3);
+        style.visuals.widgets.active.bg_stroke = egui::Stroke::new(2.0, cp_cyan);
+        
+        // Selection colors - bright cyan
+        style.visuals.selection.bg_fill = cp_cyan.gamma_multiply(0.4);
+        style.visuals.selection.stroke = egui::Stroke::new(2.0, cp_cyan);
+        
+        // Button colors
+        style.visuals.widgets.open.bg_fill = cp_yellow.gamma_multiply(0.2);
+        style.visuals.widgets.open.bg_stroke = egui::Stroke::new(2.0, cp_yellow);
+        
+        // Hyperlink colors
+        style.visuals.hyperlink_color = cp_cyan;
+        
+        // Window styling - sharp corners, prominent borders
+        // style.visuals.window_rounding = egui::Rounding::ZERO;
+        style.visuals.window_stroke = egui::Stroke::new(2.0, cp_border);
+        style.visuals.window_shadow = egui::epaint::Shadow::NONE;
+        
+        // Panel styling
+        style.visuals.panel_fill = cp_panel_bg;
+        
+        // Spacing - tighter, more compact
+        style.spacing.item_spacing = egui::vec2(6.0, 4.0);
+        style.spacing.window_margin = egui::Margin::symmetric(8, 8);
+        style.spacing.button_padding = egui::vec2(8.0, 4.0);
+        style.spacing.menu_margin = egui::Margin::symmetric(4, 4);
+        
+        // Scrollbar colors
+        style.visuals.widgets.inactive.bg_fill = cp_accent_bg;
+        
+        ctx.set_style(style);
+    }
+}
+
+
+
+fn sync_egui_mouse_input(
+    mut contexts: EguiContexts,
+    windows: Query<&Window>,
+    mouse: Res<ButtonInput<MouseButton>>,
+) {
+
+    // let mut ctx = contexts.ctx_mut();
+    let mut ctx = egui::Context::default();
+    
+    // Get window and cursor position
+    if let Ok(window) = windows.get_single() {
+
+        if let Some(cursor_pos) = window.cursor_position() {
+            // Convert Bevy's Y-down to egui's Y-up coordinate system
+            
+            let egui_pos = egui::pos2(
+                cursor_pos.x,
+                window.height() - cursor_pos.y
+            );
+            
+            // Create raw input for egui
+            let mut raw_input = ctx.input_mut(|i| i.clone());
+            
+            // Update pointer position
+            raw_input.events.push(egui::Event::PointerMoved(egui_pos));
+            
+            // Handle mouse button
+            if mouse.just_pressed(MouseButton::Left) {
+                raw_input.events.push(egui::Event::PointerButton {
+                    pos: egui_pos,
+                    button: egui::PointerButton::Primary,
+                    pressed: true,
+                    modifiers: Default::default(),
+                });
+            }
+            
+            if mouse.just_released(MouseButton::Left) {
+                raw_input.events.push(egui::Event::PointerButton {
+                    pos: egui_pos,
+                    button: egui::PointerButton::Primary,
+                    pressed: false,
+                    modifiers: Default::default(),
+                });
+            }
+            
+            // Send the input to egui
+            ctx.input_mut(|i| *i = raw_input);
+        }
+    }
+}
+
+
+pub fn load_egui_fonts(mut contexts: EguiContexts, mut has_run: Local<bool>) {
+
+    if *has_run {
+        return;
+    }    
+
+    info!("Loading egui fonts...");
+
+    if let Ok(ctx) = contexts.ctx_mut() {
+
+        let mut fonts = egui::FontDefinitions::default();
+
+        fonts.font_data.insert(
+            "orbitron".to_owned(),
+            Arc::new(egui::FontData::from_static(include_bytes!("../assets/fonts/orbitron.ttf"))),
+        );
+
+        // Set it as the highest-priority font 
+        for family in [&egui::FontFamily::Proportional] {
+            fonts
+                .families
+                .get_mut(family)
+                .unwrap()
+                .insert(0, "orbitron".to_owned());
+        }
+
+        ctx.set_fonts(fonts);
+
+        *has_run = true; // Prevent reapplying every frame
+
+        info!("Fonts Loaded Successfully!");
+    }
+}
+

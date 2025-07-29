@@ -31,6 +31,9 @@ pub struct UIState {
     pub fps_visible: bool,
 }
 
+#[derive(Resource, Default)]
+pub struct StartupFrameCount(u32);
+
 // === MISSION DATA ===
 #[derive(Resource)]
 pub struct MissionData {

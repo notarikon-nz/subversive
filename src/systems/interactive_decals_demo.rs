@@ -3,7 +3,6 @@ use bevy::prelude::*;
 use leafwing_input_manager::prelude::*;
 use crate::core::*;
 use crate::systems::*;
-use crate::systems::interactive_decals::*;
 use crate::systems::explosions::*;
 
 // === DEMO KEYBINDINGS ===

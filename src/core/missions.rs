@@ -1,5 +1,6 @@
 // src/core/missions.rs - Mission briefing and evaluation systems
 use bevy::prelude::*;
+use bevy_egui::egui;
 use crate::core::*;
 
 // === MISSION BRIEFING ===
@@ -90,15 +91,17 @@ pub enum RiskLevel {
     Medium,
     High,
     Extreme,
+    Critical,
 }
 
 impl RiskLevel {
-    pub fn color(&self) -> Color {
+    pub fn color(&self) -> egui::Color32 {
         match self {
-            RiskLevel::Low => Color::srgb(0.2, 0.8, 0.2),
-            RiskLevel::Medium => Color::srgb(0.8, 0.8, 0.2),
-            RiskLevel::High => Color::srgb(0.8, 0.5, 0.2),
-            RiskLevel::Extreme => Color::srgb(0.8, 0.2, 0.2),
+            RiskLevel::Low => egui::Color32::GREEN,
+            RiskLevel::Medium => egui::Color32::YELLOW,
+            RiskLevel::High => egui::Color32::ORANGE,
+            RiskLevel::Extreme => egui::Color32::RED,
+            _ => egui::Color32::WHITE,
         }
     }
     
@@ -108,6 +111,7 @@ impl RiskLevel {
             RiskLevel::Medium => "MEDIUM", 
             RiskLevel::High => "HIGH",
             RiskLevel::Extreme => "EXTREME",
+            _ => "UNKNOWN",
         }
     }
 }

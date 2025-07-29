@@ -46,7 +46,6 @@ pub use scanner::*;
 pub use death::*;
 pub use decals::*;
 pub use interactive_decals::*;
-pub use explosion_decal_integration::*;
 pub use interactive_decals_demo::*;
 pub use pathfinding::*;
 

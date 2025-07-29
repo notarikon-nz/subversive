@@ -19,7 +19,7 @@ pub fn load_fonts(mut commands: Commands, asset_server: Res<AssetServer>) {
         ui_font: asset_server.load("fonts/cousine.ttf"), 
         monospace_font: asset_server.load("fonts/courier_prime.ttf"),
     };
-    
+
     commands.insert_resource(fonts);
     info!("Custom fonts loaded!");
 }

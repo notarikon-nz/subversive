@@ -31,6 +31,7 @@ pub enum Corporation {
     Omnicorp,   // Industrial, manufacturing
     Helix,      // Biotech, pharmaceuticals
     Aegis,      // Security, military
+    Independent, // No corporate control
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -47,6 +48,9 @@ pub enum CityTrait {
     Cybercrime,
     Underground,
     Corruption,
+    TechCenter,
+    Surveillance,
+
 }
 
 // === CITY STATE ===
@@ -221,8 +225,8 @@ impl MapProjection {
     
     pub fn lat_lon_to_pixel(&self, coords: &CityCoordinates) -> Vec2 {
         // Simple equirectangular projection
-        let x = self.center_x + (coords.longitude / 180.0) * (self.map_width / 2.0);
-        let y = self.center_y - (coords.latitude / 90.0) * (self.map_height / 2.0);
+        let x = self.center_x + ((coords.longitude - 30.0) / 160.0) * (self.map_width / 2.0);
+        let y = self.center_y - ((coords.latitude - 10.0) / 60.0) * (self.map_height / 2.0);
         Vec2::new(x, y)
     }
 }
@@ -273,6 +277,7 @@ impl Corporation {
             Corporation::Omnicorp => Color::srgb(0.8, 0.6, 0.2),  // Orange - industrial
             Corporation::Helix => Color::srgb(0.2, 0.8, 0.2),     // Green - biotech
             Corporation::Aegis => Color::srgb(0.8, 0.2, 0.2),     // Red - military
+            _ => Color::srgb(1.0, 1.0, 1.0),
         }
     }
 }

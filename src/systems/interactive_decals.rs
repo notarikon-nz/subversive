@@ -394,14 +394,11 @@ pub fn fire_visual_flicker_system(
     }
 }
 
-
-
-
 // === FIRE BURN SYSTEM ===
 
 pub fn fire_burn_system(
     mut commands: Commands,
-    mut burning_decals: Query<(Entity, &mut OnFire, &mut InteractiveDecal, &Transform, &Flammable, &mut Sprite)>,
+    mut burning_decals: Query<(Entity, &mut OnFire, &mut InteractiveDecal, &Transform, &Flammable, &mut Sprite), Without<MarkedForDespawn>>,
     explodable_query: Query<(Entity, &Transform), With<Explodable>>,
     time: Res<Time>,
     settings: Res<InteractiveDecalSettings>,

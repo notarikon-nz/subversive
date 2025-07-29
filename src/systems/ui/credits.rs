@@ -1,57 +1,64 @@
+// src/systems/ui/credits.rs - egui version
 use bevy::prelude::*;
+use bevy_egui::{egui, EguiContexts};
 use crate::core::*;
 
-#[derive(Component)]
-pub struct CreditsUI;
-
-pub fn setup_credits(mut commands: Commands) {
-    commands.spawn((
-        Node {
-            width: Val::Percent(100.0),
-            height: Val::Percent(100.0),
-            justify_content: JustifyContent::Center,
-            align_items: AlignItems::Center,
-            flex_direction: FlexDirection::Column,
-            row_gap: Val::Px(20.0),
-            ..default()
-        },
-        BackgroundColor(Color::srgb(0.05, 0.05, 0.1)),
-        CreditsUI,
-    )).with_children(|parent| {
-        parent.spawn((
-            Text::new("Credits"),
-            TextFont { font_size: 32.0, ..default() },
-            TextColor(Color::WHITE),
-        ));
-        
-        parent.spawn((
-            Text::new("A game by Your Studio"),
-            TextFont { font_size: 20.0, ..default() },
-            TextColor(Color::srgb(0.7, 0.7, 0.7)),
-        ));
-        
-        parent.spawn((
-            Text::new("Press ESC to return"),
-            TextFont { font_size: 16.0, ..default() },
-            TextColor(Color::srgb(0.5, 0.5, 0.5)),
-        ));
-    });
-}
-
-pub fn credits_input(
-    input: Res<ButtonInput<KeyCode>>,
+pub fn credits_system_egui(
+    mut contexts: EguiContexts,
     mut next_state: ResMut<NextState<GameState>>,
+    input: Res<ButtonInput<KeyCode>>,
 ) {
     if input.just_pressed(KeyCode::Escape) {
         next_state.set(GameState::MainMenu);
     }
-}
 
-pub fn cleanup_credits(
-    mut commands: Commands,
-    credits_ui: Query<Entity, (With<CreditsUI>, Without<MarkedForDespawn>)>,
-) {
-    for entity in credits_ui.iter() {
-        commands.entity(entity).insert(MarkedForDespawn);
+    if let Ok(ctx) = contexts.ctx_mut() {
+        egui::CentralPanel::default().show(ctx, |ui| {
+            ui.vertical_centered(|ui| {
+                ui.add_space(100.0);
+                
+                ui.label(egui::RichText::new("CREDITS")
+                    .size(32.0)
+                    .strong()
+                    .color(egui::Color32::from_rgb(252, 255, 82)));
+                
+                ui.add_space(50.0);
+                
+                ui.group(|ui| {
+                    ui.set_min_width(500.0);
+                    ui.vertical_centered(|ui| {
+                        ui.label(egui::RichText::new("SUBVERSIVE")
+                            .size(24.0)
+                            .strong()
+                            .color(egui::Color32::from_rgb(0, 255, 255)));
+                        
+                        ui.add_space(20.0);
+                        
+                        ui.label("Copyright (c) 2005 Matt Orsborn. All rights reserved.");
+                        ui.add_space(10.0);
+                        ui.label("Developed with Bevy Engine, Rapier2D and eGUI");
+                        
+                        ui.add_space(30.0);
+                        
+                        ui.label(egui::RichText::new("Special Thanks:")
+                            .strong()
+                            .color(egui::Color32::from_rgb(255, 0, 150)));
+                        
+                        ui.add_space(10.0);
+                        ui.label("• Bevy Community");
+                        ui.label("• egui Contributors");
+                    });
+                });
+                
+                ui.add_space(50.0);
+                
+                if ui.button(egui::RichText::new("Back to Menu (ESC)")
+                    .size(16.0)
+                    .color(egui::Color32::WHITE))
+                    .clicked() {
+                    next_state.set(GameState::MainMenu);
+                }
+            });
+        });
     }
 }
