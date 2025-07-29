@@ -23,6 +23,7 @@ pub struct GameAudio {
     pub access_granted: Handle<AudioSource>,
     pub access_denied: Handle<AudioSource>,
     pub card_swipe: Handle<AudioSource>,    
+    pub money_dispense: Handle<AudioSource>,    
 }
 
 #[derive(Event)]
@@ -52,6 +53,7 @@ pub enum AudioType {
     AccessGranted,
     AccessDenied,
     CardSwipe,    
+    MoneyDispense,
 }
 
 impl Default for AudioEvent {
@@ -73,17 +75,18 @@ pub fn setup_audio(mut commands: Commands, asset_server: Res<AssetServer>) {
         reload: asset_server.load("audio/reload.ogg"),
         reload_complete: asset_server.load("audio/reload_complete.ogg"),
         // 
-        cursor_target: asset_server.load("audio/alert.ogg"),
-        cursor_interact: asset_server.load("audio/alert.ogg"),
-        cursor_hack: asset_server.load("audio/alert.ogg"),
+        cursor_target: asset_server.load("audio/cursor_target.ogg"),
+        cursor_interact: asset_server.load("audio/cursor_interact.ogg"),
+        cursor_hack: asset_server.load("audio/cursor_hack.ogg"),
         // 0.2.10
-        gate_open: asset_server.load("audio/alert.ogg"),
-        gate_close: asset_server.load("audio/alert.ogg"),
-        door_open: asset_server.load("audio/alert.ogg"),
-        door_close: asset_server.load("audio/alert.ogg"),
-        access_granted: asset_server.load("audio/alert.ogg"),
-        access_denied: asset_server.load("audio/alert.ogg"),
-        card_swipe: asset_server.load("audio/alert.ogg"),
+        gate_open: asset_server.load("audio/gate_open.ogg"),
+        gate_close: asset_server.load("audio/gate_close.ogg"),
+        door_open: asset_server.load("audio/door_open.ogg"),
+        door_close: asset_server.load("audio/door_close.ogg"),
+        access_granted: asset_server.load("audio/access_granted.ogg"),
+        access_denied: asset_server.load("audio/access_denied.ogg"),
+        card_swipe: asset_server.load("audio/card_swipe.ogg"),
+        money_dispense: asset_server.load("audio/money_dispense.ogg"),
     };
     commands.insert_resource(audio);
 }
@@ -102,6 +105,7 @@ pub fn audio_system(
             AudioType::Neurovector => &audio.neurovector,
             AudioType::Reload => &audio.reload,
             AudioType::ReloadComplete => &audio.reload_complete,
+            AudioType::MoneyDispense => &audio.money_dispense,
             _ => &audio.alert, // PLACEHOLDER
         };
         

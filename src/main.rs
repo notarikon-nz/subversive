@@ -113,6 +113,9 @@ fn main() {
         .init_resource::<TrafficSystem>()
         .init_resource::<RoadGrid>()
 
+        // 0.2.10
+        .init_resource::<BankingNetwork>()
+
         .insert_resource(HubState::default())
         .insert_resource(HubDatabases::default())
         // .insert_resource(HubProgress::default())
@@ -153,6 +156,7 @@ fn main() {
             setup_cyberpunk2077_theme, // 0.2.5.4
 
             setup_traffic_system, // 0.2.9
+            setup_banking_network, // 0.2.10
         ))
 
         .add_systems(Startup, (
@@ -389,6 +393,12 @@ fn main() {
             access_control::access_control_prompts,
             access_control::gate_door_visual_system,
             access_control::gate_door_audio_system,
+
+            hacking_financial::atm_hacking_system,
+            hacking_financial::billboard_influence_system,
+            hacking_financial::terminal_account_data_system,
+            hacking_financial::financial_interaction_prompts,
+                        
         ).run_if(in_state(GameState::Mission)))
 
         // Environmental systems
@@ -962,4 +972,33 @@ pub fn cursor_memory_cleanup(
             commands.entity(entity).insert(MarkedForDespawn);
         }
     }
+}
+
+
+fn setup_banking_network(mut commands: Commands) {
+    let banking_network = BankingNetwork {
+        banks: vec![
+            Bank {
+                id: "MegaBank".to_string(),
+                name: "MegaBank Corporation".to_string(),
+                total_funds: 1000000,
+                security_level: 4,
+            },
+            Bank {
+                id: "CyberCredit".to_string(),
+                name: "CyberCredit Union".to_string(),
+                total_funds: 500000,
+                security_level: 3,
+            },
+            Bank {
+                id: "DataVault".to_string(),
+                name: "DataVault Financial".to_string(),
+                total_funds: 2000000,
+                security_level: 5,
+            },
+        ],
+        stolen_accounts: Vec::new(),
+    };
+    
+    commands.insert_resource(banking_network);
 }

@@ -2,6 +2,7 @@
 use bevy::prelude::*;
 use leafwing_input_manager::prelude::*;
 use crate::core::*;
+use crate::systems::hacking_financial::*;
 
 #[derive(Component)]
 pub struct ControlledCivilian {
@@ -26,6 +27,7 @@ pub fn enhanced_neurovector_system(
     mut action_events: EventReader<ActionEvent>,
     mut audio_events: EventWriter<AudioEvent>,
     mut neurovector_query: Query<(&Transform, &mut NeurovectorCapability), With<Agent>>,
+    billboard_query: Query<(&Transform, &Billboard, &DeviceState)>,    
     target_query: Query<(Entity, &Transform, &mut Sprite), (With<NeurovectorTarget>, Without<ControlledCivilian>)>,
     game_mode: Res<GameMode>,
     windows: Query<&Window>,
@@ -53,6 +55,27 @@ pub fn enhanced_neurovector_system(
             execute_single_neurovector_control(&mut commands, event.entity, target, &mut neurovector_query, &mut audio_events);
         }
     }
+
+    // PLACEHOLDER NEEDS INTEGRATION/REWORK
+    // Calculate billboard influence bonus
+    /*
+    let mut billboard_bonus = 0.0;
+    for (billboard_transform, billboard, device_state) in billboard_query.iter() {
+        if billboard.active && device_state.operational && device_state.powered {
+            let billboard_pos = billboard_transform.translation.truncate();
+            for target_pos in target_positions.iter() {
+                let distance = billboard_pos.distance(*target_pos);
+                if distance <= billboard.influence_radius {
+                    let influence = 1.0 - (distance / billboard.influence_radius);
+                    billboard_bonus += billboard.persuasion_bonus * influence;
+                }
+            }
+        }
+    }
+    
+    // Apply billboard bonus to neurovector success rate
+    let final_success_rate = base_success_rate + billboard_bonus.min(0.5); // Cap at +50%    
+    */
 }
 
 fn find_neurovector_targets(

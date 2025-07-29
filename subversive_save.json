@@ -122,10 +122,10 @@
       }
     },
     "unlocked_cities": [
-      "miami",
       "new_york",
-      "chicago",
-      "toronto"
+      "miami",
+      "toronto",
+      "chicago"
     ]
   }
 }

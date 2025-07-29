@@ -2,6 +2,7 @@
 use bevy::prelude::*;
 use crate::core::*;
 use crate::core::factions::*;
+use crate::systems::hacking_financial::*;
 
 // === MINIMAP COMPONENTS ===
 #[derive(Component)]
@@ -83,8 +84,10 @@ pub fn update_minimap_system(
     enemies: Query<(Entity, &Transform, &Faction), (With<Enemy>, Without<Dead>)>,
     civilians: Query<(Entity, &Transform), (With<Civilian>, Without<Dead>)>,
     terminals: Query<(Entity, &Transform), With<Terminal>>,
-    
     camera: Query<&Transform, (With<Camera2d>, Without<Agent>, Without<Enemy>, Without<Civilian>)>,
+    atms: Query<(Entity, &Transform), With<ATM>>,
+    billboards: Query<(Entity, &Transform), With<Billboard>>,
+
     global_data: Res<GlobalData>,
 ) {
     // Get camera position for centering minimap
@@ -159,6 +162,25 @@ if settings.show_terminals {
             }
         }
     }
+    for (entity, transform) in atms.iter() {
+        let world_pos = transform.translation.truncate();
+        if world_pos.distance(main_agent_pos) <= current_range {
+            if let Some(minimap_pos) = world_to_minimap_pos(world_pos, main_agent_pos, current_range, settings.size) {
+                dots_to_spawn.push((entity, minimap_pos, Color::srgb(0.2, 0.6, 1.0)));
+            }
+        }
+    }
+    
+    // Add Billboards (purple)
+    for (entity, transform) in billboards.iter() {
+        let world_pos = transform.translation.truncate();
+        if world_pos.distance(main_agent_pos) <= current_range {
+            if let Some(minimap_pos) = world_to_minimap_pos(world_pos, main_agent_pos, current_range, settings.size) {
+                dots_to_spawn.push((entity, minimap_pos, Color::srgb(0.8, 0.2, 0.8)));
+            }
+        }
+    }
+
 }
 
 // Now spawn all dots in one go

@@ -19,6 +19,8 @@ const DEVICE_CONFIGS: &[(DeviceType, u8, f32, &[HackEffect], DeviceFunction)] = 
     (DeviceType::Terminal, 2, 4.0, &[HackEffect::ExtractData], DeviceFunction::DataStorage),
     (DeviceType::SecuritySystem, 4, 10.0, &[HackEffect::Disable, HackEffect::PlantVirus], DeviceFunction::Security),
     (DeviceType::AlarmPanel, 2, 3.0, &[HackEffect::Disable], DeviceFunction::Security),
+    (DeviceType::ATM, 3, 6.0, &[HackEffect::ExtractData], DeviceFunction::DataStorage),
+    (DeviceType::Billboard, 2, 3.0, &[HackEffect::TakeControl], DeviceFunction::Surveillance),    
 ];
 
 // === COMPONENTS ===
@@ -39,6 +41,7 @@ pub enum DeviceType {
     Camera, Turret, Drone, Door, Elevator, Vehicle,
     PowerStation, StreetLight, TrafficLight, Terminal,
     SecuritySystem, AlarmPanel,
+    ATM, Billboard, // 0.2.10
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -116,7 +119,7 @@ pub struct DeviceState {
 }
 
 impl DeviceState {
-    fn new(device_type: DeviceType) -> Self {
+    pub fn new(device_type: DeviceType) -> Self {
         let function = get_device_function(device_type);
         Self {
             powered: true,
