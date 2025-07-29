@@ -302,8 +302,8 @@ fn smooth_path(path: &mut Vec<Vec2>) {
 
 // Initialize the pathfinding grid
 pub fn setup_pathfinding_grid(mut commands: Commands) {
-    let world_size = Vec2::new(1000.0, 1000.0); // Adjust to your world size
-    let tile_size = 16.0; // Balance between accuracy and performance
+    let world_size = Vec2::new(2000.0, 2000.0); // Adjust to your world size
+    let tile_size = 20.0; // Balance between accuracy and performance
     
     let grid = PathfindingGrid::new(world_size, tile_size);
     commands.insert_resource(grid);
@@ -375,6 +375,62 @@ fn mark_rect_obstacle(grid: &mut PathfindingGrid, center: Vec2, size: Vec2) {
     }
 }
 
+pub fn find_adjacent_position(grid: &PathfindingGrid, target: Vec2, approach_from: Vec2) -> Vec2 {
+    if let Some(target_grid) = grid.world_to_grid(target) {
+        // Try positions around the target
+        let directions = [
+            (-1, 0), (1, 0), (0, -1), (0, 1),  // Cardinal directions first
+            (-1, -1), (-1, 1), (1, -1), (1, 1) // Then diagonals
+        ];
+        
+        for (dx, dy) in directions {
+            let check_x = target_grid.0 as i32 + dx;
+            let check_y = target_grid.1 as i32 + dy;
+            
+            if check_x >= 0 && check_y >= 0 && 
+               (check_x as usize) < grid.width && (check_y as usize) < grid.height {
+                
+                let check_pos = (check_x as usize, check_y as usize);
+                if grid.get_tile(check_pos.0, check_pos.1) == TileType::Walkable {
+                    let world_pos = grid.grid_to_world(check_pos);
+                    
+                    // Prefer positions that are closer to the approach direction
+                    let to_approach = (approach_from - world_pos).normalize_or_zero();
+                    let to_target = (target - world_pos).normalize_or_zero();
+                    
+                    // If this position allows good approach and target access, use it
+                    if to_approach.dot(to_target) > -0.5 { // Not opposing directions
+                        return world_pos;
+                    }
+                }
+            }
+        }
+    }
+    
+    // Fallback: return target position (will likely fail pathfinding)
+    target
+}
+
+// Enhanced pathfinding that handles "move near" vs "move to" targets
+pub fn find_path_smart(grid: &PathfindingGrid, start: Vec2, goal: Vec2, allow_adjacent: bool) -> Option<Vec<Vec2>> {
+    // First try direct path
+    if let Some(path) = find_path(grid, start, goal) {
+        return Some(path);
+    }
+    
+    // If direct path fails and we allow adjacent positioning
+    if allow_adjacent {
+        let adjacent_goal = find_adjacent_position(grid, goal, start);
+        if adjacent_goal != goal {
+            if let Some(path) = find_path(grid, start, adjacent_goal) {
+                return Some(path);
+            }
+        }
+    }
+    
+    None
+}
+
 // Pathfinding movement system - replaces your current movement system
 pub fn pathfinding_movement_system(
     mut commands: Commands,
@@ -383,6 +439,7 @@ pub fn pathfinding_movement_system(
     grid: Res<PathfindingGrid>,
     time: Res<Time>,
     game_mode: Res<crate::core::GameMode>,
+    cover_points: Query<&Transform, (With<crate::core::CoverPoint>, Without<crate::core::Agent>)>,
 ) {
     if game_mode.paused { return; }
     
@@ -392,20 +449,25 @@ pub fn pathfinding_movement_system(
             if let Ok((entity, transform, _, mut agent)) = agents.get_mut(event.entity) {
                 let start_pos = transform.translation.truncate();
                 
+                // Check if target is near a cover point - if so, allow adjacent positioning
+                let near_cover = cover_points.iter().any(|cover_transform| {
+                    cover_transform.translation.truncate().distance(target_pos) < 30.0
+                });
+
+                // if let Some(path) = find_path_smart(&grid, start_pos, target_pos, near_cover) {
                 if let Some(path) = find_path(&grid, start_pos, target_pos) {
                     agent.current_path = path;
                     agent.path_index = 0;
                     agent.recalculate = false;
                 } else {
-                    // No path found - try to get closer
-                    warn!("No path found from {:?} to {:?}", start_pos, target_pos);
+                    warn!("No path found from {:?} to {:?} (near_cover: {})", start_pos, target_pos, near_cover);
                     agent.current_path.clear();
                 }
             }
         }
     }
     
-    // Execute pathfinding movement
+    // Execute pathfinding movement (same as before)
     for (entity, mut transform, speed, mut agent) in agents.iter_mut() {
         if agent.current_path.is_empty() { continue; }
         
@@ -466,9 +528,20 @@ pub fn debug_pathfinding_grid(
     grid: Res<PathfindingGrid>,
     agents: Query<&PathfindingAgent>,
 ) {
-    // Draw grid
-    for x in 0..grid.width {
-        for y in 0..grid.height {
+    // Draw grid bounds
+    let world_min = grid.offset;
+    let world_max = grid.offset + Vec2::new(grid.width as f32 * grid.tile_size, grid.height as f32 * grid.tile_size);
+    
+    gizmos.rect_2d(
+        Isometry2d::from_translation((world_min + world_max) * 0.5),
+        world_max - world_min,
+        Color::srgb(0.5, 0.5, 0.5)
+    );
+    
+    // Draw blocked tiles (sample to avoid performance issues)
+    let sample_rate = (grid.width / 50).max(1); // Sample every N tiles
+    for x in (0..grid.width).step_by(sample_rate) {
+        for y in (0..grid.height).step_by(sample_rate) {
             let tile_type = grid.get_tile(x, y);
             if tile_type != TileType::Walkable {
                 let world_pos = grid.grid_to_world((x, y));

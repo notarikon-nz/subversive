@@ -306,7 +306,7 @@ fn spawn_enhanced_prompt(
         Sprite {
             image: sprite_handle.clone(),
             color: tint_color.with_alpha(base_alpha + 0.3),
-            custom_size: Some(Vec2::new(16.0, 16.0)),
+            custom_size: Some(Vec2::new(32.0, 32.0)),
             ..default()
         },
         Transform::from_translation(position.extend(101.0)),

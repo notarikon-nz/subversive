@@ -134,7 +134,7 @@ fn spawn_hackable_prompts(
         
         let device_pos = transform.translation.truncate();
         let distance = agent_pos.distance(device_pos);
-        let interaction_range = 40.0;
+        let interaction_range = 80.0;
 
         if distance <= interaction_range {
             let has_tool = check_hack_tool_available(inventory, hackable);
@@ -189,27 +189,12 @@ fn spawn_key_prompt(
         InteractionType::Unavailable => &sprites.key_question,
     };
 
-    // Background circle for better visibility
-    commands.spawn((
-        Sprite {
-            color: Color::srgba(0.0, 0.0, 0.0, 0.7),
-            custom_size: Some(Vec2::new(24.0, 24.0)),
-            ..default()
-        },
-        Transform::from_translation(position.extend(100.0)),
-        GlobalTransform::default(),
-        InteractionPrompt {
-            target_entity,
-            prompt_type,
-        },
-    ));
-
     // Key sprite
     commands.spawn((
         Sprite {
             image: sprite_handle.clone(),
             color: tint_color,
-            custom_size: Some(Vec2::new(16.0, 16.0)),
+            custom_size: Some(Vec2::new(32.0, 32.0)),
             ..default()
         },
         Transform::from_translation(position.extend(101.0)),
@@ -228,8 +213,8 @@ fn spawn_security_display(
     security_level: u8,
     target_entity: Entity,
 ) {
-    let bar_width = 3.0;
-    let bar_height = 10.0;
+    let bar_width = 1.0;
+    let bar_height = 4.0;
     let bar_spacing = 1.0;
     
     for i in 0..5 {

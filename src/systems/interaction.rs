@@ -20,18 +20,6 @@ pub fn system(
 ) {
     if game_mode.paused { return; }
 
-    // Draw interaction prompts for selected agents
-    for &selected_agent in &selection.selected {
-        if let Ok((agent_transform, inventory)) = inventory_queries.p0().get(selected_agent) {
-            let agent_pos = agent_transform.translation.truncate();
-
-            // Show terminal interaction prompts
-            draw_terminal_prompts(&mut gizmos, agent_pos, &terminal_query);
-            
-            // Show hackable device prompts
-            draw_hackable_prompts(&mut gizmos, agent_pos, inventory, &hackable_query);
-        }
-    }
 
     // Process interaction events
     for event in action_events.read() {
@@ -72,111 +60,6 @@ pub fn system(
     }
 }
 
-
-fn draw_terminal_prompts(
-    gizmos: &mut Gizmos,
-    agent_pos: Vec2,
-    terminal_query: &Query<(Entity, &Transform, &mut Terminal, Option<&LoreSource>)>,
-) {
-    for (_, terminal_transform, terminal, lore_source) in terminal_query.iter() {
-        if terminal.accessed && lore_source.map_or(true, |ls| ls.accessed) { 
-            continue; 
-        }
-
-        let terminal_pos = terminal_transform.translation.truncate();
-        let distance = agent_pos.distance(terminal_pos);
-
-        if distance <= terminal.range {
-            let color = match terminal.terminal_type {
-                TerminalType::Objective => Color::srgba(0.9, 0.2, 0.2, 0.4),
-                TerminalType::Equipment => Color::srgba(0.2, 0.5, 0.9, 0.4),
-                TerminalType::Intel => Color::srgba(0.2, 0.8, 0.3, 0.4),
-            };
-            
-            // Draw interaction range
-            gizmos.circle_2d(terminal_pos, terminal.range, color);
-            
-            // Draw "E" prompt
-            draw_interaction_prompt(gizmos, terminal_pos, "E", Color::WHITE);
-        }
-    }
-}
-
-fn draw_hackable_prompts(
-    gizmos: &mut Gizmos,
-    agent_pos: Vec2,
-    inventory: &Inventory,
-    hackable_query: &Query<(Entity, &Transform, &Hackable, &DeviceState)>,
-) {
-    for (_, transform, hackable, device_state) in hackable_query.iter() {
-        if hackable.is_hacked { continue; }
-        
-        let device_pos = transform.translation.truncate();
-        let distance = agent_pos.distance(device_pos);
-        let interaction_range = 40.0; // Standard hacking range
-
-        if distance <= interaction_range {
-            // Check if agent has required tool
-            let has_tool = check_hack_tool_available(inventory, hackable);
-            
-            let (prompt_color, prompt_text) = if has_tool {
-                (Color::srgb(0.2, 0.8, 0.8), "E") // Cyan = can hack
-            } else {
-                (Color::srgb(0.8, 0.2, 0.2), "?") // Red = missing tool
-            };
-            
-            // Draw device outline
-            let device_color = if device_state.powered && device_state.operational {
-                Color::srgba(0.8, 0.8, 0.2, 0.4) // Yellow = hackable
-            } else {
-                Color::srgba(0.5, 0.5, 0.5, 0.4) // Gray = offline
-            };
-            
-            gizmos.circle_2d(device_pos, interaction_range, device_color);
-            
-            // Draw interaction prompt
-            draw_interaction_prompt(gizmos, device_pos, prompt_text, prompt_color);
-            
-            // Draw security level indicator
-            draw_security_level(gizmos, device_pos, hackable.security_level);
-        }
-    }
-}
-
-fn draw_interaction_prompt(gizmos: &mut Gizmos, position: Vec2, text: &str, color: Color) {
-    let prompt_pos = position + Vec2::new(0.0, 25.0);
-    
-    // Background
-    gizmos.rect_2d(prompt_pos, Vec2::new(15.0, 15.0), Color::srgba(0.0, 0.0, 0.0, 0.8));
-    
-    // Border  
-    gizmos.rect_2d(prompt_pos, Vec2::new(16.0, 16.0), color);
-    
-    // Simple text representation (just a colored circle for now)
-    gizmos.circle_2d(prompt_pos, 5.0, color);
-}
-
-fn draw_security_level(gizmos: &mut Gizmos, position: Vec2, security_level: u8) {
-    let indicator_pos = position + Vec2::new(15.0, 15.0);
-    
-    // Draw security level as colored bars
-    for i in 0..5 {
-        let bar_pos = indicator_pos + Vec2::new(i as f32 * 3.0, 0.0);
-        let bar_color = if i < security_level {
-            match security_level {
-                1..=2 => Color::srgb(0.2, 0.8, 0.2), // Green = easy
-                3 => Color::srgb(0.8, 0.8, 0.2),     // Yellow = medium  
-                4..=5 => Color::srgb(0.8, 0.2, 0.2), // Red = hard
-                _ => Color::WHITE,
-            }
-        } else {
-            Color::srgb(0.3, 0.3, 0.3) // Gray = empty
-        };
-        
-        gizmos.rect_2d(bar_pos, Vec2::new(2.0, 8.0), bar_color);
-    }
-}
-
 fn find_closest_terminal(
     agent_pos: Vec2,
     terminal_query: &Query<(Entity, &Transform, &mut Terminal, Option<&LoreSource>)>,
@@ -201,7 +84,7 @@ fn find_closest_hackable(
     inventory: &Inventory,
     hackable_query: &Query<(Entity, &Transform, &Hackable, &DeviceState)>,
 ) -> Option<Entity> {
-    let interaction_range = 40.0;
+    let interaction_range = 80.0;
     
     hackable_query.iter()
         .filter(|(_, _, hackable, _)| !hackable.is_hacked)

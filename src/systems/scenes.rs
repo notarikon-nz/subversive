@@ -339,8 +339,9 @@ pub fn spawn_cover_points(commands: &mut Commands) {
             RigidBody::Fixed,
             Collider::cuboid(10.0, 20.0),
             CollisionGroups::new(COVER_GROUP, Group::ALL),
+            // NEW: Pathfinding obstacle
             PathfindingObstacle {
-                radius: 15.0,
+                radius: 18.0,
                 blocks_movement: true, // Cover provides concealment but can be moved around
             },
         ));

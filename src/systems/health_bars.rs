@@ -81,7 +81,7 @@ pub fn spawn_agent_status_bars(
         let number_text = commands.spawn((
             Text2d::new(format!("{}", idx + 1)),
             TextFont {
-                font: asset_server.load("/assets/fonts/courier_prime.ttf"),
+                font: asset_server.load("fonts/courier_prime.ttf"),
                 font_size: 12.0,
                 ..default()
             },
