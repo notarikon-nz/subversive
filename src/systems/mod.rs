@@ -42,6 +42,14 @@ pub mod interaction_prompts;
 pub mod cursor_enhancements;
 pub mod advanced_prompts;
 
+// 0.2.9
+pub mod traffic;
+pub mod roads;
+pub mod traffic_upgrades;
+pub use traffic::*;
+pub use roads::*;
+pub use traffic_upgrades::*;
+
 pub use minimap::*;
 pub use message_window::*;
 pub use urban_simulation::*;

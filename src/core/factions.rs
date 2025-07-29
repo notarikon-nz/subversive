@@ -9,6 +9,7 @@ pub enum Faction {
     Syndicate,   // Rival faction
     Police,      // Law enforcement
     Civilian,    // Non-combatants
+    Military,
 }
 
 impl Faction {
@@ -36,6 +37,7 @@ impl Faction {
             Faction::Syndicate => Color::srgb(0.8, 0.2, 0.8),
             Faction::Police => Color::srgb(0.2, 0.2, 1.0),
             Faction::Civilian => Color::srgb(1.0, 1.0, 0.1),
+            Faction::Military => Color::srgb(0.5, 0.8, 0.5),
         }
     }
 }

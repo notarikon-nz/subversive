@@ -57,6 +57,7 @@ pub fn alert_system(
                 AlertType::CallForHelp => 200.0,
                 AlertType::GunshotHeard => 150.0,
                 AlertType::EnemySpotted => 250.0,
+                _ => 200.0,
             };
             
             if distance <= alert_range {

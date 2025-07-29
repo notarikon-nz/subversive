@@ -439,7 +439,7 @@ pub fn pathfinding_movement_system(
     grid: Res<PathfindingGrid>,
     time: Res<Time>,
     game_mode: Res<crate::core::GameMode>,
-    cover_points: Query<&Transform, (With<crate::core::CoverPoint>, Without<crate::core::Agent>)>,
+    // cover_points: Query<&Transform, (With<crate::core::CoverPoint>, Without<crate::core::Agent>)>,
 ) {
     if game_mode.paused { return; }
     
@@ -450,9 +450,9 @@ pub fn pathfinding_movement_system(
                 let start_pos = transform.translation.truncate();
                 
                 // Check if target is near a cover point - if so, allow adjacent positioning
-                let near_cover = cover_points.iter().any(|cover_transform| {
-                    cover_transform.translation.truncate().distance(target_pos) < 30.0
-                });
+                //let near_cover = cover_points.iter().any(|cover_transform| {
+                //    cover_transform.translation.truncate().distance(target_pos) < 30.0
+                //});
 
                 // if let Some(path) = find_path_smart(&grid, start_pos, target_pos, near_cover) {
                 if let Some(path) = find_path(&grid, start_pos, target_pos) {
@@ -460,7 +460,7 @@ pub fn pathfinding_movement_system(
                     agent.path_index = 0;
                     agent.recalculate = false;
                 } else {
-                    warn!("No path found from {:?} to {:?} (near_cover: {})", start_pos, target_pos, near_cover);
+                    // warn!("No path found from {:?} to {:?} (near_cover: {})", start_pos, target_pos, near_cover);
                     agent.current_path.clear();
                 }
             }

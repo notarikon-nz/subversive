@@ -1,27 +1,27 @@
 {
-  "credits": 36150,
-  "current_day": 100,
+  "credits": 45350,
+  "current_day": 110,
   "agent_levels": [
-    6,
-    6,
-    6
+    7,
+    7,
+    7
   ],
   "agent_experience": [
-    625,
-    625,
-    625
+    725,
+    725,
+    725
   ],
   "agent_recovery": [
-    97,
-    97,
-    97
+    108,
+    108,
+    108
   ],
   "regions": [
     {
       "name": "Neo-Tokyo Central",
       "threat_level": 1,
       "alert_level": 3,
-      "alert_decay_timer": 110
+      "alert_decay_timer": 121
     },
     {
       "name": "Corporate District",
@@ -117,15 +117,15 @@
       "new_york": {
         "completed": true,
         "alert_level": "Green",
-        "last_mission_day": 96,
-        "times_visited": 25
+        "last_mission_day": 107,
+        "times_visited": 29
       }
     },
     "unlocked_cities": [
-      "miami",
-      "new_york",
+      "chicago",
       "toronto",
-      "chicago"
+      "new_york",
+      "miami"
     ]
   }
 }

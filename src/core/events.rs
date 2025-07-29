@@ -51,6 +51,7 @@ pub enum AlertSource {
     MissingPatrol,
     Alarm,
     Grenade, // NEW
+    CivilianReport,
 }
 
 #[derive(Debug, Clone)]
@@ -58,6 +59,9 @@ pub enum AlertType {
     CallForHelp,
     GunshotHeard,
     EnemySpotted,
+    TrafficIncident,
+    VehicularAssault,
+    ConvoyAttacked,    
 }
 
 // NEW: Specific events for advanced actions

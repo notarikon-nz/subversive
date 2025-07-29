@@ -108,7 +108,11 @@ fn main() {
         .init_resource::<CivilianSpawner>()
         .init_resource::<PowerGrid>()
         .insert_resource(AgentManagementState::default())
-        
+
+        // 0.2.9
+        .init_resource::<TrafficSystem>()
+        .init_resource::<RoadGrid>()
+
         .insert_resource(HubState::default())
         .insert_resource(HubDatabases::default())
         // .insert_resource(HubProgress::default())
@@ -142,6 +146,8 @@ fn main() {
             pathfinding::setup_pathfinding_grid, // 0.2.5.3
 
             setup_cyberpunk2077_theme, // 0.2.5.4
+
+            setup_traffic_system, // 0.2.9
         ))
 
         .add_systems(Startup, (
@@ -173,29 +179,15 @@ fn main() {
         ))
 
         .add_systems(Update, (
-            // OPTION 1: Basic cursor system
-            // cursor::cursor_system,
-            
-            // OPTION 2: Enhanced cursor system (recommended)
             cursor_enhancements::cursor_detection_system,
             cursor_enhancements::cursor_sprite_system,
             cursor_enhancements::cursor_audio_system,
 
             cursor_enhancements::weapon_specific_cursor_system,
             cursor_enhancements::range_indicator_system,
-            
-            // Interaction prompt system (choose ONE of these options):
-            
-            // OPTION 1: Basic prompts
-            // interaction_prompts::interaction_prompt_system,
-            // interaction_prompts::animate_interaction_prompts,
-            // interaction_prompts::cleanup_orphaned_prompts,
-            
-            // OPTION 2: Advanced prompts (recommended)
 
             advanced_prompts::advanced_prompt_system,
             advanced_prompts::distance_fade_system,
-            
         ).chain())    // Leave .chain() to ensure proper execution order
 
         .add_systems(Update, (
@@ -347,8 +339,6 @@ fn main() {
 
         ).run_if(in_state(GameState::Mission)))
 
-        // agents visible and controllable
-
         // Area control and formations
         .add_systems(Update, (
             
@@ -365,6 +355,24 @@ fn main() {
             enhanced_neurovector::enhanced_neurovector_system,
             enhanced_neurovector::controlled_civilian_behavior_system,
             enhanced_neurovector::controlled_civilian_visual_system,
+        ).run_if(in_state(GameState::Mission)))
+
+        // 0.2.9
+        .add_systems(Update, (
+            // Traffic core systems
+            traffic::traffic_spawn_system,
+            traffic::traffic_movement_system,
+            traffic::traffic_visual_effects_system,
+            traffic::traffic_collision_system,
+            traffic::traffic_cleanup_system,
+            
+            // Civilian Handling
+            // traffic_upgrades::civilian_traffic_interaction_system,
+
+            // Emergency and military systems
+            emergency_response_system,
+            military_convoy_system,
+            
         ).run_if(in_state(GameState::Mission)))
 
         // Environmental systems

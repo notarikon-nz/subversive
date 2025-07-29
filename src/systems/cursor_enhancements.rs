@@ -138,7 +138,7 @@ fn update_cursor_with_animation(
 ) {
     let sprite_handle = get_cursor_sprite(cursor_sprites, cursor_type);
     
-    if let Ok((entity, mut transform, mut animation)) = cursor_query.get_single_mut() {
+    if let Ok((entity, mut transform, mut animation)) = cursor_query.single_mut() {
         // Update position
         transform.translation = position.extend(1000.0);
         
