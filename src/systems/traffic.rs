@@ -1,8 +1,6 @@
 // src/systems/traffic.rs - Efficient traffic simulation for cyberpunk urban environment
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
-use bevy::utils::*;
-use std::time::{SystemTime};
 use crate::core::*;
 use crate::systems::*;
 

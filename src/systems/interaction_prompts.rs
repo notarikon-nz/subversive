@@ -2,6 +2,12 @@
 use bevy::prelude::*;
 use crate::core::*;
 
+#[derive(Component)]
+pub struct DeviceTooltip {
+    pub target_entity: Entity,
+    pub device_name: String,
+}
+
 #[derive(Resource)]
 pub struct InteractionSprites {
     pub key_e: Handle<Image>,
@@ -58,7 +64,7 @@ pub fn interaction_prompt_system(
     hackable_query: Query<(Entity, &Transform, &Hackable, &DeviceState)>,
     
     // Cleanup old prompts
-    existing_prompts: Query<Entity, Or<(With<InteractionPrompt>, With<SecurityLevelDisplay>, Without<MarkedForDespawn>)>>,
+    existing_prompts: Query<Entity, Or<(With<InteractionPrompt>, With<DeviceTooltip>, Without<MarkedForDespawn>)>>,
     game_mode: Res<GameMode>,
 ) {
     if game_mode.paused { return; }
@@ -91,6 +97,81 @@ pub fn interaction_prompt_system(
             );
         }
     }
+}
+
+fn get_device_name(device_type: &DeviceType) -> &'static str {
+    match device_type {
+        DeviceType::Camera => "Security Camera",
+        DeviceType::Turret => "Auto Turret",
+        DeviceType::Drone => "Security Drone", 
+        DeviceType::Door => "Electronic Door",
+        DeviceType::Elevator => "Elevator",
+        DeviceType::Vehicle => "Vehicle System",
+        DeviceType::PowerStation => "Power Station",
+        DeviceType::StreetLight => "Street Light",
+        DeviceType::TrafficLight => "Traffic Light",
+        DeviceType::Terminal => "Data Terminal",
+        DeviceType::SecuritySystem => "Security System",
+        DeviceType::AlarmPanel => "Alarm Panel",
+        DeviceType::ATM => "ATM Machine",
+        DeviceType::Billboard => "Digital Billboard",
+    }
+}
+
+fn get_device_color(device_type: &DeviceType) -> Color {
+    match device_type {
+        DeviceType::Camera | DeviceType::Drone => Color::srgb(0.2, 0.6, 0.8),      // Blue - surveillance
+        DeviceType::Turret | DeviceType::SecuritySystem => Color::srgb(0.8, 0.2, 0.2), // Red - defensive
+        DeviceType::Door | DeviceType::Elevator => Color::srgb(0.6, 0.4, 0.2),     // Brown - access
+        DeviceType::PowerStation | DeviceType::StreetLight => Color::srgb(0.8, 0.8, 0.2), // Yellow - power
+        DeviceType::TrafficLight => Color::srgb(0.8, 0.6, 0.2),                   // Orange - traffic
+        DeviceType::ATM | DeviceType::Terminal => Color::srgb(0.2, 0.8, 0.6),      // Green - data
+        DeviceType::AlarmPanel => Color::srgb(0.8, 0.4, 0.2),                     // Orange - alerts
+        DeviceType::Billboard => Color::srgb(0.6, 0.2, 0.8),                      // Purple - media
+        DeviceType::Vehicle => Color::srgb(0.4, 0.4, 0.4),                        // Gray - vehicles
+    }
+}
+
+fn spawn_device_tooltip(
+    commands: &mut Commands,
+    position: Vec2,
+    device_type: &DeviceType,
+    security_level: u8,
+    target_entity: Entity,
+) {
+    let device_name = get_device_name(device_type);
+    let tooltip_text = format!("{} (Sec:{})", device_name, security_level);
+    let text_width = tooltip_text.len() as f32 * 6.0 + 8.0;
+    
+    // Tooltip background
+    commands.spawn((
+        Sprite {
+            color: Color::srgba(0.0, 0.0, 0.0, 0.8),
+            custom_size: Some(Vec2::new(text_width, 16.0)),
+            ..default()
+        },
+        Transform::from_translation(position.extend(102.0)),
+        GlobalTransform::default(),
+        DeviceTooltip {
+            target_entity,
+            device_name: tooltip_text.clone(),
+        },
+    ));
+    
+    // Tooltip border
+    commands.spawn((
+        Sprite {
+            color: get_device_color(device_type),
+            custom_size: Some(Vec2::new(text_width + 2.0, 18.0)),
+            ..default()
+        },
+        Transform::from_translation(position.extend(101.0)),
+        GlobalTransform::default(),
+        DeviceTooltip {
+            target_entity,
+            device_name: tooltip_text,
+        },
+    ));
 }
 
 fn spawn_terminal_prompts(
@@ -153,10 +234,10 @@ fn spawn_hackable_prompts(
                 );
                 
                 // Add security level display
-                spawn_security_display(
+                spawn_device_tooltip(
                     commands,
-                    sprites,
-                    device_pos + Vec2::new(20.0, 20.0),
+                    device_pos + Vec2::new(0.0, 45.0),
+                    &hackable.device_type,
                     hackable.security_level,
                     entity,
                 );
@@ -169,6 +250,15 @@ fn spawn_hackable_prompts(
                     entity,
                     Color::srgb(0.8, 0.2, 0.2), // Red for unavailable
                 );
+
+                // Show tooltip for unavailable devices too
+                spawn_device_tooltip(
+                    commands,
+                    device_pos + Vec2::new(0.0, 45.0),
+                    &hackable.device_type,
+                    hackable.security_level,
+                    entity,
+                );                
             }
         }
     }
@@ -291,7 +381,7 @@ pub fn animate_interaction_prompts(
 pub fn cleanup_orphaned_prompts(
     mut commands: Commands,
     prompt_query: Query<(Entity, &InteractionPrompt), Without<MarkedForDespawn>>,
-    security_query: Query<(Entity, &SecurityLevelDisplay), Without<MarkedForDespawn>>,
+    tooltip_query: Query<(Entity, &DeviceTooltip), Without<MarkedForDespawn>>, 
     entity_query: Query<Entity>, // All entities to check if targets still exist
 ) {
     // Check interaction prompts
@@ -301,10 +391,9 @@ pub fn cleanup_orphaned_prompts(
         }
     }
     
-    // Check security displays
-    for (display_entity, display) in security_query.iter() {
-        if entity_query.get(display.target_entity).is_err() {
-            commands.entity(display_entity).insert(MarkedForDespawn);
+    for (tooltip_entity, tooltip) in tooltip_query.iter() {
+        if entity_query.get(tooltip.target_entity).is_err() {
+            commands.entity(tooltip_entity).insert(MarkedForDespawn);
         }
     }
 }

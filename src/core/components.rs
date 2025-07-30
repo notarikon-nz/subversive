@@ -206,7 +206,6 @@ impl Inventory {
             match item {
                 InventoryItem::AccessCard { level, .. } => *level >= required_level,
                 InventoryItem::Keycard { access_level, .. } => *access_level >= required_level,
-                _ => false,
             }
         })
     }
@@ -216,7 +215,6 @@ impl Inventory {
             match item {
                 InventoryItem::AccessCard { level, .. } => max_level.max(*level),
                 InventoryItem::Keycard { access_level, .. } => max_level.max(*access_level),
-                _ => max_level,
             }
         })
     }
@@ -226,7 +224,6 @@ impl Inventory {
             match item {
                 InventoryItem::AccessCard { level, .. } => *level >= required_level,
                 InventoryItem::Keycard { access_level, .. } => *access_level >= required_level,
-                _ => false,
             }
         }) {
             self.items.remove(pos);

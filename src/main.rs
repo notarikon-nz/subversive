@@ -12,7 +12,6 @@ use systems::police::{load_police_config, PoliceResponse, PoliceEscalation};
 
 mod core;
 mod systems;
-use systems::cursor_enhancements::*;
 
 use core::*;
 use core::factions;
@@ -571,6 +570,7 @@ pub fn setup_mission_scene_optimized(
     cities_progress: Res<CitiesProgress>,     // Resource Does Not Exist
     mut scene_cache: ResMut<SceneCache>,
     agents: Query<Entity, With<Agent>>,
+    mut power_grid: ResMut<PowerGrid>,
 ) {
 
     info!("setup_mission_scene_optimized");
@@ -628,6 +628,9 @@ pub fn setup_mission_scene_optimized(
     spawn_oil_spill(&mut commands, Vec2::new(100.0, 100.0), 50.0);
     spawn_gasoline_spill(&mut commands, Vec2::new(200.0, 100.0), 40.0);
     spawn_explodable(&mut commands, Vec2::new(250.0, 100.0), ExplodableType::FuelBarrel);
+
+       // NEW: Add hackable test objects
+    spawn_hackable_test_objects(&mut commands, &sprites, &mut power_grid);
 
     setup_chain_reaction_test_scenario(commands);
 }
@@ -1001,4 +1004,129 @@ fn setup_banking_network(mut commands: Commands) {
     };
     
     commands.insert_resource(banking_network);
+}
+
+// NEW: Function to spawn hackable test objects
+fn spawn_hackable_test_objects(
+    commands: &mut Commands,
+    sprites: &GameSprites,
+    power_grid: &mut ResMut<PowerGrid>,
+) {
+    // Security Camera - Easy hack
+    let camera_entity = commands.spawn((
+        Sprite {
+            color: Color::srgb(0.3, 0.3, 0.3),
+            custom_size: Some(Vec2::new(16.0, 12.0)),
+            ..default()
+        },
+        Transform::from_translation(Vec3::new(-50.0, 150.0, 1.0)),
+        GlobalTransform::default(),
+        Visibility::default(),
+        ViewVisibility::default(),
+        bevy_rapier2d::prelude::RigidBody::Fixed,
+        bevy_rapier2d::prelude::Collider::cuboid(8.0, 6.0),
+    )).id();
+    
+    make_hackable(commands, camera_entity, DeviceType::Camera);
+    
+    // ATM - Medium security
+    let atm_entity = commands.spawn((
+        Sprite {
+            color: Color::srgb(0.2, 0.4, 0.6),
+            custom_size: Some(Vec2::new(20.0, 30.0)),
+            ..default()
+        },
+        Transform::from_translation(Vec3::new(150.0, -100.0, 1.0)),
+        GlobalTransform::default(),
+        Visibility::default(),
+        ViewVisibility::default(),
+        bevy_rapier2d::prelude::RigidBody::Fixed,
+        bevy_rapier2d::prelude::Collider::cuboid(10.0, 15.0),
+    )).id();
+    
+    make_hackable(commands, atm_entity, DeviceType::ATM);
+    
+    // Turret - High security
+    let turret_entity = commands.spawn((
+        Sprite {
+            color: Color::srgb(0.6, 0.2, 0.2),
+            custom_size: Some(Vec2::new(24.0, 24.0)),
+            ..default()
+        },
+        Transform::from_translation(Vec3::new(0.0, 200.0, 1.0)),
+        GlobalTransform::default(),
+        Visibility::default(),
+        ViewVisibility::default(),
+        bevy_rapier2d::prelude::RigidBody::Fixed,
+        bevy_rapier2d::prelude::Collider::ball(12.0),
+    )).id();
+    
+    setup_hackable_turret(commands, turret_entity);
+    
+    // Power Station - Networked device
+    let power_station_entity = commands.spawn((
+        Sprite {
+            color: Color::srgb(0.8, 0.8, 0.2),
+            custom_size: Some(Vec2::new(40.0, 40.0)),
+            ..default()
+        },
+        Transform::from_translation(Vec3::new(-200.0, -50.0, 1.0)),
+        GlobalTransform::default(),
+        Visibility::default(),
+        ViewVisibility::default(),
+        bevy_rapier2d::prelude::RigidBody::Fixed,
+        bevy_rapier2d::prelude::Collider::cuboid(20.0, 20.0),
+    )).id();
+    
+    make_hackable_networked(
+        commands, 
+        power_station_entity, 
+        DeviceType::PowerStation, 
+        "test_grid".to_string(),
+        power_grid
+    );
+    
+    // Connected street lights (affected by power station)
+    for i in 0..3 {
+        let light_entity = commands.spawn((
+            Sprite {
+                color: Color::srgb(0.9, 0.9, 0.7),
+                custom_size: Some(Vec2::new(8.0, 24.0)),
+                ..default()
+            },
+            Transform::from_translation(Vec3::new(-150.0 + i as f32 * 40.0, -20.0, 1.0)),
+            GlobalTransform::default(),
+            Visibility::default(),
+            ViewVisibility::default(),
+            bevy_rapier2d::prelude::RigidBody::Fixed,
+            bevy_rapier2d::prelude::Collider::cuboid(4.0, 12.0),
+        )).id();
+        
+        make_hackable_networked(
+            commands, 
+            light_entity, 
+            DeviceType::StreetLight, 
+            "test_grid".to_string(),
+            power_grid
+        );
+    }
+    
+    // Simple door - Quick hack
+    let door_entity = commands.spawn((
+        Sprite {
+            color: Color::srgb(0.4, 0.2, 0.1),
+            custom_size: Some(Vec2::new(8.0, 32.0)),
+            ..default()
+        },
+        Transform::from_translation(Vec3::new(300.0, 0.0, 1.0)),
+        GlobalTransform::default(),
+        Visibility::default(),
+        ViewVisibility::default(),
+        bevy_rapier2d::prelude::RigidBody::Fixed,
+        bevy_rapier2d::prelude::Collider::cuboid(4.0, 16.0),
+    )).id();
+    
+    setup_hackable_door(commands, door_entity);
+    
+    info!("Spawned hackable test objects: camera, ATM, turret, power station, 3 street lights, door");
 }

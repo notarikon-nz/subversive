@@ -2,7 +2,6 @@
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 use crate::core::*;
-use crate::core::hackable::*;
 use crate::systems::pathfinding::PathfindingObstacle;
 use crate::systems::scanner::Scannable;
 use serde::{Deserialize, Serialize};

@@ -357,7 +357,7 @@ pub fn time_bomb_system(
 
 /// Process delayed explosions from chain reactions
 pub fn pending_explosion_system(
-    mut pending_query: Query<(Entity, &mut PendingExplosion, &Transform, Option<&Explodable>)>,
+    mut pending_query: Query<(Entity, &mut PendingExplosion, &Transform, Option<&Explodable>), Without<MarkedForDespawn>>,
     mut commands: Commands,
     time: Res<Time>,
     game_mode: Res<GameMode>,

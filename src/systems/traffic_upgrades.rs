@@ -1,8 +1,6 @@
 // src/systems/traffic_upgrades.rs - Additional extensions to the traffic system
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
-use bevy::utils::*;
-use std::time::{SystemTime};
 use crate::core::*;
 use crate::systems::*;
 use crate::systems::traffic::{point_to_line_distance};
