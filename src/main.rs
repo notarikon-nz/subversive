@@ -122,6 +122,10 @@ fn main() {
         .init_resource::<SceneCache>()
         .init_resource::<MinimapSettings>()
 
+        // 0.2.13
+        .init_resource::<WeatherSystem>()
+        .init_resource::<WeatherParticlePool>()        
+
         .add_event::<ActionEvent>()
         .add_event::<CombatEvent>()
         .add_event::<AudioEvent>()
@@ -250,6 +254,10 @@ fn main() {
                 // message_window::setup_message_window,
                 setup_interactive_decals_demo,
                 setup_minimap,
+
+                // 0.2.13
+                weather::setup_weather_system,
+                weather::spawn_weather_overlay,                
             ).after(setup_mission_scene_optimized),
         ))
 
@@ -436,6 +444,11 @@ fn main() {
             day_night::lighting_system,
             day_night::time_ui_system,
 
+            // 0.2.13
+            weather::weather_particle_system,
+            weather::update_weather_overlay,
+            weather::weather_gameplay_effects,
+            
             health_bars::update_agent_status_bars,
             health_bars::update_enemy_health_bars,
         ).run_if(in_state(GameState::Mission)))
@@ -540,12 +553,17 @@ fn main() {
         .add_systems(Update, (
             debug_pathfinding_grid,
             interactive_decals_demo_system,
+            // 0.2.12
             research_debug_system,
+            // 0.2.13
+            weather::weather_debug_system,
         ).run_if(in_state(GameState::Mission)))
 
         .add_systems(OnExit(GameState::Mission), (
             minimap::cleanup_minimap_ui,
             cursor_memory_cleanup,
+            // 0.2.13
+            weather::cleanup_weather_system,
         ))
 
         // POST MISSION

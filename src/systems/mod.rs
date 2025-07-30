@@ -63,6 +63,10 @@ pub use hacking_financial::*;
 pub mod research_gameplay;
 pub use research_gameplay::*;
 
+// 0.2.13
+pub mod weather;
+pub use weather::*;
+
 pub use minimap::*;
 pub use message_window::*;
 pub use urban_simulation::*;

@@ -1,6 +1,6 @@
 [package]
 name = "subversive"
-version = "0.2.10"
+version = "0.2.13"
 edition = "2021"
 
 [dependencies]

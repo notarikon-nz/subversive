@@ -4754,7 +4754,7 @@ dependencies = [
 
 [[package]]
 name = "subversive"
-version = "0.2.10"
+version = "0.2.13"
 dependencies = [
  "bevy",
  "bevy_ecs_tilemap",
