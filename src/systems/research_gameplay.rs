@@ -1,7 +1,6 @@
 // src/systems/research_gameplay.rs - Game systems for scientist interactions and research espionage
 use bevy::prelude::*;
 use crate::core::*;
-use crate::systems::*;
 use crate::core::factions::{Faction};
 
 // === SCIENTIST INTERACTION SYSTEM ===

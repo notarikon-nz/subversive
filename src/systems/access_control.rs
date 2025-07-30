@@ -436,7 +436,7 @@ pub fn access_control_prompts(
     agent_query: Query<(&Transform, &Inventory), With<Agent>>,
     gate_query: Query<(Entity, &Transform, &Gate, Option<&AccessReader>), Without<Door>>,
     door_query: Query<(Entity, &Transform, &Door, Option<&AccessReader>), Without<Gate>>,
-    existing_prompts: Query<Entity, With<InteractionPrompt>>,
+    existing_prompts: Query<Entity, (With<InteractionPrompt>, Without<MarkedForDespawn>)>,
     game_mode: Res<GameMode>,
 ) {
     if game_mode.paused { return; }

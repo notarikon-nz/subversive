@@ -365,7 +365,7 @@ fn spawn_tooltip(
     ));
 
     commands.spawn((
-        Text2d::new(text.clone()),
+        Text2d::new(text),
         TextFont {
             font_size: 10.0,
             ..default()

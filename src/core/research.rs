@@ -6,7 +6,6 @@ use std::collections::{HashSet, HashMap};
 use crate::core::*;
 use crate::core::factions::{Faction};
 use crate::systems::scanner::{Scannable};
-use crate::systems::day_night::*;
 
 // === RESEARCH PROGRESS & QUEUE ===
 #[derive(Resource, Default, Clone, Serialize, Deserialize)]
