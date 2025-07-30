@@ -25,6 +25,15 @@ pub enum Action {
     SuppressionFire { weapon_type: WeaponType },    
     SelectAgent(usize),
     CenterCameraOnAgent(usize),
+
+    // 0.2.12
+    InteractWithScientist(Entity),
+    RecruitScientist(Entity), 
+    KidnapScientist(Entity),
+    AssignScientistToProject { scientist: Entity, project: String },
+    ChangeResearchPriority { project: String, priority: ResearchPriority },
+    CancelResearch(String),
+    UsePrototype(String), 
 }
 
 #[derive(Event)]
@@ -89,4 +98,40 @@ pub struct AlarmActivatedEvent {
 pub struct DamageTextEvent {
     pub position: Vec2,
     pub damage: f32,
+}
+
+
+// 0.2.12
+
+#[derive(Event)]
+pub struct ScientistRecruitmentEvent {
+    pub scientist: Entity,
+    pub recruitment_type: RecruitmentType,
+}
+
+#[derive(Debug)]
+pub enum RecruitmentType {
+    Negotiated,
+    Bribed,
+    Kidnapped,
+}
+
+#[derive(Event)]
+pub struct ResearchCompletedEvent {
+    pub project_id: String,
+    pub assigned_scientist: Option<Entity>,
+    pub completion_time: f32,
+}
+
+#[derive(Event)]
+pub struct ResearchSabotageEvent {
+    pub target_project: String,
+    pub sabotage_type: SabotageType,
+}
+
+#[derive(Debug)]
+pub enum SabotageType {
+    Delayed,
+    DataCorrupted,
+    DataStolen,
 }

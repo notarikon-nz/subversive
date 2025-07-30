@@ -199,3 +199,37 @@ pub fn access_card_interaction_prompts(
         }
     }
 }
+
+// 0.2.12
+// === TEMPORARY INTERACTION PROMPTS ===
+pub fn research_interaction_prompts(
+    commands: Commands,
+    scientist_query: Query<(Entity, &Transform, &Scientist, &ScientistNPC), Without<Agent>>,
+    agent_query: Query<&Transform, With<Agent>>,
+    sprites: Res<GameSprites>,
+) {
+    for agent_transform in agent_query.iter() {
+        let agent_pos = agent_transform.translation.truncate();
+        
+        for (scientist_entity, scientist_transform, scientist, npc) in scientist_query.iter() {
+            let scientist_pos = scientist_transform.translation.truncate();
+            let distance = agent_pos.distance(scientist_pos);
+            
+            if distance <= 50.0 {
+                let prompt_text = if !npc.location_discovered {
+                    "Press E to approach scientist"
+                } else if scientist.is_recruited {
+                    "Press E to talk with scientist"
+                } else if npc.recruitment_difficulty > 0 {
+                    "Press E to build rapport"
+                } else {
+                    "Press E to recruit scientist"
+                };
+                
+                // Spawn interaction prompt (using your existing prompt system)
+                // PLACEHOLDER
+                // spawn_interaction_prompt(&mut commands, scientist_pos, prompt_text, &sprites, );
+            }
+        }
+    }
+}

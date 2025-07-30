@@ -433,7 +433,7 @@ pub fn find_path_smart(grid: &PathfindingGrid, start: Vec2, goal: Vec2, allow_ad
 
 // Pathfinding movement system - replaces your current movement system
 pub fn pathfinding_movement_system(
-    mut commands: Commands,
+    commands: Commands,
     mut action_events: EventReader<crate::core::ActionEvent>,
     mut agents: Query<(Entity, &mut Transform, &MovementSpeed, &mut PathfindingAgent)>,
     grid: Res<PathfindingGrid>,

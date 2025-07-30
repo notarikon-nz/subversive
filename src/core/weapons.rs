@@ -202,7 +202,6 @@ impl WeaponState {
             WeaponType::RocketLauncher => (1, 10.0),
             WeaponType::LaserRifle => (10, 5.0),
             WeaponType::PlasmaGun => (5, 5.0),
-            _ => (15, 2.0), // Default fallback
         };
         
         Self {

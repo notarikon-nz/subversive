@@ -149,7 +149,6 @@ fn draw_visual_map(
                 AlertLevel::Yellow => egui::Color32::from_rgb(204, 204, 51),
                 AlertLevel::Orange => egui::Color32::from_rgb(204, 128, 51),
                 AlertLevel::Red => egui::Color32::from_rgb(204, 51, 51),
-                _ => egui::Color32::WHITE,
             }
         };
         
@@ -283,7 +282,6 @@ fn show_city_tooltip_content(
                 AlertLevel::Yellow => egui::Color32::from_rgb(204, 204, 51),
                 AlertLevel::Orange => egui::Color32::from_rgb(204, 128, 51),
                 AlertLevel::Red => egui::Color32::from_rgb(204, 51, 51),
-                _ => egui::Color32::WHITE,
             };
             
             ui.colored_label(alert_color, format!("{:?}", city_state.alert_level));
@@ -332,7 +330,6 @@ fn show_city_list(
                             AlertLevel::Yellow => egui::Color32::YELLOW,
                             AlertLevel::Orange => egui::Color32::from_rgb(255, 165, 0),
                             AlertLevel::Red => egui::Color32::RED,
-                            _ => egui::Color32::WHITE,
                         };
                         ui.colored_label(alert_color, format!("{:?}", city_state.alert_level));
                     });

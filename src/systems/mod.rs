@@ -56,6 +56,13 @@ pub mod hacking_financial;
 pub use access_control::*;
 pub use hacking_financial::*;
 
+// 0.2.11
+
+
+// 0.2.12
+pub mod research_gameplay;
+pub use research_gameplay::*;
+
 pub use minimap::*;
 pub use message_window::*;
 pub use urban_simulation::*;

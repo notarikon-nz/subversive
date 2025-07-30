@@ -203,7 +203,7 @@ pub fn lore_interaction_system(
 fn spawn_lore_notification(commands: &mut Commands, lore_id: &str, lore_db: &LoreDatabase) {
     if let Some(entry) = lore_db.get_entry(lore_id) {
         commands.spawn((
-            Text::new(format!("📖 Discovered: {}", entry.title)),
+            Text::new(format!("Discovered: {}", entry.title)),
             TextFont { font_size: 16.0, ..default() },
             TextColor(entry.category.color()),
             Node {

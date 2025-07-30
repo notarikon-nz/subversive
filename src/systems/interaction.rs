@@ -2,7 +2,6 @@ use bevy::prelude::*;
 use crate::core::*;
 
 pub fn system(
-    mut gizmos: Gizmos,
     mut action_events: EventReader<ActionEvent>,
     mut audio_events: EventWriter<AudioEvent>,
     mut lore_events: EventWriter<LoreAccessEvent>,

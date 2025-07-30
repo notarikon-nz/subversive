@@ -1,0 +1,168 @@
+{
+  "projects": [
+    {
+      "id": "basic_optics",
+      "name": "Basic Optics",
+      "description": "Develop improved weapon sighting systems",
+      "cost": 1000,
+      "category": "Weapons",
+      "prerequisites": [],
+      "benefits": [
+        {"UnlockAttachment": "red_dot"},
+        {"UnlockAttachment": "iron_sights"}
+      ]
+    },
+    {
+      "id": "suppression_tech",
+      "name": "Suppression Technology", 
+      "description": "Develop sound dampening for covert operations",
+      "cost": 1500,
+      "category": "Weapons",
+      "prerequisites": ["basic_optics"],
+      "benefits": [
+        {"UnlockAttachment": "suppressor"},
+        {"UnlockAttachment": "flash_hider"}
+      ]
+    },
+    {
+      "id": "advanced_magazines",
+      "name": "Advanced Magazines",
+      "description": "Improve ammunition feeding systems", 
+      "cost": 2000,
+      "category": "Weapons",
+      "prerequisites": ["suppression_tech"],
+      "benefits": [
+        {"UnlockAttachment": "extended_mag"},
+        {"UnlockAttachment": "fast_mag"}
+      ]
+    },
+    {
+      "id": "heavy_weapons",
+      "name": "Heavy Weapons Platform",
+      "description": "Develop support weapons for high-threat missions",
+      "cost": 3000,
+      "category": "Weapons", 
+      "prerequisites": ["advanced_magazines"],
+      "benefits": [
+        {"UnlockWeapon": "Minigun"},
+        {"UnlockAttachment": "bipod"}
+      ]
+    },
+    {
+      "id": "neurovector_implants",
+      "name": "Neurovector Implants",
+      "description": "Basic mind control technology for civilian manipulation",
+      "cost": 2500,
+      "category": "Cybernetics",
+      "prerequisites": [],
+      "benefits": [
+        {"UnlockCybernetic": "Neurovector"}
+      ]
+    },
+    {
+      "id": "combat_enhancers", 
+      "name": "Combat Enhancers",
+      "description": "Improve agent reflexes and combat effectiveness",
+      "cost": 3500,
+      "category": "Cybernetics",
+      "prerequisites": ["neurovector_implants"],
+      "benefits": [
+        {"UnlockCybernetic": "CombatEnhancer"},
+        {"ExperienceBonus": 25}
+      ]
+    },
+    {
+      "id": "surveillance_gear",
+      "name": "Surveillance Gear", 
+      "description": "Advanced reconnaissance and hacking tools",
+      "cost": 1200,
+      "category": "Equipment",
+      "prerequisites": [],
+      "benefits": [
+        {"UnlockTool": "Scanner"},
+        {"UnlockTool": "Hacker"}
+      ]
+    },
+    {
+      "id": "infiltration_kit",
+      "name": "Infiltration Kit",
+      "description": "Tools for covert entry and stealth operations",
+      "cost": 1800,
+      "category": "Equipment", 
+      "prerequisites": ["surveillance_gear"],
+      "benefits": [
+        {"UnlockTool": "Lockpick"},
+        {"UnlockCybernetic": "StealthModule"}
+      ]
+    },
+    {
+      "id": "corporate_intelligence",
+      "name": "Corporate Intelligence",
+      "description": "Improve mission planning and regional influence",
+      "cost": 2200,
+      "category": "Intelligence",
+      "prerequisites": ["surveillance_gear"],
+      "benefits": [
+        {"CreditsPerMission": 200},
+        {"AlertReduction": 1}
+      ]
+    },
+    {
+      "id": "tech_interface", 
+      "name": "Tech Interface",
+      "description": "Advanced hacking and electronic warfare capabilities",
+      "cost": 4000,
+      "category": "Intelligence",
+      "prerequisites": ["corporate_intelligence", "infiltration_kit"],
+      "benefits": [
+        {"UnlockCybernetic": "TechInterface"},
+        {"CreditsPerMission": 300}
+      ]
+    },
+    {
+      "id": "tactical_scanner",
+      "name": "Tactical Scanner",
+      "description": "Enables color-coding of entities on the minimap",
+      "cost": 1500,
+      "category": "Equipment",
+      "prerequisites": ["surveillance_gear"],
+      "benefits": [
+        {"UnlockTool": "TacticalScanner"}
+      ]
+    },
+    {
+      "id": "enhanced_sensors", 
+      "name": "Enhanced Sensors",
+      "description": "Increases minimap detection range by 50%",
+      "cost": 2500,
+      "category": "Equipment",
+      "prerequisites": ["tactical_scanner"],
+      "benefits": [
+        {"UnlockTool": "EnhancedSensors"}
+      ]
+    },
+    {
+      "id": "satellite_uplink",
+      "name": "Satellite Uplink", 
+      "description": "Provides maximum minimap coverage via orbital relay",
+      "cost": 4500,
+      "category": "Intelligence",
+      "prerequisites": ["enhanced_sensors", "corporate_intelligence"],
+      "benefits": [
+        {"UnlockTool": "SatelliteUplink"},
+        {"CreditsPerMission": 150}
+      ]
+    },
+    {
+      "id": "network_scanner",
+      "name": "Network Scanner",
+      "description": "Reveals terminals and hackable devices on minimap",
+      "cost": 1200,
+      "category": "Equipment",
+      "prerequisites": ["surveillance_gear"],
+      "benefits": [
+        {"UnlockTool": "NetworkScanner"}
+      ]
+    }    
+  ]
+}

@@ -10,6 +10,7 @@ pub enum Faction {
     Police,      // Law enforcement
     Civilian,    // Non-combatants
     Military,
+    Underground,
 }
 
 impl Faction {
@@ -38,6 +39,7 @@ impl Faction {
             Faction::Police => Color::srgb(0.2, 0.2, 1.0),
             Faction::Civilian => Color::srgb(1.0, 1.0, 0.1),
             Faction::Military => Color::srgb(0.5, 0.8, 0.5),
+            Faction::Underground => Color::srgb(0.3, 0.3, 0.5),
         }
     }
 }

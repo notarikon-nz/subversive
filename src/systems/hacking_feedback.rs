@@ -311,7 +311,7 @@ pub fn hack_notification_system(
         };
         
         commands.spawn((
-            Text::new(format!("🔓 Hacked: {}", device_name)),
+            Text::new(format!("Hacked: {}", device_name)),
             TextFont { font_size: 14.0, ..default() },
             TextColor(Color::srgb(0.2, 0.8, 0.8)),
             Node {

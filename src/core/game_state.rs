@@ -3,6 +3,8 @@ use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 use crate::core::{ResearchProgress};
 use crate::core::cities::*;
+use crate::core::research::{Scientist};
+use std::collections::HashSet;
 
 // === GAME STATES ===
 #[derive(States, Debug, Clone, PartialEq, Eq, Hash)]
@@ -47,6 +49,10 @@ pub struct GlobalData {
     pub agent_loadouts: [crate::core::AgentLoadout; MAX_SQUAD_SIZE],
     pub research_progress: ResearchProgress,
     pub cities_progress: CitiesProgress,
+
+    pub recruited_scientists: Vec<Scientist>,
+    pub research_facilities_discovered: HashSet<String>,
+    pub alert_level: u8,
 }
 
 impl GlobalData {
@@ -94,6 +100,10 @@ impl Default for GlobalData {
             agent_loadouts: [crate::core::AgentLoadout::default(),crate::core::AgentLoadout::default(),crate::core::AgentLoadout::default()],
             research_progress: ResearchProgress::default(),
             cities_progress: CitiesProgress::new("new_york".to_string()),
+
+            recruited_scientists: Vec::new(),
+            research_facilities_discovered: HashSet::new(),
+            alert_level: 1,
         }
     }
 }

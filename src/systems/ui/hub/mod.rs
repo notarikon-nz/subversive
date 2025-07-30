@@ -60,24 +60,11 @@ impl CyberneticsDatabase {
     }
 }
 
-// Main hub system - much simpler than before
-pub fn hub_system(
-    mut contexts: EguiContexts,
-    mut commands: Commands,
-    mut next_state: ResMut<NextState<GameState>>,
-    mut global_data: ResMut<GlobalData>,
-    mut hub_state: ResMut<HubState>,
-    hub_databases: Res<HubDatabases>,
-    mut research_progress: ResMut<ResearchProgress>,
-    mut unlocked_attachments: ResMut<UnlockedAttachments>,
-    mut agent_query: Query<&mut Inventory, With<Agent>>,
+
+pub fn hub_input_system(
     input: Res<ButtonInput<KeyCode>>,
-    windows: Query<&Window>,
-    cameras: Query<(&Camera, &GlobalTransform)>,
-    mouse: Res<ButtonInput<MouseButton>>,
-    city_query: Query<(Entity, &Transform, &global_map::InteractiveCity)>,
+    mut hub_state: ResMut<HubState>,
 ) {
-    // Handle tab switching with Q/E
     if input.just_pressed(KeyCode::KeyQ) {
         hub_state.active_tab = match hub_state.active_tab {
             HubTab::GlobalMap => HubTab::Missions,
@@ -88,21 +75,29 @@ pub fn hub_system(
         };
     }
     
-    if input.just_pressed(KeyCode::KeyE) {
+    if input.just_pressed(KeyCode::KeyE) { 
         hub_state.active_tab = match hub_state.active_tab {
             HubTab::GlobalMap => HubTab::Research,
             HubTab::Research => HubTab::Agents,
             HubTab::Agents => HubTab::Manufacture,
             HubTab::Manufacture => HubTab::Missions,
             HubTab::Missions => HubTab::GlobalMap,
-        };
+        };        
     }
 
-    // Global exit handler
-    if input.just_pressed(KeyCode::Escape) {
-        std::process::exit(0);
-    }
+    if input.just_pressed(KeyCode::Escape) { std::process::exit(0); }
+}
 
+pub fn hub_ui_system(
+    mut contexts: EguiContexts,
+    global_data: Res<GlobalData>,
+    mut hub_state: ResMut<HubState>,
+    hub_databases: Res<HubDatabases>,
+    research_progress: Res<ResearchProgress>,
+    mut unlocked_attachments: Res<UnlockedAttachments>,
+    scientist_query: Query<(Entity, &Scientist)>,
+    input: Res<ButtonInput<KeyCode>>,
+) {
     if let Ok(ctx) = contexts.ctx_mut() {
     
         // Apply cyberpunk theme
@@ -168,9 +163,29 @@ pub fn hub_system(
                 ui.weak(controls);
             });
         });
-        
+    }
+}
 
-        
+// Main hub system - much simpler than before
+pub fn hub_interaction_system(
+    mut commands: Commands,
+    mut contexts: EguiContexts,
+    mut next_state: ResMut<NextState<GameState>>,
+    mut global_data: ResMut<GlobalData>,
+    hub_state: Res<HubState>,
+    mut research_progress: ResMut<ResearchProgress>,
+    windows: Query<&Window>,
+    cameras: Query<(&Camera, &GlobalTransform)>,
+    mouse: Res<ButtonInput<MouseButton>>,
+    city_query: Query<(Entity, &Transform, &global_map::InteractiveCity)>,
+    mut agent_query: Query<&mut Inventory, With<Agent>>,
+    hub_databases: Res<HubDatabases>,
+    input: Res<ButtonInput<KeyCode>>,
+    mut unlocked_attachments: ResMut<UnlockedAttachments>,
+    scientist_query: Query<(Entity, &Scientist)>,    
+) {
+    if let Ok(ctx) = contexts.ctx_mut() {
+     
         // Main content area
         egui::CentralPanel::default().show(ctx, |ui| {
 
@@ -191,6 +206,7 @@ pub fn hub_system(
                     &mut research_progress,
                     &hub_databases.research_db,
                     &mut unlocked_attachments,
+                    &scientist_query,
                     &input,
                 ),
                 HubTab::Agents => agents::show_agents(

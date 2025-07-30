@@ -586,3 +586,58 @@ fn create_industrial_areas() -> UrbanAreas {
     }
 }
 
+// 0.2.12
+pub fn spawn_research_content_in_scene(
+    commands: &mut Commands,
+    sprites: &GameSprites,
+    scene_name: &str,
+) {
+    match scene_name {
+        "mission_corporate" => {
+            // Corporate missions have high-tech research facilities
+            spawn_research_facility(
+                commands,
+                Vec2::new(300.0, 150.0),
+                Faction::Corporate,
+                4, // High security
+                vec!["tech_interface".to_string(), "quantum_encryption".to_string()],
+            );
+            
+            // Spawn 2-3 scientists
+            for i in 0..3 {
+                let pos = Vec2::new(250.0 + i as f32 * 30.0, 100.0);
+                spawn_scientist_npc(commands, pos, ResearchCategory::Intelligence, sprites);
+            }
+        },
+        "mission_syndicate" => {
+            // Syndicate missions have weapons research
+            spawn_research_facility(
+                commands,
+                Vec2::new(-200.0, -100.0),
+                Faction::Syndicate,
+                3,
+                vec!["heavy_weapons".to_string(), "plasma_weapons".to_string()],
+            );
+            
+            spawn_scientist_npc(commands, Vec2::new(-150.0, -80.0), ResearchCategory::Weapons, sprites);
+            spawn_scientist_npc(commands, Vec2::new(-180.0, -120.0), ResearchCategory::Cybernetics, sprites);
+        },
+        "mission_underground" => {
+            // Underground has equipment and cybernetics
+            spawn_research_facility(
+                commands,
+                Vec2::new(100.0, -200.0),
+                Faction::Underground,
+                2,
+                vec!["infiltration_kit".to_string(), "neural_interface".to_string()],
+            );
+            
+            spawn_scientist_npc(commands, Vec2::new(120.0, -180.0), ResearchCategory::Equipment, sprites);
+        },
+        _ => {
+            // Default mission gets basic research content
+            spawn_scientist_npc(commands, Vec2::new(200.0, 100.0), ResearchCategory::Equipment, sprites);
+        }
+    }
+}
+

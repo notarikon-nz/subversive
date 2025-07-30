@@ -1,27 +1,27 @@
 {
-  "credits": 45350,
-  "current_day": 110,
+  "credits": 3000,
+  "current_day": 7,
   "agent_levels": [
-    7,
-    7,
-    7
+    1,
+    1,
+    1
   ],
   "agent_experience": [
-    725,
-    725,
-    725
+    50,
+    50,
+    50
   ],
   "agent_recovery": [
-    108,
-    108,
-    108
+    8,
+    8,
+    8
   ],
   "regions": [
     {
       "name": "Neo-Tokyo Central",
       "threat_level": 1,
-      "alert_level": 3,
-      "alert_decay_timer": 121
+      "alert_level": 2,
+      "alert_decay_timer": 14
     },
     {
       "name": "Corporate District",
@@ -109,7 +109,10 @@
   ],
   "research_progress": {
     "completed": [],
-    "credits_invested": 0
+    "credits_invested": 0,
+    "active_queue": [],
+    "stolen_data": {},
+    "prototypes": []
   },
   "cities_progress": {
     "current_city": "new_york",
@@ -117,15 +120,18 @@
       "new_york": {
         "completed": true,
         "alert_level": "Green",
-        "last_mission_day": 107,
-        "times_visited": 29
+        "last_mission_day": 7,
+        "times_visited": 2
       }
     },
     "unlocked_cities": [
-      "toronto",
-      "chicago",
       "miami",
-      "new_york"
+      "new_york",
+      "toronto",
+      "chicago"
     ]
-  }
+  },
+  "recruited_scientists": [],
+  "research_facilities_discovered": [],
+  "alert_level": 1
 }

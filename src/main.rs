@@ -139,6 +139,11 @@ fn main() {
         .add_event::<GateStateChange>()
         .add_event::<DoorStateChange>()        
 
+        // 0.2.12
+        .add_event::<ScientistRecruitmentEvent>()
+        .add_event::<ResearchCompletedEvent>()
+        .add_event::<ResearchSabotageEvent>()        
+
         .add_systems(Startup, (
             fonts::load_fonts,
             load_egui_fonts,
@@ -248,9 +253,29 @@ fn main() {
             ).after(setup_mission_scene_optimized),
         ))
 
+        // 0.2.12
+        .add_systems(Update, (
+            // Research progression (daily)
+            research_progress_system,
+            scientist_loyalty_system,
+            
+            // Scientist interactions
+            scientist_interaction_system,
+            scientist_productivity_system,
+            
+            // Research facilities and espionage
+            research_facility_interaction_system,
+            research_facility_security_system,
+            research_sabotage_system,
+            
+            // Spawning systems (mission state)
+        ).run_if(in_state(GameState::GlobalMap)))
+
         .add_systems(Update, (
             sync_egui_mouse_input,
-            ui::hub::hub_system,
+            ui::hub::hub_input_system,
+            ui::hub::hub_ui_system,
+            ui::hub::hub_interaction_system,
         ).chain().run_if(in_state(GameState::GlobalMap)))
 
         // Core mission systems
@@ -471,6 +496,8 @@ fn main() {
             fire_ignition_system,
             fire_burn_system,
             
+            // 0.2.12
+            research_gameplay::spawn_scientists_in_mission,
         ).run_if(in_state(GameState::Mission)))        
 
         // Hacking and infrastructure
@@ -513,6 +540,7 @@ fn main() {
         .add_systems(Update, (
             debug_pathfinding_grid,
             interactive_decals_demo_system,
+            research_debug_system,
         ).run_if(in_state(GameState::Mission)))
 
         .add_systems(OnExit(GameState::Mission), (
@@ -1129,4 +1157,44 @@ fn spawn_hackable_test_objects(
     setup_hackable_door(commands, door_entity);
     
     info!("Spawned hackable test objects: camera, ATM, turret, power station, 3 street lights, door");
+}
+
+
+pub fn research_debug_system(
+    input: Res<ButtonInput<KeyCode>>,
+    mut research_progress: ResMut<ResearchProgress>,
+    mut global_data: ResMut<GlobalData>,
+    scientist_query: Query<(Entity, &Scientist)>,
+) {
+
+    
+    if input.just_pressed(KeyCode::F9) {
+        // Collect the project IDs first (this ends the immutable borrow)
+        let project_ids: Vec<String> = research_progress.active_queue
+            .iter()
+            .map(|active| active.project_id.clone())
+            .collect();
+        
+        // Now we can mutably borrow research_progress
+        for project_id in project_ids {
+            research_progress.completed.insert(project_id);
+        }
+        research_progress.active_queue.clear();
+        info!("DEBUG: Completed all active research");
+    }
+    
+    if input.just_pressed(KeyCode::F10) {
+        // Debug: Add test scientist
+        info!("DEBUG: Scientist debug info:");
+        for (entity, scientist) in scientist_query.iter() {
+            info!("  {} - {:?} - Recruited: {} - Productivity: {:.2}", 
+                  scientist.name, scientist.specialization, scientist.is_recruited, scientist.productivity_bonus);
+        }
+    }
+    
+    if input.just_pressed(KeyCode::F11) {
+        // Debug: Add 10000 credits
+        global_data.credits += 10000;
+        info!("DEBUG: Added $10,000 credits");
+    }
 }

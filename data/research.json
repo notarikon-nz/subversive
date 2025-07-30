@@ -1,24 +1,16 @@
 {
   "projects": [
     {
-      "id": "basic_optics",
-      "name": "Basic Optics",
-      "description": "Develop improved weapon sighting systems",
-      "cost": 1000,
-      "category": "Weapons",
-      "prerequisites": [],
-      "benefits": [
-        {"UnlockAttachment": "red_dot"},
-        {"UnlockAttachment": "iron_sights"}
-      ]
-    },
-    {
       "id": "suppression_tech",
       "name": "Suppression Technology", 
       "description": "Develop sound dampening for covert operations",
       "cost": 1500,
+      "base_time_days": 3.5,
       "category": "Weapons",
       "prerequisites": ["basic_optics"],
+      "difficulty": "Advanced",
+      "prototype_available": true,
+      "stolen_data_value": 0.5,
       "benefits": [
         {"UnlockAttachment": "suppressor"},
         {"UnlockAttachment": "flash_hider"}
@@ -27,10 +19,14 @@
     {
       "id": "advanced_magazines",
       "name": "Advanced Magazines",
-      "description": "Improve ammunition feeding systems", 
+      "description": "Improve ammunition feeding systems for sustained combat", 
       "cost": 2000,
+      "base_time_days": 4.0,
       "category": "Weapons",
       "prerequisites": ["suppression_tech"],
+      "difficulty": "Advanced",
+      "prototype_available": false,
+      "stolen_data_value": 0.6,
       "benefits": [
         {"UnlockAttachment": "extended_mag"},
         {"UnlockAttachment": "fast_mag"}
@@ -41,11 +37,31 @@
       "name": "Heavy Weapons Platform",
       "description": "Develop support weapons for high-threat missions",
       "cost": 3000,
+      "base_time_days": 6.0,
       "category": "Weapons", 
       "prerequisites": ["advanced_magazines"],
+      "difficulty": "Expert",
+      "prototype_available": true,
+      "stolen_data_value": 0.7,
       "benefits": [
         {"UnlockWeapon": "Minigun"},
         {"UnlockAttachment": "bipod"}
+      ]
+    },
+    {
+      "id": "plasma_weapons",
+      "name": "Plasma Weapons",
+      "description": "Cutting-edge energy weapons requiring advanced materials",
+      "cost": 5000,
+      "base_time_days": 8.0,
+      "category": "Weapons",
+      "prerequisites": ["heavy_weapons", "tech_interface"],
+      "difficulty": "Cutting",
+      "prototype_available": true,
+      "stolen_data_value": 0.8,
+      "benefits": [
+        {"UnlockWeapon": "PlasmaRifle"},
+        {"UnlockAttachment": "plasma_core"}
       ]
     },
     {
@@ -53,8 +69,12 @@
       "name": "Neurovector Implants",
       "description": "Basic mind control technology for civilian manipulation",
       "cost": 2500,
+      "base_time_days": 5.0,
       "category": "Cybernetics",
       "prerequisites": [],
+      "difficulty": "Advanced",
+      "prototype_available": false,
+      "stolen_data_value": 0.3,
       "benefits": [
         {"UnlockCybernetic": "Neurovector"}
       ]
@@ -64,11 +84,31 @@
       "name": "Combat Enhancers",
       "description": "Improve agent reflexes and combat effectiveness",
       "cost": 3500,
+      "base_time_days": 4.5,
       "category": "Cybernetics",
       "prerequisites": ["neurovector_implants"],
+      "difficulty": "Expert",
+      "prototype_available": true,
+      "stolen_data_value": 0.6,
       "benefits": [
         {"UnlockCybernetic": "CombatEnhancer"},
         {"ExperienceBonus": 25}
+      ]
+    },
+    {
+      "id": "neural_interface",
+      "name": "Neural Interface",
+      "description": "Direct brain-computer interface for enhanced hacking",
+      "cost": 4000,
+      "base_time_days": 6.5,
+      "category": "Cybernetics",
+      "prerequisites": ["combat_enhancers", "tech_interface"],
+      "difficulty": "Cutting",
+      "prototype_available": false,
+      "stolen_data_value": 0.9,
+      "benefits": [
+        {"UnlockCybernetic": "NeuralInterface"},
+        {"UnlockTool": "AdvancedHacker"}
       ]
     },
     {
@@ -76,8 +116,12 @@
       "name": "Surveillance Gear", 
       "description": "Advanced reconnaissance and hacking tools",
       "cost": 1200,
+      "base_time_days": 2.5,
       "category": "Equipment",
       "prerequisites": [],
+      "difficulty": "Basic",
+      "prototype_available": true,
+      "stolen_data_value": 0.4,
       "benefits": [
         {"UnlockTool": "Scanner"},
         {"UnlockTool": "Hacker"}
@@ -88,11 +132,76 @@
       "name": "Infiltration Kit",
       "description": "Tools for covert entry and stealth operations",
       "cost": 1800,
+      "base_time_days": 3.0,
       "category": "Equipment", 
       "prerequisites": ["surveillance_gear"],
+      "difficulty": "Advanced",
+      "prototype_available": true,
+      "stolen_data_value": 0.5,
       "benefits": [
         {"UnlockTool": "Lockpick"},
         {"UnlockCybernetic": "StealthModule"}
+      ]
+    },
+    {
+      "id": "tactical_scanner",
+      "name": "Tactical Scanner",
+      "description": "Enables color-coding of entities on the minimap",
+      "cost": 1500,
+      "base_time_days": 2.8,
+      "category": "Equipment",
+      "prerequisites": ["surveillance_gear"],
+      "difficulty": "Advanced",
+      "prototype_available": false,
+      "stolen_data_value": 0.3,
+      "benefits": [
+        {"UnlockTool": "TacticalScanner"}
+      ]
+    },
+    {
+      "id": "enhanced_sensors", 
+      "name": "Enhanced Sensors",
+      "description": "Increases minimap detection range by 50%",
+      "cost": 2500,
+      "base_time_days": 4.2,
+      "category": "Equipment",
+      "prerequisites": ["tactical_scanner"],
+      "difficulty": "Expert",
+      "prototype_available": true,
+      "stolen_data_value": 0.6,
+      "benefits": [
+        {"UnlockTool": "EnhancedSensors"}
+      ]
+    },
+    {
+      "id": "network_scanner",
+      "name": "Network Scanner",
+      "description": "Reveals terminals and hackable devices on minimap",
+      "cost": 1200,
+      "base_time_days": 2.0,
+      "category": "Equipment",
+      "prerequisites": ["surveillance_gear"],
+      "difficulty": "Basic",
+      "prototype_available": true,
+      "stolen_data_value": 0.4,
+      "benefits": [
+        {"UnlockTool": "NetworkScanner"}
+      ]
+    },
+    {
+      "id": "drone_swarm",
+      "name": "Reconnaissance Drones",
+      "description": "Deployable surveillance drones for area reconnaissance",
+      "cost": 3200,
+      "base_time_days": 5.5,
+      "category": "Equipment",
+      "prerequisites": ["enhanced_sensors", "network_scanner"],
+      "difficulty": "Expert",
+      "prototype_available": true,
+      "stolen_data_value": 0.7,
+      "benefits": [
+        {"UnlockTool": "DroneSw arm"},
+        {"AlertReduction": 2}
       ]
     },
     {
@@ -100,8 +209,12 @@
       "name": "Corporate Intelligence",
       "description": "Improve mission planning and regional influence",
       "cost": 2200,
+      "base_time_days": 3.8,
       "category": "Intelligence",
       "prerequisites": ["surveillance_gear"],
+      "difficulty": "Advanced",
+      "prototype_available": false,
+      "stolen_data_value": 0.5,
       "benefits": [
         {"CreditsPerMission": 200},
         {"AlertReduction": 1}
@@ -112,33 +225,15 @@
       "name": "Tech Interface",
       "description": "Advanced hacking and electronic warfare capabilities",
       "cost": 4000,
+      "base_time_days": 5.8,
       "category": "Intelligence",
       "prerequisites": ["corporate_intelligence", "infiltration_kit"],
+      "difficulty": "Expert",
+      "prototype_available": false,
+      "stolen_data_value": 0.8,
       "benefits": [
         {"UnlockCybernetic": "TechInterface"},
         {"CreditsPerMission": 300}
-      ]
-    },
-    {
-      "id": "tactical_scanner",
-      "name": "Tactical Scanner",
-      "description": "Enables color-coding of entities on the minimap",
-      "cost": 1500,
-      "category": "Equipment",
-      "prerequisites": ["surveillance_gear"],
-      "benefits": [
-        {"UnlockTool": "TacticalScanner"}
-      ]
-    },
-    {
-      "id": "enhanced_sensors", 
-      "name": "Enhanced Sensors",
-      "description": "Increases minimap detection range by 50%",
-      "cost": 2500,
-      "category": "Equipment",
-      "prerequisites": ["tactical_scanner"],
-      "benefits": [
-        {"UnlockTool": "EnhancedSensors"}
       ]
     },
     {
@@ -146,23 +241,80 @@
       "name": "Satellite Uplink", 
       "description": "Provides maximum minimap coverage via orbital relay",
       "cost": 4500,
+      "base_time_days": 7.0,
       "category": "Intelligence",
       "prerequisites": ["enhanced_sensors", "corporate_intelligence"],
+      "difficulty": "Expert",
+      "prototype_available": false,
+      "stolen_data_value": 0.6,
       "benefits": [
         {"UnlockTool": "SatelliteUplink"},
         {"CreditsPerMission": 150}
       ]
     },
     {
-      "id": "network_scanner",
-      "name": "Network Scanner",
-      "description": "Reveals terminals and hackable devices on minimap",
-      "cost": 1200,
-      "category": "Equipment",
-      "prerequisites": ["surveillance_gear"],
+      "id": "quantum_encryption",
+      "name": "Quantum Encryption",
+      "description": "Unbreakable communications and data security",
+      "cost": 6000,
+      "base_time_days": 9.0,
+      "category": "Intelligence",
+      "prerequisites": ["tech_interface", "satellite_uplink"],
+      "difficulty": "Cutting",
+      "prototype_available": false,
+      "stolen_data_value": 1.0,
       "benefits": [
-        {"UnlockTool": "NetworkScanner"}
+        {"UnlockTool": "QuantumComm"},
+        {"AlertReduction": 3},
+        {"ExperienceBonus": 15}
       ]
-    }    
+    },
+    {
+      "id": "ai_assistant",
+      "name": "AI Research Assistant",
+      "description": "Artificial intelligence to accelerate all research projects",
+      "cost": 8000,
+      "base_time_days": 12.0,
+      "category": "Intelligence",
+      "prerequisites": ["quantum_encryption", "neural_interface"],
+      "difficulty": "Cutting",
+      "prototype_available": false,
+      "stolen_data_value": 0.9,
+      "benefits": [
+        {"ExperienceBonus": 50},
+        {"CreditsPerMission": 500}
+      ]
+    },
+    {
+      "id": "experimental_armor",
+      "name": "Experimental Armor",
+      "description": "Prototype personal protection systems",
+      "cost": 2800,
+      "base_time_days": 4.0,
+      "category": "Equipment",
+      "prerequisites": ["infiltration_kit"],
+      "difficulty": "Advanced",
+      "prototype_available": true,
+      "stolen_data_value": 0.5,
+      "benefits": [
+        {"UnlockTool": "PrototypeArmor"}
+      ]
+    },
+    {
+      "id": "metamaterial_cloaking",
+      "name": "Metamaterial Cloaking",
+      "description": "Optical camouflage using advanced metamaterials",
+      "cost": 7500,
+      "base_time_days": 10.0,
+      "category": "Equipment",
+      "prerequisites": ["experimental_armor", "tech_interface"],
+      "difficulty": "Cutting",
+      "prototype_available": true,
+      "stolen_data_value": 0.9,
+      "benefits": [
+        {"UnlockCybernetic": "OpticalCamo"},
+        {"AlertReduction": 2}
+      ]
+    }
   ]
 }

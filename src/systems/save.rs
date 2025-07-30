@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::fs;
+use std::collections::HashSet;
 use crate::core::*;
 
 const SAVE_FILE: &str = "subversive_save.json";
@@ -16,6 +17,9 @@ pub struct SaveData {
     pub agent_loadouts: [AgentLoadout; 3],
     pub research_progress: ResearchProgress,
     pub cities_progress: CitiesProgress,
+    pub recruited_scientists: Vec<Scientist>,
+    pub research_facilities_discovered: HashSet<String>,    
+    pub alert_level: u8,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -48,6 +52,9 @@ impl From<&GlobalData> for SaveData {
                 },
                 alert_decay_timer: r.alert_decay_timer,
             }).collect(),
+            recruited_scientists: data.recruited_scientists.clone(),
+            research_facilities_discovered: data.research_facilities_discovered.clone(),
+            alert_level: data.alert_level,
         }
     }
 }
@@ -75,6 +82,9 @@ impl From<SaveData> for GlobalData {
                 alert_decay_timer: r.alert_decay_timer,
             }).collect(),
             cities_progress: save.cities_progress.clone(),
+            recruited_scientists: save.recruited_scientists,
+            research_facilities_discovered: save.research_facilities_discovered,
+            alert_level: save.alert_level,
         };
         
         global_data

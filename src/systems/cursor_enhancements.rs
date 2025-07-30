@@ -88,7 +88,7 @@ pub fn cursor_sprite_system(
     cursor_settings: Res<CursorSettings>,
     last_state: Res<LastCursorState>,
     time: Res<Time>,
-    mut cursor_query: Query<(Entity, &mut Transform, Option<&mut CursorAnimation>), (With<CursorEntity>, Without<Camera>)>,
+    mut cursor_query: Query<(Entity, &mut Transform, Option<&mut CursorAnimation>), (With<CursorEntity>, Without<Camera>, Without<MarkedForDespawn>)>,
 ) {
     update_cursor_with_animation(
         &mut commands,
@@ -134,7 +134,7 @@ fn update_cursor_with_animation(
     cursor_type: CursorType,
     position: Vec2,
     current_time: f32,
-    mut cursor_query: Query<(Entity, &mut Transform, Option<&mut CursorAnimation>), (With<CursorEntity>, Without<Camera>)>,
+    mut cursor_query: Query<(Entity, &mut Transform, Option<&mut CursorAnimation>), (With<CursorEntity>, Without<Camera>, Without<MarkedForDespawn>)>,
 ) {
     let sprite_handle = get_cursor_sprite(cursor_sprites, cursor_type);
     

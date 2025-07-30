@@ -1,6 +1,7 @@
 // src/systems/mission.rs - Updated for Bevy 0.16
 use bevy::prelude::*;
 use crate::core::*;
+use crate::core::research::{calculate_research_xp_bonus, calculate_research_credit_bonus};
 
 pub fn timer_system(
     mut mission_data: ResMut<MissionData>,

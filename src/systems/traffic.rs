@@ -633,7 +633,7 @@ fn handle_vehicle_agent_collision(
 pub fn military_convoy_system(
     mut convoy_query: Query<(Entity, &mut MilitaryConvoy, &Transform, &TrafficVehicle)>,
     agent_query: Query<&Transform, With<Agent>>,
-    mut alert_events: EventReader<AlertEvent>,
+    alert_events: EventReader<AlertEvent>,
     mut combat_events: EventReader<CombatEvent>,
     mut commands: Commands,
     sprites: Res<GameSprites>,
