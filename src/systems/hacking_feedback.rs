@@ -295,7 +295,7 @@ pub struct HackNotification {
 pub fn hack_notification_system(
     mut commands: Commands,
     mut hack_completed: EventReader<HackCompletedEvent>,
-    mut notifications: Query<(Entity, &mut HackNotification, &mut Transform)>,
+    mut notifications: Query<(Entity, &mut HackNotification, &mut Transform), Without<MarkedForDespawn>>,
     time: Res<Time>,
 ) {
     // Spawn notifications for completed hacks

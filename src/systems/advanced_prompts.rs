@@ -364,14 +364,14 @@ fn spawn_tooltip(
         },
     ));
 
-    // Tooltip border
     commands.spawn((
-        Sprite {
-            color: color.with_alpha(0.6),
-            custom_size: Some(Vec2::new(tooltip_width + 2.0, tooltip_height + 2.0)),
+        Text2d::new(text.clone()),
+        TextFont {
+            font_size: 10.0,
             ..default()
         },
-        Transform::from_translation(position.extend(101.5)),
+        TextColor(Color::WHITE),
+        Transform::from_translation(position.extend(103.0)),
         GlobalTransform::default(),
         PromptTooltip {
             text: text.to_string(),
