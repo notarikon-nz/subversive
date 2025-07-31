@@ -270,9 +270,10 @@ pub struct VehicleCover {
     pub occupied: Vec<bool>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 pub enum CyberneticType {
     Neurovector,
+    NeuralInterface,
     CombatEnhancer,
     StealthModule,
     TechInterface,
@@ -286,6 +287,7 @@ impl fmt::Display for CyberneticType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let name = match self {
             CyberneticType::Neurovector => "Neurovector",
+            CyberneticType::NeuralInterface => "Neural Interface",
             CyberneticType::CombatEnhancer => "Combat Enhancer",
             CyberneticType::StealthModule => "Stealth Implant",
             CyberneticType::TechInterface => "Hacking Booster",
@@ -296,13 +298,14 @@ impl fmt::Display for CyberneticType {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum ToolType {
     Hacker,
     Scanner,
     Lockpick,
     MedKit,
-
+    Grenade,
+    TimeBomb,
     EnhancedSensors,
     SatelliteUplink,
     TacticalScanner,

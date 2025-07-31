@@ -122,6 +122,7 @@ fn show_agent_overview(ui: &mut egui::Ui, global_data: &GlobalData, agent_idx: u
             for cybernetic in &loadout.cybernetics {
                 let cybernetic_name = match cybernetic {
                     CyberneticType::Neurovector => "Neurovector",
+                    CyberneticType::NeuralInterface => "Neural Interface",
                     CyberneticType::CombatEnhancer => "Combat Enhancer",
                     CyberneticType::StealthModule => "Stealth Module",
                     CyberneticType::TechInterface => "Hacking Booster",

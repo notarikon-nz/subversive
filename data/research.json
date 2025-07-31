@@ -60,7 +60,7 @@
       "prototype_available": true,
       "stolen_data_value": 0.8,
       "benefits": [
-        {"UnlockWeapon": "PlasmaRifle"},
+        {"UnlockWeapon": "PlasmaGun"},
         {"UnlockAttachment": "plasma_core"}
       ]
     },

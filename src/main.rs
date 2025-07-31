@@ -10,6 +10,10 @@ use systems::interactive_decals::*;
 use systems::explosion_decal_integration::*;            
 use systems::police::{load_police_config, PoliceResponse, PoliceEscalation};
 
+use systems::ui::enhanced_inventory::*;
+use systems::ui::inventory_integration::*;
+use systems::ui::inventory_compatibility::*;
+
 mod core;
 mod systems;
 
@@ -127,11 +131,17 @@ fn main() {
         .init_resource::<WeatherSystem>()
         .init_resource::<WeatherParticlePool>()        
 
-        //0.2.14
+        // 0.2.14
         .init_resource::<WorldScanState>()
         .add_event::<WorldScanEvent>()
         .add_event::<EntityScannedEvent>()
 
+        // 0.2.15
+        .init_resource::<InventoryGrid>()
+        .init_resource::<LoadoutManager>()
+        .init_resource::<InventoryCache>()        
+
+        // older
         .add_event::<ActionEvent>()
         .add_event::<CombatEvent>()
         .add_event::<AudioEvent>()
@@ -171,6 +181,7 @@ fn main() {
 
             setup_traffic_system, // 0.2.9
             setup_banking_network, // 0.2.10
+            setup_enhanced_inventory,   // 0.2.15
         ))
 
         .add_systems(Startup, (
@@ -341,9 +352,19 @@ fn main() {
             damage_text_event_system,
 
             ui::world::system,
-            ui::screens::inventory_system,
+            
             ui::pause_system,
 
+        ).run_if(in_state(GameState::Mission)))
+
+        // 0.2.15
+        .add_systems(Update, (
+            // ui::screens::inventory_system,
+            enhanced_inventory_system,
+            sync_inventory_to_grid,
+            handle_item_actions,
+            handle_loadout_hotkeys,
+            optimize_inventory_updates,
         ).run_if(in_state(GameState::Mission)))
 
         .add_systems(Update, (

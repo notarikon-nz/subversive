@@ -502,7 +502,7 @@ fn check_access(inventory: &Inventory, access_reader: Option<&AccessReader>) -> 
         
         // Check for access cards in inventory items (simplified - check if agent has any access card)
         let has_access_card = inventory.items.iter().any(|item| {
-            matches!(item, InventoryItem::AccessCard { .. })
+            matches!(item, crate::core::components::OriginalInventoryItem::AccessCard { .. })
         });
         
         if has_access_card {

@@ -125,10 +125,10 @@
       }
     },
     "unlocked_cities": [
-      "miami",
-      "toronto",
       "chicago",
-      "new_york"
+      "miami",
+      "new_york",
+      "toronto"
     ]
   },
   "recruited_scientists": [],

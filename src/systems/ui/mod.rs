@@ -14,6 +14,12 @@ pub mod pause;
 pub mod post_mission;
 pub mod loading_system;
 
+// 0.2.15
+pub mod enhanced_inventory;
+pub mod inventory_integration;
+pub mod inventory_compatibility;
+
+
 pub use screens::*;
 pub use hub::*;
 pub use main_menu::*;

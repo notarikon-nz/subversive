@@ -150,7 +150,7 @@ pub enum TerminalType {
 
 // === INVENTORY SYSTEM ===
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum InventoryItem {
+pub enum OriginalInventoryItem {
     AccessCard { level: u8, card_type: CardType },
     Keycard { access_level: u8, facility_id: String },
 }
@@ -164,7 +164,7 @@ pub struct Inventory {
     pub equipped_tools: Vec<crate::core::ToolType>,
     pub cybernetics: Vec<crate::core::CyberneticType>,
     pub intel_documents: Vec<String>,
-    pub items: Vec<InventoryItem>,
+    pub items: Vec<OriginalInventoryItem>,
 }
 
 #[derive(Component)]
@@ -206,15 +206,15 @@ impl Inventory {
     }
 
     pub fn add_access_card(&mut self, level: u8, card_type: CardType) {
-        self.items.push(InventoryItem::AccessCard { level, card_type });
+        self.items.push(OriginalInventoryItem::AccessCard { level, card_type });
         info!("Added {:?} access card (level {})", card_type, level);
     }
     
     pub fn has_access_card(&self, required_level: u8) -> bool {
         self.items.iter().any(|item| {
             match item {
-                InventoryItem::AccessCard { level, .. } => *level >= required_level,
-                InventoryItem::Keycard { access_level, .. } => *access_level >= required_level,
+                OriginalInventoryItem::AccessCard { level, .. } => *level >= required_level,
+                OriginalInventoryItem::Keycard { access_level, .. } => *access_level >= required_level,
             }
         })
     }
@@ -222,8 +222,8 @@ impl Inventory {
     pub fn get_highest_access_level(&self) -> u8 {
         self.items.iter().fold(0, |max_level, item| {
             match item {
-                InventoryItem::AccessCard { level, .. } => max_level.max(*level),
-                InventoryItem::Keycard { access_level, .. } => max_level.max(*access_level),
+                OriginalInventoryItem::AccessCard { level, .. } => max_level.max(*level),
+                OriginalInventoryItem::Keycard { access_level, .. } => max_level.max(*access_level),
             }
         })
     }
@@ -231,8 +231,8 @@ impl Inventory {
     pub fn remove_access_card(&mut self, required_level: u8) -> bool {
         if let Some(pos) = self.items.iter().position(|item| {
             match item {
-                InventoryItem::AccessCard { level, .. } => *level >= required_level,
-                InventoryItem::Keycard { access_level, .. } => *access_level >= required_level,
+                OriginalInventoryItem::AccessCard { level, .. } => *level >= required_level,
+                OriginalInventoryItem::Keycard { access_level, .. } => *access_level >= required_level,
             }
         }) {
             self.items.remove(pos);
@@ -242,6 +242,7 @@ impl Inventory {
         }
     }
 }
+
 
 // Remove duplicate enum definitions - these are defined elsewhere
 #[derive(Component)]

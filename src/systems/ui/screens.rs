@@ -333,6 +333,7 @@ fn create_equipment_section(parent: &mut ChildSpawnerCommands, inventory: &Inven
                 // Convert CyberneticType to string representation
                 let cybernetic_name = match cybernetic {
                     CyberneticType::Neurovector => "Neurovector",
+                    CyberneticType::NeuralInterface => "Neural Interface",
                     CyberneticType::CombatEnhancer => "Combat Enhancer",
                     CyberneticType::StealthModule => "Stealth Module",
                     CyberneticType::TechInterface => "Hacking Booster",

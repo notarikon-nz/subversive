@@ -31,12 +31,14 @@ pub fn handle_input(
         game_mode.paused = !game_mode.paused;
     }
 
+    /*
     if keyboard.just_pressed(KeyCode::KeyI) {
         inventory_state.ui_open = !inventory_state.ui_open;
         if inventory_state.ui_open {
             inventory_state.selected_agent = selection.selected.first().copied();
         }
     }
+        */
 
     // Mode toggles - always return to combat mode when exiting
     if keyboard.just_pressed(KeyCode::KeyN) {
