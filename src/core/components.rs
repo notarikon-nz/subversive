@@ -16,6 +16,15 @@ impl Default for Agent {
         Self { experience: 0, level: 1 }
     }
 }
+
+impl Agent {
+    pub fn with_scanner(mut self, scan_level: u8) -> Self {
+        // This would be added to your agent creation
+        self
+    }
+}
+
+
 /// Component to mark projectile impacts for decal creation
 #[derive(Component)]
 pub struct ProjectileImpact;

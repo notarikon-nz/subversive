@@ -264,7 +264,7 @@ pub fn enhanced_handle_grenade_events(
 /// Enhanced vehicle explosion handler with spill creation
 pub fn enhanced_handle_vehicle_explosions(
     mut commands: Commands,
-    mut vehicle_query: Query<(Entity, &Transform, &Vehicle), (With<Vehicle>, Added<Dead>)>,
+    mut vehicle_query: Query<(Entity, &Transform, &Vehicle), (With<Vehicle>, Added<Dead>, Without<MarkedForDespawn>)>,
     decal_settings: Res<DecalSettings>,
 ) {
     for (entity, transform, vehicle) in vehicle_query.iter_mut() {

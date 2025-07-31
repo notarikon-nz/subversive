@@ -67,6 +67,10 @@ pub use research_gameplay::*;
 pub mod weather;
 pub use weather::*;
 
+// 0.2.14
+pub mod world_scan;
+pub use world_scan::*;
+
 pub use minimap::*;
 pub use message_window::*;
 pub use urban_simulation::*;

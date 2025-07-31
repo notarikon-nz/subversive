@@ -162,6 +162,7 @@ pub fn load_scene(name: &str) -> Option<SceneData> {
 
 // === ENTITY SPAWNERS ===
 fn spawn_agent(commands: &mut Commands, pos: Vec2, level: u8, idx: usize, global_data: &GlobalData, sprites: &GameSprites) {
+    info!("spawn_agent");
     let (sprite, _) = create_agent_sprite(sprites);
     let loadout = global_data.get_agent_loadout(idx);
     let mut inventory = create_inventory_from_loadout(&loadout);
@@ -186,14 +187,16 @@ fn spawn_agent(commands: &mut Commands, pos: Vec2, level: u8, idx: usize, global
 }
 
 fn spawn_agent_with_index(commands: &mut Commands, pos: Vec2, level: u8, idx: usize, global_data: &GlobalData, sprites: &GameSprites) {
+    info!("spawn_agent_with_index");
     let (sprite, _) = create_agent_sprite(sprites);
     let loadout = global_data.get_agent_loadout(idx);
     let mut inventory = create_inventory_from_loadout(&loadout);
     inventory.add_currency(100 * level as u32);
 
     let weapon_state = create_weapon_state_from_loadout(&loadout);
-
-    commands.spawn((
+    let scan_level = level.min(3);
+    let agent_entity = commands.spawn_empty()
+    .insert((
         sprite,
         Transform::from_translation(pos.extend(1.0)),
         Agent { experience: 0, level },
@@ -207,10 +210,24 @@ fn spawn_agent_with_index(commands: &mut Commands, pos: Vec2, level: u8, idx: us
         inventory,
         weapon_state,
         create_physics_bundle(16.0, AGENT_GROUP),
+        // Add scanner to support agents 
+        WorldScanner {
+            scan_level,
+            range: 150.0 + (scan_level as f32 * 50.0), // Higher level = longer range
+            energy: 100.0,
+            max_energy: 100.0,
+            scan_cost: 15.0 + (scan_level as f32 * 5.0), // Higher level = more expensive
+            recharge_rate: 8.0 + (scan_level as f32 * 2.0), // Higher level = faster recharge
+            active: false,
+        },
     ));
+    if level >= 5 { // high-level agent
+        // add_scanner_to_agent(commands, agent_entity, level.min(3));
+    }       
 }
 
 fn spawn_urban_civilian(commands: &mut Commands, pos: Vec2, sprites: &GameSprites) {
+    info!("spawn_urban_civilian");
     let (sprite, _) = create_civilian_sprite(sprites);
     let crowd_influence = 0.2 + rand::random::<f32>() * 0.6;
     let panic_threshold = 15.0 + rand::random::<f32>() * 50.0;
@@ -239,6 +256,7 @@ fn spawn_urban_civilian(commands: &mut Commands, pos: Vec2, sprites: &GameSprite
 }
 
 pub fn spawn_civilian_with_config(commands: &mut Commands, pos: Vec2, sprites: &GameSprites, config: &GameConfig) {
+    info!("spawn_civilian_with_config");
     let (sprite, _) = create_civilian_sprite(sprites);
     
     commands.spawn((

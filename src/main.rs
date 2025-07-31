@@ -21,6 +21,7 @@ use systems::scenes::*;
 use systems::explosions::*;
 use systems::projectiles::*;
 use systems::ui::{loading_system};
+use systems::world_scan::{WorldScanState, WorldScanEvent, EntityScannedEvent};
 
 // USER INTERFACE
 use systems::ui::hub::{CyberneticsDatabase, HubState, HubDatabases};
@@ -125,6 +126,11 @@ fn main() {
         // 0.2.13
         .init_resource::<WeatherSystem>()
         .init_resource::<WeatherParticlePool>()        
+
+        //0.2.14
+        .init_resource::<WorldScanState>()
+        .add_event::<WorldScanEvent>()
+        .add_event::<EntityScannedEvent>()
 
         .add_event::<ActionEvent>()
         .add_event::<CombatEvent>()
@@ -549,6 +555,15 @@ fn main() {
             despawn::despawn_marked_entities,
         ).run_if(in_state(GameState::Mission)))
 
+        // 0.2.14
+        .add_systems(Update, (
+            world_scan::world_scan_input_system,
+            world_scan::world_scan_execution_system,
+            world_scan::world_scan_visualization_system,
+            world_scan::scanner_energy_system,
+            world_scan::scan_overlay_fade_system,
+        ).run_if(in_state(GameState::Mission)))
+
         // TESTING & DEBUG
         .add_systems(Update, (
             debug_pathfinding_grid,
@@ -564,6 +579,8 @@ fn main() {
             cursor_memory_cleanup,
             // 0.2.13
             weather::cleanup_weather_system,
+            // 0.2.14
+            world_scan::cleanup_scan_overlays,
         ))
 
         // POST MISSION
