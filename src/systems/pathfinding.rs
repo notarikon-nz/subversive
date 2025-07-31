@@ -567,7 +567,7 @@ pub fn debug_pathfinding_grid(
                 gizmos.line_2d(
                     agent.current_path[i],
                     agent.current_path[i + 1],
-                    Color::srgb(0.0, 0.0, 1.0)
+                    Color::srgba(0.0, 0.0, 1.0, 0.4)
                 );
             }
         }

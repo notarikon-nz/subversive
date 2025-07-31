@@ -2,6 +2,7 @@
 use bevy::prelude::*;
 use crate::core::*;
 use crate::systems::*;
+use crate::systems::spawners::*;
 
 // === CORE URBAN COMPONENTS ===
 #[derive(Component)]
@@ -135,54 +136,9 @@ fn find_realistic_spawn_position(urban_areas: &UrbanAreas) -> Option<Vec2> {
     None
 }
 
-pub fn spawn_urban_civilian(
-    commands: &mut Commands, 
-    position: Vec2, 
-    sprites: &GameSprites,
-    urban_areas: &UrbanAreas,
-) {
-    let (sprite, _) = crate::core::sprites::create_civilian_sprite(sprites);
-    
-    // Randomize civilian personality
-    let crowd_influence = 0.3 + rand::random::<f32>() * 0.4; // 0.3-0.7
-    let panic_threshold = 20.0 + rand::random::<f32>() * 40.0; // 20-60
-    
-    // Pick initial daily state based on "time of day" simulation
-    let daily_state = match rand::random::<f32>() {
-        x if x < 0.4 => DailyState::GoingToWork,
-        x if x < 0.6 => DailyState::Shopping,
-        x if x < 0.8 => DailyState::GoingHome,
-        _ => DailyState::Idle,
-    };
-    
-    let next_destination = pick_destination_for_state(daily_state, urban_areas);
-    
-    commands.spawn((
-        sprite,
-        Transform::from_translation(position.extend(1.0)),
-        Civilian,
-        Health(50.0),
-        Morale::new(80.0, panic_threshold),
-        MovementSpeed(80.0),
-        Controllable,
-        NeurovectorTarget,
-        UrbanCivilian {
-            daily_state,
-            state_timer: rand::random::<f32>() * 10.0, // Stagger state changes
-            next_destination,
-            crowd_influence,
-            panic_threshold,
-            movement_urgency: 0.0,
-        },
-        bevy_rapier2d::prelude::RigidBody::Dynamic,
-        bevy_rapier2d::prelude::Collider::ball(7.5),
-        bevy_rapier2d::prelude::Velocity::default(),
-        bevy_rapier2d::prelude::Damping { linear_damping: 10.0, angular_damping: 10.0 },
-        bevy_rapier2d::prelude::GravityScale(0.0),
-    ));
-}
 
-fn pick_destination_for_state(state: DailyState, urban_areas: &UrbanAreas) -> Option<Vec2> {
+
+pub fn pick_destination_for_state(state: DailyState, urban_areas: &UrbanAreas) -> Option<Vec2> {
     match state {
         DailyState::GoingToWork => pick_random_zone_center(&urban_areas.work_zones),
         DailyState::Shopping => pick_random_zone_center(&urban_areas.shopping_zones),

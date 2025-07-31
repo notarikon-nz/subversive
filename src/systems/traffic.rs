@@ -3,6 +3,7 @@ use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 use crate::core::*;
 use crate::systems::*;
+use crate::systems::spawners::*;
 
 // === TRAFFIC COMPONENTS ===
 
@@ -294,87 +295,6 @@ fn choose_vehicle_type() -> TrafficVehicleType {
         x if x < 0.9 => TrafficVehicleType::Truck,
         x if x < 0.95 => TrafficVehicleType::MotorCycle,
         _ => TrafficVehicleType::PoliceCar,
-    }
-}
-
-pub fn spawn_traffic_vehicle(
-    commands: &mut Commands,
-    position: Vec2,
-    vehicle_type: TrafficVehicleType,
-    sprites: &GameSprites,
-) {
-    let (max_speed, size, color, health) = match vehicle_type {
-        TrafficVehicleType::CivilianCar => (120.0, Vec2::new(32.0, 16.0), Color::srgb(0.6, 0.6, 0.8), 60.0),
-        TrafficVehicleType::Bus => (80.0, Vec2::new(48.0, 20.0), Color::srgb(0.8, 0.8, 0.2), 150.0),
-        TrafficVehicleType::Truck => (100.0, Vec2::new(40.0, 18.0), Color::srgb(0.5, 0.3, 0.2), 120.0),
-        TrafficVehicleType::EmergencyAmbulance => (150.0, Vec2::new(36.0, 18.0), Color::srgb(1.0, 1.0, 1.0), 100.0),
-        TrafficVehicleType::PoliceCar => (140.0, Vec2::new(34.0, 16.0), Color::srgb(0.2, 0.2, 0.8), 100.0),
-        TrafficVehicleType::MilitaryConvoy => (110.0, Vec2::new(44.0, 20.0), Color::srgb(0.3, 0.5, 0.3), 200.0),
-        TrafficVehicleType::MotorCycle => (160.0, Vec2::new(12.0, 8.0), Color::srgb(0.8, 0.2, 0.2), 40.0),
-    };
-    
-    let mut entity_commands = commands.spawn((
-        Sprite {
-            color,
-            custom_size: Some(size),
-            ..default()
-        },
-        Transform::from_translation(position.extend(0.9)),
-        TrafficVehicle {
-            vehicle_type: vehicle_type.clone(),
-            max_speed,
-            current_speed: 0.0,
-            acceleration: 200.0,
-            brake_force: 400.0,
-            lane_position: 0.0,
-            destination: None,
-            panic_level: 0.0,
-            brake_lights: false,
-        },
-        TrafficFlow {
-            current_lane: 0,
-            target_lane: 0,
-            following_distance: 40.0,
-            lane_change_cooldown: 0.0,
-            path: Vec::new(),
-            path_index: 0,
-        },
-        Health(health),
-        Vehicle::new(match vehicle_type {
-            TrafficVehicleType::CivilianCar => VehicleType::CivilianCar,
-            TrafficVehicleType::Bus => VehicleType::Truck,
-            TrafficVehicleType::Truck => VehicleType::Truck,
-            TrafficVehicleType::PoliceCar => VehicleType::PoliceCar,
-            TrafficVehicleType::MilitaryConvoy => VehicleType::APC,
-            _ => VehicleType::CivilianCar,
-        }),
-        RigidBody::Dynamic,
-        Collider::cuboid(size.x * 0.5, size.y * 0.5),
-        Velocity::default(),
-        Damping { linear_damping: 5.0, angular_damping: 10.0 },
-        CollisionGroups::new(VEHICLE_GROUP, Group::ALL),
-        GravityScale(0.0),
-        Scannable,
-    ));
-    
-    // Add special components
-    match vehicle_type {
-        TrafficVehicleType::EmergencyAmbulance | TrafficVehicleType::PoliceCar => {
-            entity_commands.insert(EmergencyVehicle {
-                siren_active: false,
-                priority_level: if matches!(vehicle_type, TrafficVehicleType::EmergencyAmbulance) { 1 } else { 2 },
-                response_target: None,
-            });
-        },
-        TrafficVehicleType::MilitaryConvoy => {
-            entity_commands.insert(MilitaryConvoy {
-                formation_leader: None,
-                formation_members: Vec::new(),
-                alert_status: ConvoyAlertStatus::Patrol,
-                troops_inside: 4,
-            });
-        },
-        _ => {},
     }
 }
 

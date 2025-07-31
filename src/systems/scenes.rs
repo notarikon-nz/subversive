@@ -5,14 +5,18 @@ use serde::{Deserialize, Serialize};
 
 use crate::core::*;
 use crate::systems::ai::*;
-use crate::systems::vehicles::spawn_vehicle;
+use crate::systems::spawners::{spawn_agent};
 use crate::core::factions::Faction;
 use crate::systems::*;
 use crate::systems::police::*;
 use crate::systems::selection::*;
 
+// === Z-SORTING COMPONENT ===
+#[derive(Component)]
+pub struct IsometricDepth(pub f32);
+
 // === SCENE DATA STRUCTURES ===
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Resource, Clone, Serialize, Deserialize)]
 pub struct SceneData {
     pub agents: Vec<AgentSpawn>,
     pub civilians: Vec<CivilianSpawn>,
@@ -94,7 +98,7 @@ pub fn spawn_from_scene(commands: &mut Commands, scene: &SceneData, global_data:
     }
 
     for civilian in &scene.civilians {
-        spawn_urban_civilian(commands, Vec2::from(civilian.position), sprites);
+        spawn_original_urban_civilian(commands, Vec2::from(civilian.position), sprites);
     }
 
     for enemy in &scene.enemies {
@@ -124,70 +128,92 @@ pub fn spawn_from_scene(commands: &mut Commands, scene: &SceneData, global_data:
           scene.agents.len(), scene.enemies.len(), scene.civilians.len());
 }
 
-fn parse_vehicle_type(type_str: &str) -> VehicleType {
-    match type_str {
-        "civilian_car" => VehicleType::CivilianCar,
-        "police_car" => VehicleType::PoliceCar,
-        "apc" => VehicleType::APC,
-        "vtol" => VehicleType::VTOL,
-        "tank" => VehicleType::Tank,
-        "truck" => VehicleType::Truck,
-        "fuel_truck" => VehicleType::FuelTruck,
-        _ => VehicleType::CivilianCar,
+
+// === Z-SORTING SYSTEM ===
+pub fn isometric_depth_sorting(
+    mut query: Query<(&mut Transform, &IsometricDepth), Changed<Transform>>,
+) {
+    for (mut transform, depth) in query.iter_mut() {
+        // Calculate Z based on Y position (lower Y = higher Z for proper depth sorting)
+        let base_z = depth.0;
+        let y_offset = -transform.translation.y * 0.01; // Small factor to avoid Z conflicts
+        transform.translation.z = base_z + y_offset;
     }
 }
 
-pub fn spawn_fallback_mission(commands: &mut Commands, global_data: &GlobalData, sprites: &GameSprites) {
-    commands.insert_resource(UrbanAreas::default());
-    
-    let positions = [Vec2::new(-200.0, 0.0), Vec2::new(-170.0, 0.0), Vec2::new(-140.0, 0.0)];
-    for (i, &pos) in positions.iter().enumerate() {
-        spawn_agent_with_index(commands, pos, global_data.agent_levels[i], i, global_data, sprites);
+// ISOMETRIC VERSION
+pub fn spawn_from_scene_isometric(
+    commands: &mut Commands,
+    scene: &SceneData,
+    global_data: &GlobalData,
+    sprites: &GameSprites,
+    tilemap_settings: &Option<Res<IsometricSettings>>,
+) {
+    // Setup urban areas first
+    setup_urban_areas_isometric(commands, scene, global_data.selected_region);
+
+    // Spawn agents with isometric positioning
+    for (i, agent) in scene.agents.iter().enumerate() {
+        let level = if i < 3 { global_data.agent_levels[i] } else { agent.level };
+        let world_pos = Vec2::from(agent.position);
+        let adjusted_pos = adjust_position_for_isometric(world_pos, tilemap_settings);
+        spawn_agent_isometric(commands, adjusted_pos, level, i, global_data, sprites);
     }
-    
-    let civilian_positions = [Vec2::new(100.0, 100.0), Vec2::new(150.0, 80.0), Vec2::new(80.0, 150.0)];
-    for &pos in &civilian_positions {
-        spawn_urban_civilian(commands, pos, sprites);
+
+    // Spawn other entities with position adjustment
+    for civilian in &scene.civilians {
+        let world_pos = Vec2::from(civilian.position);
+        let adjusted_pos = adjust_position_for_isometric(world_pos, tilemap_settings);
+        spawn_urban_civilian_isometric(commands, adjusted_pos, sprites);
     }
-    
-    spawn_terminal(commands, Vec2::new(200.0, 0.0), "objective", sprites);
-    spawn_cover_points(commands);
+
+    for enemy in &scene.enemies {
+        let world_pos = Vec2::from(enemy.position);
+        let adjusted_pos = adjust_position_for_isometric(world_pos, tilemap_settings);
+        let patrol = enemy.patrol_points.iter()
+            .map(|&p| adjust_position_for_isometric(Vec2::from(p), tilemap_settings))
+            .collect();
+        spawn_enemy_isometric(commands, adjusted_pos, patrol, global_data, sprites);
+    }
+
+    for terminal in &scene.terminals {
+        let world_pos = Vec2::from(terminal.position);
+        let adjusted_pos = adjust_position_for_isometric(world_pos, tilemap_settings);
+        spawn_terminal_isometric(commands, adjusted_pos, &terminal.terminal_type, sprites);
+    }
+
+    for vehicle in &scene.vehicles {
+        let world_pos = Vec2::from(vehicle.position);
+        let adjusted_pos = adjust_position_for_isometric(world_pos, tilemap_settings);
+        let v_type = parse_vehicle_type(&vehicle.vehicle_type);
+        spawn_vehicle_isometric(commands, adjusted_pos, v_type, sprites);
+    }
 }
 
-pub fn load_scene(name: &str) -> Option<SceneData> {
-    let path = format!("scenes/{}.json", name);
-    let content = std::fs::read_to_string(&path).ok()?;
-    serde_json::from_str(&content).ok()
+// === POSITION ADJUSTMENT FOR ISOMETRIC ===
+fn adjust_position_for_isometric(
+    world_pos: Vec2,
+    tilemap_settings: &Option<Res<IsometricSettings>>,
+) -> Vec2 {
+    if let Some(settings) = tilemap_settings {
+        // Convert old world coordinates to tile coordinates, then back to isometric world
+        let tile_pos = settings.world_to_tile(world_pos);
+        settings.tile_to_world(tile_pos)
+    } else {
+        // No tilemap, use position as-is
+        world_pos
+    }
 }
 
-// === ENTITY SPAWNERS ===
-fn spawn_agent(commands: &mut Commands, pos: Vec2, level: u8, idx: usize, global_data: &GlobalData, sprites: &GameSprites) {
-    info!("spawn_agent");
-    let (sprite, _) = create_agent_sprite(sprites);
-    let loadout = global_data.get_agent_loadout(idx);
-    let mut inventory = create_inventory_from_loadout(&loadout);
-    inventory.add_currency(100 * level as u32);
-
-    let weapon_state = create_weapon_state_from_loadout(&loadout);
-
-    commands.spawn((
-        sprite,
-        Transform::from_translation(pos.extend(1.0)),
-        Agent { experience: 0, level },
-        Faction::Player,
-        create_base_unit_bundle(100.0, 150.0),
-        Controllable,
-        Selectable { radius: 15.0 },
-        Vision::new(150.0, 60.0),
-        NeurovectorCapability::default(),
-        inventory,
-        weapon_state,
-        create_physics_bundle(16.0, AGENT_GROUP),
-    ));
-}
-
-fn spawn_agent_with_index(commands: &mut Commands, pos: Vec2, level: u8, idx: usize, global_data: &GlobalData, sprites: &GameSprites) {
-    info!("spawn_agent_with_index");
+// === ISOMETRIC ENTITY SPAWNERS ===
+fn spawn_agent_isometric(
+    commands: &mut Commands,
+    pos: Vec2,
+    level: u8,
+    idx: usize,
+    global_data: &GlobalData,
+    sprites: &GameSprites,
+) {
     let (sprite, _) = create_agent_sprite(sprites);
     let loadout = global_data.get_agent_loadout(idx);
     let mut inventory = create_inventory_from_loadout(&loadout);
@@ -195,10 +221,10 @@ fn spawn_agent_with_index(commands: &mut Commands, pos: Vec2, level: u8, idx: us
 
     let weapon_state = create_weapon_state_from_loadout(&loadout);
     let scan_level = level.min(3);
-    let agent_entity = commands.spawn_empty()
-    .insert((
+
+    commands.spawn((
         sprite,
-        Transform::from_translation(pos.extend(1.0)),
+        Transform::from_translation(pos.extend(10.0)), // Higher Z for proper sorting
         Agent { experience: 0, level },
         AgentIndex(idx),
         Faction::Player,
@@ -210,24 +236,20 @@ fn spawn_agent_with_index(commands: &mut Commands, pos: Vec2, level: u8, idx: us
         inventory,
         weapon_state,
         create_physics_bundle(16.0, AGENT_GROUP),
-        // Add scanner to support agents 
         WorldScanner {
             scan_level,
-            range: 150.0 + (scan_level as f32 * 50.0), // Higher level = longer range
+            range: 150.0 + (scan_level as f32 * 50.0),
             energy: 100.0,
             max_energy: 100.0,
-            scan_cost: 15.0 + (scan_level as f32 * 5.0), // Higher level = more expensive
-            recharge_rate: 8.0 + (scan_level as f32 * 2.0), // Higher level = faster recharge
+            scan_cost: 15.0 + (scan_level as f32 * 5.0),
+            recharge_rate: 8.0 + (scan_level as f32 * 2.0),
             active: false,
         },
+        IsometricDepth(10.0), // For proper z-sorting
     ));
-    if level >= 5 { // high-level agent
-        // add_scanner_to_agent(commands, agent_entity, level.min(3));
-    }       
 }
 
-fn spawn_urban_civilian(commands: &mut Commands, pos: Vec2, sprites: &GameSprites) {
-    info!("spawn_urban_civilian");
+fn spawn_urban_civilian_isometric(commands: &mut Commands, pos: Vec2, sprites: &GameSprites) {
     let (sprite, _) = create_civilian_sprite(sprites);
     let crowd_influence = 0.2 + rand::random::<f32>() * 0.6;
     let panic_threshold = 15.0 + rand::random::<f32>() * 50.0;
@@ -235,7 +257,7 @@ fn spawn_urban_civilian(commands: &mut Commands, pos: Vec2, sprites: &GameSprite
 
     commands.spawn((
         sprite,
-        Transform::from_translation(pos.extend(1.0)),
+        Transform::from_translation(pos.extend(5.0)), // Lower Z than agents
         Civilian,
         Faction::Civilian,
         create_base_unit_bundle(50.0, 80.0 + rand::random::<f32>() * 40.0),
@@ -252,47 +274,32 @@ fn spawn_urban_civilian(commands: &mut Commands, pos: Vec2, sprites: &GameSprite
         },
         create_physics_bundle(7.5, CIVILIAN_GROUP),
         Scannable,
+        IsometricDepth(5.0),
     ));
 }
 
-pub fn spawn_civilian_with_config(commands: &mut Commands, pos: Vec2, sprites: &GameSprites, config: &GameConfig) {
-    info!("spawn_civilian_with_config");
-    let (sprite, _) = create_civilian_sprite(sprites);
-    
-    commands.spawn((
-        sprite,
-        Transform::from_translation(pos.extend(1.0)),
-        Civilian,
-        Faction::Civilian,
-        Health(50.0),
-        Morale::new(config.civilians.base_morale, config.civilians.panic_threshold),
-        PanicSpreader::default(),
-        MovementSpeed(config.civilians.movement_speed),
-        Controllable,
-        NeurovectorTarget,
-        create_physics_bundle(7.5, CIVILIAN_GROUP),
-        Scannable,
-    ));
-}
-
-fn spawn_enemy(commands: &mut Commands, pos: Vec2, patrol: Vec<Vec2>, global_data: &GlobalData, sprites: &GameSprites) {
+fn spawn_enemy_isometric(
+    commands: &mut Commands,
+    pos: Vec2,
+    patrol: Vec<Vec2>,
+    global_data: &GlobalData,
+    sprites: &GameSprites,
+) {
     let (sprite, _) = create_enemy_sprite(sprites);
     let difficulty = global_data.regions[global_data.selected_region].mission_difficulty_modifier();
     
     let faction = random_enemy_faction();
     let weapon = select_weapon_for_faction(&faction);
     
-    // Create inventory with weapon
     let mut inventory = Inventory::default();
     inventory.equipped_weapon = Some(WeaponConfig::new(weapon.clone()));
 
-    // Create weapon state with proper ammo - THIS WAS THE ISSUE
     let mut weapon_state = WeaponState::new_from_type(&weapon);
-    weapon_state.complete_reload(); // Ensure enemies start with full ammo    
+    weapon_state.complete_reload();
 
     commands.spawn((
         sprite,
-        Transform::from_translation(pos.extend(1.0)),
+        Transform::from_translation(pos.extend(8.0)), // Mid-level Z
         Enemy,
         faction,
         create_base_unit_bundle(100.0 * difficulty, 100.0),
@@ -301,20 +308,20 @@ fn spawn_enemy(commands: &mut Commands, pos: Vec2, patrol: Vec<Vec2>, global_dat
         Patrol::new(patrol),
         AIState::default(),
         GoapAgent::default(),
-        weapon_state,  // Now properly initialized
+        weapon_state,
         inventory,
         create_physics_bundle(9.0, ENEMY_GROUP),
         Scannable,
+        IsometricDepth(8.0),
     ));
 }
 
-// 0.2.5.3 - added Pathfinding Obstacle component
-fn spawn_terminal(commands: &mut Commands, pos: Vec2, terminal_type: &str, sprites: &GameSprites) {
+fn spawn_terminal_isometric(commands: &mut Commands, pos: Vec2, terminal_type: &str, sprites: &GameSprites) {
     let (sprite, _) = create_terminal_sprite(sprites, &parse_terminal_type(terminal_type));
     
     commands.spawn((
         sprite,
-        Transform::from_translation(pos.extend(1.0)),
+        Transform::from_translation(pos.extend(2.0)), // Low Z for ground objects
         Terminal { 
             terminal_type: parse_terminal_type(terminal_type), 
             range: 30.0, 
@@ -327,9 +334,126 @@ fn spawn_terminal(commands: &mut Commands, pos: Vec2, terminal_type: &str, sprit
         Scannable,
         PathfindingObstacle {
             radius: 12.0,
-            blocks_movement: true, // Terminals block movement
-        },        
+            blocks_movement: true,
+        },
+        IsometricDepth(2.0),
     ));
+}
+
+fn spawn_vehicle_isometric(
+    commands: &mut Commands,
+    pos: Vec2,
+    vehicle_type: VehicleType,
+    sprites: &GameSprites,
+) {
+
+    let vehicle = Vehicle::new(vehicle_type.clone());
+    let max_health = vehicle.max_health();
+    
+    let (color, size) = match vehicle_type {
+        VehicleType::CivilianCar => (Color::srgb(0.6, 0.6, 0.8), Vec2::new(40.0, 20.0)),
+        VehicleType::PoliceCar => (Color::srgb(0.2, 0.2, 0.8), Vec2::new(40.0, 20.0)),
+        VehicleType::ElectricCar => (Color::srgb(0.6, 0.6, 0.9), Vec2::new(40.0, 20.0)),
+        VehicleType::APC => (Color::srgb(0.4, 0.6, 0.4), Vec2::new(50.0, 30.0)),
+        VehicleType::VTOL => (Color::srgb(0.3, 0.3, 0.3), Vec2::new(60.0, 40.0)),
+        VehicleType::Tank => (Color::srgb(0.5, 0.5, 0.2), Vec2::new(60.0, 35.0)),
+        VehicleType::Truck => (Color::srgb(0.4, 0.6, 0.4), Vec2::new(50.0, 30.0)), // change
+        VehicleType::FuelTruck => (Color::srgb(0.4, 0.6, 0.4), Vec2::new(50.0, 30.0)), // change
+    };
+    
+    let entity = commands.spawn((
+        Sprite {
+            color,
+            custom_size: Some(size),
+            ..default()
+        },
+        Transform::from_translation(pos.extend(0.8)),
+        vehicle,
+        Health(max_health),
+        RigidBody::Fixed,
+        Collider::cuboid(size.x / 2.0, size.y / 2.0),
+        Scannable,
+    ))
+    .insert(IsometricDepth(3.0)); // Ground level for vehicles
+}
+
+// === UTILITY FUNCTIONS ===
+fn setup_urban_areas_isometric(commands: &mut Commands, scene: &SceneData, region_idx: usize) {
+    // Same as original but could be enhanced to better fit isometric tiles
+    let urban_areas = if let Some(scene_urban) = &scene.urban_areas {
+        convert_scene_urban_data(scene_urban)
+    } else {
+        create_default_urban_areas(region_idx)
+    };
+    
+    commands.insert_resource(urban_areas);
+}
+
+pub fn spawn_fallback_isometric_mission(
+    commands: &mut Commands,
+    global_data: &GlobalData,
+    sprites: &GameSprites,
+    tilemap_settings: &Option<Res<IsometricSettings>>,
+) {
+    commands.insert_resource(UrbanAreas::default());
+    
+    let positions = [Vec2::new(-200.0, 0.0), Vec2::new(-170.0, 0.0), Vec2::new(-140.0, 0.0)];
+    for (i, &pos) in positions.iter().enumerate() {
+        let adjusted_pos = adjust_position_for_isometric(pos, tilemap_settings);
+        spawn_agent_isometric(commands, adjusted_pos, global_data.agent_levels[i], i, global_data, sprites);
+    }
+    
+    let civilian_positions = [Vec2::new(100.0, 100.0), Vec2::new(150.0, 80.0), Vec2::new(80.0, 150.0)];
+    for &pos in &civilian_positions {
+        let adjusted_pos = adjust_position_for_isometric(pos, tilemap_settings);
+        spawn_urban_civilian_isometric(commands, adjusted_pos, sprites);
+    }
+    
+    let terminal_pos = adjust_position_for_isometric(Vec2::new(200.0, 0.0), tilemap_settings);
+    spawn_terminal_isometric(commands, terminal_pos, "objective", sprites);
+}
+
+
+
+
+
+fn parse_vehicle_type(type_str: &str) -> VehicleType {
+    match type_str {
+        "civilian_car" => VehicleType::CivilianCar,
+        "police_car" => VehicleType::PoliceCar,
+        "apc" => VehicleType::APC,
+        "vtol" => VehicleType::VTOL,
+        "tank" => VehicleType::Tank,
+        "truck" => VehicleType::Truck,
+        "fuel_truck" => VehicleType::FuelTruck,
+        _ => VehicleType::CivilianCar,
+    }
+}
+
+/*
+pub fn spawn_fallback_mission(commands: &mut Commands, global_data: &GlobalData, sprites: &GameSprites) {
+    commands.insert_resource(UrbanAreas::default());
+    
+    let positions = [Vec2::new(-200.0, 0.0), Vec2::new(-170.0, 0.0), Vec2::new(-140.0, 0.0)];
+    for (i, &pos) in positions.iter().enumerate() {
+        spawn_agent_with_index(commands, pos, global_data.agent_levels[i], i, global_data, sprites);
+    }
+    
+    let civilian_positions = [Vec2::new(100.0, 100.0), Vec2::new(150.0, 80.0), Vec2::new(80.0, 150.0)];
+    for &pos in &civilian_positions {
+        spawn_urban_civilian(commands, pos, sprites);
+    }
+    
+    spawn_terminal(commands, Vec2::new(200.0, 0.0), "objective", sprites);
+    spawn_cover_points(commands);
+}
+*/
+
+
+pub fn load_scene(name: &str) -> Option<SceneData> {
+    let path = format!("scenes/{}.json", name);
+    let content = std::fs::read_to_string(&path).ok()?;
+    serde_json::from_str(&content).ok()
 }
 
 
@@ -366,53 +490,9 @@ pub fn spawn_cover_points(commands: &mut Commands) {
     }
 }
 
-// === HELPER FUNCTIONS ===
-fn create_base_unit_bundle(health: f32, speed: f32) -> impl Bundle {
-    (Health(health), MovementSpeed(speed))
-}
 
-fn create_physics_bundle(radius: f32, group: Group) -> impl Bundle {
-    (
-        RigidBody::Dynamic,  // Changed from KinematicPositionBased for better collision
-        Collider::ball(radius),
-        Velocity::default(),
-        Damping { linear_damping: 15.0, angular_damping: 15.0 }, // Higher damping for stability
-        CollisionGroups::new(group, Group::ALL), // This entity belongs to 'group', collides with all
-        Friction::coefficient(0.8), // Prevent sliding
-        Restitution::coefficient(0.1), // Low bounce
-        LockedAxes::ROTATION_LOCKED, // Prevent spinning
-        GravityScale(0.0),
-    )
-}
 
-fn create_inventory_from_loadout(loadout: &AgentLoadout) -> Inventory {
-    let mut inventory = Inventory::default();
-    for weapon_config in &loadout.weapon_configs {
-        inventory.add_weapon_config(weapon_config.clone());
-    }
-    if let Some(weapon_config) = loadout.weapon_configs.get(loadout.equipped_weapon_idx) {
-        inventory.equipped_weapon = Some(weapon_config.clone());
-    }
-    for tool in &loadout.tools {
-        inventory.add_tool(tool.clone());
-    }
-    for cybernetic in &loadout.cybernetics {
-        inventory.add_cybernetic(cybernetic.clone());
-    }
-    inventory
-}
-
-fn create_weapon_state_from_loadout(loadout: &AgentLoadout) -> WeaponState {
-    if let Some(weapon_config) = loadout.weapon_configs.get(loadout.equipped_weapon_idx) {
-        let mut state = WeaponState::new_from_type(&weapon_config.base_weapon);
-        state.apply_attachment_modifiers(weapon_config);
-        state
-    } else {
-        WeaponState::default()
-    }
-}
-
-fn random_daily_state() -> DailyState {
+pub fn random_daily_state() -> DailyState {
     match rand::random::<f32>() {
         x if x < 0.3 => DailyState::Working,
         x if x < 0.5 => DailyState::Shopping,  
@@ -421,7 +501,7 @@ fn random_daily_state() -> DailyState {
     }
 }
 
-fn random_enemy_faction() -> Faction {
+pub fn random_enemy_faction() -> Faction {
     match rand::random::<f32>() {
         x if x < 0.4 => Faction::Corporate,
         x if x < 0.8 => Faction::Syndicate,
@@ -429,7 +509,7 @@ fn random_enemy_faction() -> Faction {
     }
 }
 
-fn select_weapon_for_faction(faction: &Faction) -> WeaponType {
+pub fn select_weapon_for_faction(faction: &Faction) -> WeaponType {
 
     match faction {
         Faction::Corporate => if rand::random::<f32>() < 0.7 { WeaponType::Rifle } else { WeaponType::Pistol },
@@ -442,7 +522,7 @@ fn select_weapon_for_faction(faction: &Faction) -> WeaponType {
     }
 }
 
-fn get_police_stats(unit_type: EscalationLevel) -> (f32, WeaponType, f32, f32) {
+pub fn get_police_stats(unit_type: EscalationLevel) -> (f32, WeaponType, f32, f32) {
     match unit_type {
         EscalationLevel::Patrol => (80.0, WeaponType::Pistol, 100.0, 100.0),
         EscalationLevel::Armed => (120.0, WeaponType::Rifle, 120.0, 120.0),
@@ -453,7 +533,7 @@ fn get_police_stats(unit_type: EscalationLevel) -> (f32, WeaponType, f32, f32) {
     }
 }
 
-fn parse_terminal_type(type_str: &str) -> TerminalType {
+pub fn parse_terminal_type(type_str: &str) -> TerminalType {
     match type_str {
         "objective" => TerminalType::Objective,
         "equipment" => TerminalType::Equipment,
@@ -462,7 +542,7 @@ fn parse_terminal_type(type_str: &str) -> TerminalType {
     }
 }
 
-fn parse_police_unit_type(type_str: &str) -> EscalationLevel {
+pub fn parse_police_unit_type(type_str: &str) -> EscalationLevel {
     match type_str.to_lowercase().as_str() {
         "patrol" => EscalationLevel::Patrol,
         "armed" => EscalationLevel::Armed,
@@ -474,7 +554,7 @@ fn parse_police_unit_type(type_str: &str) -> EscalationLevel {
 }
 
 // === URBAN AREAS SETUP ===
-fn setup_urban_areas(commands: &mut Commands, scene: &SceneData, region_idx: usize) {
+pub fn setup_urban_areas(commands: &mut Commands, scene: &SceneData, region_idx: usize) {
     let urban_areas = if let Some(scene_urban) = &scene.urban_areas {
         convert_scene_urban_data(scene_urban)
     } else {
@@ -484,7 +564,7 @@ fn setup_urban_areas(commands: &mut Commands, scene: &SceneData, region_idx: usi
     commands.insert_resource(urban_areas);
 }
 
-fn convert_scene_urban_data(scene_urban: &UrbanAreasData) -> UrbanAreas {
+pub fn convert_scene_urban_data(scene_urban: &UrbanAreasData) -> UrbanAreas {
     UrbanAreas {
         work_zones: scene_urban.work_zones.iter().map(convert_zone_data).collect(),
         shopping_zones: scene_urban.shopping_zones.iter().map(convert_zone_data).collect(),
@@ -493,7 +573,7 @@ fn convert_scene_urban_data(scene_urban: &UrbanAreasData) -> UrbanAreas {
     }
 }
 
-fn convert_zone_data(z: &UrbanZoneData) -> UrbanZone {
+pub fn convert_zone_data(z: &UrbanZoneData) -> UrbanZone {
     UrbanZone {
         center: Vec2::from(z.center),
         radius: z.radius,
@@ -502,14 +582,14 @@ fn convert_zone_data(z: &UrbanZoneData) -> UrbanZone {
     }
 }
 
-fn convert_route_data(r: &TransitRouteData) -> TransitRoute {
+pub fn convert_route_data(r: &TransitRouteData) -> TransitRoute {
     TransitRoute {
         points: r.points.iter().map(|&p| Vec2::from(p)).collect(),
         foot_traffic_density: r.foot_traffic_density,
     }
 }
 
-fn create_default_urban_areas(region_idx: usize) -> UrbanAreas {
+pub fn create_default_urban_areas(region_idx: usize) -> UrbanAreas {
     match region_idx {
         0 => create_urban_district_areas(),
         1 => create_corporate_district_areas(),
@@ -518,7 +598,7 @@ fn create_default_urban_areas(region_idx: usize) -> UrbanAreas {
     }
 }
 
-fn create_urban_district_areas() -> UrbanAreas {
+pub fn create_urban_district_areas() -> UrbanAreas {
     UrbanAreas {
         work_zones: vec![
             UrbanZone { center: Vec2::new(150.0, -80.0), radius: 70.0, capacity: 12, current_occupancy: 0 },
@@ -604,58 +684,4 @@ fn create_industrial_areas() -> UrbanAreas {
     }
 }
 
-// 0.2.12
-pub fn spawn_research_content_in_scene(
-    commands: &mut Commands,
-    sprites: &GameSprites,
-    scene_name: &str,
-) {
-    match scene_name {
-        "mission_corporate" => {
-            // Corporate missions have high-tech research facilities
-            spawn_research_facility(
-                commands,
-                Vec2::new(300.0, 150.0),
-                Faction::Corporate,
-                4, // High security
-                vec!["tech_interface".to_string(), "quantum_encryption".to_string()],
-            );
-            
-            // Spawn 2-3 scientists
-            for i in 0..3 {
-                let pos = Vec2::new(250.0 + i as f32 * 30.0, 100.0);
-                spawn_scientist_npc(commands, pos, ResearchCategory::Intelligence, sprites);
-            }
-        },
-        "mission_syndicate" => {
-            // Syndicate missions have weapons research
-            spawn_research_facility(
-                commands,
-                Vec2::new(-200.0, -100.0),
-                Faction::Syndicate,
-                3,
-                vec!["heavy_weapons".to_string(), "plasma_weapons".to_string()],
-            );
-            
-            spawn_scientist_npc(commands, Vec2::new(-150.0, -80.0), ResearchCategory::Weapons, sprites);
-            spawn_scientist_npc(commands, Vec2::new(-180.0, -120.0), ResearchCategory::Cybernetics, sprites);
-        },
-        "mission_underground" => {
-            // Underground has equipment and cybernetics
-            spawn_research_facility(
-                commands,
-                Vec2::new(100.0, -200.0),
-                Faction::Underground,
-                2,
-                vec!["infiltration_kit".to_string(), "neural_interface".to_string()],
-            );
-            
-            spawn_scientist_npc(commands, Vec2::new(120.0, -180.0), ResearchCategory::Equipment, sprites);
-        },
-        _ => {
-            // Default mission gets basic research content
-            spawn_scientist_npc(commands, Vec2::new(200.0, 100.0), ResearchCategory::Equipment, sprites);
-        }
-    }
-}
 

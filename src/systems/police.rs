@@ -1,11 +1,10 @@
 // src/systems/police.rs [16621] -> [16072]
 use bevy::prelude::*;
-use bevy_rapier2d::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use crate::core::*;
-use crate::core::factions::*;
 use crate::systems::*;
+use crate::systems::spawners::*;
 
 // === CONFIGURATION ===
 #[derive(Resource, Deserialize, Serialize, Clone)]
@@ -347,65 +346,7 @@ pub fn police_spawn_system(
     }
 }
 
-pub fn spawn_police_unit(
-    commands: &mut Commands,
-    position: Vec2,
-    unit_type: EscalationLevel,
-    sprites: &GameSprites,
-    config: &PoliceConfig,
-) -> Entity {
-    let level_config = unit_type.get_config(config);
-    let (mut sprite, _) = crate::core::sprites::create_police_sprite(sprites);
-    sprite.color = Color::srgba(level_config.color.0, level_config.color.1, level_config.color.2, level_config.color.3);
-    
-    let patrol_points = generate_patrol_pattern(position, unit_type, config);
-    
-    let weapon_type = match level_config.weapon.as_str() {
-        "Pistol" => WeaponType::Pistol,
-        "Rifle" => WeaponType::Rifle,
-        "Minigun" => WeaponType::Minigun,
-        "Flamethrower" => WeaponType::Flamethrower,
-        _ => WeaponType::Pistol,
-    };
-    
-    let mut inventory = Inventory::default();
-    inventory.equipped_weapon = Some(WeaponConfig::new(weapon_type.clone()));
-    
-    let mut ai_state = AIState::default();
-    ai_state.use_goap = true;
-    
-    commands.spawn_empty()
-        .insert((
-            sprite,
-            Transform::from_translation(position.extend(1.0)),
-            Enemy,
-            Police { response_level: unit_type as u8 },
-            Faction::Police,
-            Health(level_config.health),
-            Morale::new(level_config.health * 1.5, 20.0),
-            MovementSpeed(level_config.speed),
-            Vision::new(level_config.vision, 60.0),
-            Patrol::new(patrol_points),
-            ai_state,
-            GoapAgent::default(),
-        ))
-        .insert((
-            WeaponState::new_from_type(&weapon_type),
-            inventory,
-            RigidBody::Dynamic,
-            Collider::ball(9.0),
-            Velocity::default(),
-            Damping { linear_damping: 10.0, angular_damping: 10.0 },
-            CollisionGroups::new(CIVILIAN_GROUP, Group::ALL),
-            Friction::coefficient(0.8),
-            Restitution::coefficient(0.1),
-            LockedAxes::ROTATION_LOCKED,
-            GravityScale(0.0),
-            Scannable,
-        )).id()
-}
-
-fn generate_patrol_pattern(position: Vec2, unit_type: EscalationLevel, config: &PoliceConfig) -> Vec<Vec2> {
+pub fn generate_patrol_pattern(position: Vec2, unit_type: EscalationLevel, config: &PoliceConfig) -> Vec<Vec2> {
     let pattern_name = config.level_patrol_patterns.get(unit_type.as_str())
         .expect("Missing patrol pattern mapping");
     
@@ -500,14 +441,3 @@ impl TryFrom<u8> for EscalationLevel {
     }
 }
 
-// Backwards Compatability (for now)
-pub fn spawn_police_unit_simple(
-    commands: &mut Commands,
-    position: Vec2,
-    unit_type: EscalationLevel,
-    sprites: &GameSprites,
-) -> Entity {
-    // Use default config or load it
-    let config = load_police_config();
-    spawn_police_unit(commands, position, unit_type, sprites, &config)
-}

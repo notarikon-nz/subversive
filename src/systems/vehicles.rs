@@ -1,9 +1,9 @@
 // src/systems/vehicles.rs
 use bevy::prelude::*;
-use bevy_rapier2d::prelude::*;
 use crate::core::*;
-use crate::systems::scanner::*;
 use crate::systems::explosions::*;
+
+use crate::systems::spawners::*;
 
 pub fn vehicle_explosion_system(
     mut commands: Commands,
@@ -53,41 +53,6 @@ pub fn vehicle_cover_system(
             }).map(|(t, _)| t.translation.truncate()).unwrap_or(Vec2::ZERO)
         ) <= 900.0); // 30 units squared
     }
-}
-
-pub fn spawn_vehicle(
-    commands: &mut Commands,
-    position: Vec2,
-    vehicle_type: VehicleType,
-    sprites: &GameSprites,
-) {
-    let vehicle = Vehicle::new(vehicle_type.clone());
-    let max_health = vehicle.max_health();
-    
-    let (color, size) = match vehicle_type {
-        VehicleType::CivilianCar => (Color::srgb(0.6, 0.6, 0.8), Vec2::new(40.0, 20.0)),
-        VehicleType::PoliceCar => (Color::srgb(0.2, 0.2, 0.8), Vec2::new(40.0, 20.0)),
-        VehicleType::ElectricCar => (Color::srgb(0.6, 0.6, 0.9), Vec2::new(40.0, 20.0)),
-        VehicleType::APC => (Color::srgb(0.4, 0.6, 0.4), Vec2::new(50.0, 30.0)),
-        VehicleType::VTOL => (Color::srgb(0.3, 0.3, 0.3), Vec2::new(60.0, 40.0)),
-        VehicleType::Tank => (Color::srgb(0.5, 0.5, 0.2), Vec2::new(60.0, 35.0)),
-        VehicleType::Truck => (Color::srgb(0.4, 0.6, 0.4), Vec2::new(50.0, 30.0)), // change
-        VehicleType::FuelTruck => (Color::srgb(0.4, 0.6, 0.4), Vec2::new(50.0, 30.0)), // change
-    };
-    
-    commands.spawn((
-        Sprite {
-            color,
-            custom_size: Some(size),
-            ..default()
-        },
-        Transform::from_translation(position.extend(0.8)),
-        vehicle,
-        Health(max_health),
-        RigidBody::Fixed,
-        Collider::cuboid(size.x / 2.0, size.y / 2.0),
-        Scannable,
-    ));
 }
 
 pub fn vehicle_spawn_system(

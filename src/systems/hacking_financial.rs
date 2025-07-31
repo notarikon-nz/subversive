@@ -1,13 +1,10 @@
 // src/systems/financial_hacking.rs - ATMs and Billboards
 use bevy::prelude::*;
-use bevy_rapier2d::prelude::*;
 use crate::core::*;
-use crate::systems::pathfinding::PathfindingObstacle;
-use crate::systems::scanner::Scannable;
 use serde::{Deserialize, Serialize};
 use crate::systems::interaction_prompts::{InteractionPrompt, InteractionSprites, InteractionType};
 use crate::systems::minimap::{MinimapSettings};
-
+use crate::systems::spawners::{spawn_atm, spawn_billboard};
 
 // === COMPONENTS ===
 #[derive(Component)]
@@ -54,95 +51,6 @@ pub struct StolenAccountData {
     pub bank_id: String,
     pub balance: u32,
     pub source: String, // Where we got this data from
-}
-
-// === SPAWNING FUNCTIONS ===
-pub fn spawn_atm(
-    commands: &mut Commands,
-    position: Vec2,
-    bank_id: String,
-    network_id: Option<String>,
-    power_grid: &mut Option<ResMut<PowerGrid>>,
-) -> Entity {
-    let entity = commands.spawn((
-        Sprite {
-            color: Color::srgb(0.3, 0.5, 0.7),
-            custom_size: Some(Vec2::new(16.0, 24.0)),
-            ..default()
-        },
-        Transform::from_translation(position.extend(1.0)),
-        ATM {
-            bank_id: bank_id.clone(),
-            max_withdrawal: 5000,
-            current_balance: 50000,
-            requires_account_data: true,
-        },
-        RigidBody::Fixed,
-        Collider::cuboid(8.0, 12.0),
-        CollisionGroups::new(TERMINAL_GROUP, Group::ALL),
-        Selectable { radius: 20.0 },
-        Scannable,
-        PathfindingObstacle {
-            radius: 12.0,
-            blocks_movement: true,
-        },
-    )).id();
-
-    // Make hackable - ATMs are like advanced terminals
-    if let (Some(network_id), Some(power_grid)) = (network_id, power_grid) {
-        make_hackable_networked(commands, entity, DeviceType::Terminal, network_id, power_grid);
-    } else {
-        let mut hackable = Hackable::new(DeviceType::Terminal);
-        hackable.security_level = 3; // ATMs are more secure
-        hackable.hack_time = 6.0;
-        hackable.requires_tool = Some(HackTool::AdvancedHacker);
-        commands.entity(entity).insert((hackable, DeviceState::new(DeviceType::Terminal)));
-    }
-
-    entity
-}
-
-pub fn spawn_billboard(
-    commands: &mut Commands,
-    position: Vec2,
-    network_id: Option<String>,
-    power_grid: &mut Option<ResMut<PowerGrid>>,
-) -> Entity {
-    let entity = commands.spawn((
-        Sprite {
-            color: Color::srgb(0.8, 0.6, 0.2),
-            custom_size: Some(Vec2::new(40.0, 20.0)),
-            ..default()
-        },
-        Transform::from_translation(position.extend(1.0)),
-        Billboard {
-            influence_radius: 100.0,
-            persuasion_bonus: 0.3,
-            active: true,
-        },
-        RigidBody::Fixed,
-        Collider::cuboid(20.0, 10.0),
-        CollisionGroups::new(TERMINAL_GROUP, Group::ALL),
-        Selectable { radius: 25.0 },
-        Scannable,
-        PathfindingObstacle {
-            radius: 22.0,
-            blocks_movement: true,
-        },
-    )).id();
-
-    // Billboards are easier to hack
-    if let (Some(network_id), Some(power_grid)) = (network_id, power_grid) {
-        make_hackable_networked(commands, entity, DeviceType::Terminal, network_id, power_grid);
-    } else {
-        let mut hackable = Hackable::new(DeviceType::Terminal);
-        hackable.security_level = 2;
-        hackable.hack_time = 3.0;
-        hackable.requires_tool = Some(HackTool::BasicHacker);
-        commands.entity(entity).insert((hackable, DeviceState::new(DeviceType::Terminal)));
-    }
-
-    entity
 }
 
 // === ATM HACKING SYSTEM ===

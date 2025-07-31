@@ -86,6 +86,19 @@ pub fn get_world_mouse_position(
     let (camera, camera_transform) = cameras.single().ok()?;
     let cursor_pos = window.cursor_position()?;
     
+    // Convert cursor position to world coordinates
+    camera.viewport_to_world_2d(camera_transform, cursor_pos).ok()
+}
+
+
+pub fn old_get_world_mouse_position(
+    windows: &Query<&Window>,
+    cameras: &Query<(&Camera, &GlobalTransform)>,
+) -> Option<Vec2> {
+    let window = windows.single().ok()?;
+    let (camera, camera_transform) = cameras.single().ok()?;
+    let cursor_pos = window.cursor_position()?;
+    
     // Flip Y coordinate to match UI coordinate system
     let flipped_cursor = Vec2::new(cursor_pos.x, cursor_pos.y);
     

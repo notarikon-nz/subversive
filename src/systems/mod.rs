@@ -71,6 +71,18 @@ pub use weather::*;
 pub mod world_scan;
 pub use world_scan::*;
 
+// 0.2.15
+// SEE UI::
+
+// 0.2.16
+pub mod spawners;
+pub mod tilemap;
+pub mod isometric_camera;
+pub use spawners::*;
+pub use tilemap::*;
+pub use isometric_camera::*;
+
+
 pub use minimap::*;
 pub use message_window::*;
 pub use urban_simulation::*;

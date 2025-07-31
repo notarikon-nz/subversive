@@ -73,7 +73,7 @@ pub fn setup_minimap(mut commands: Commands) {
 }
 
 // === UPDATE MINIMAP SYSTEM ===
-pub fn update_minimap_system(
+pub fn old_update_minimap_system(
     mut commands: Commands,
     settings: Res<MinimapSettings>,
     minimap_canvas: Query<Entity, With<MinimapCanvas>>,
@@ -202,6 +202,143 @@ commands.entity(canvas_entity).with_children(|parent| {
 });
 
 }
+
+
+pub fn update_minimap_system(
+    mut commands: Commands,
+    settings: Res<MinimapSettings>,
+    minimap_canvas: Query<Entity, With<MinimapCanvas>>,
+    existing_dots: Query<Entity, (With<MinimapDot>, Without<MarkedForDespawn>)>,
+    
+    // Entity queries
+    agents: Query<(Entity, &Transform), (With<Agent>, Without<Dead>)>,
+    enemies: Query<(Entity, &Transform, &Faction), (With<Enemy>, Without<Dead>)>,
+    civilians: Query<(Entity, &Transform), (With<Civilian>, Without<Dead>)>,
+    terminals: Query<(Entity, &Transform), With<Terminal>>,
+    
+    // Updated camera query to work with both regular and isometric cameras
+    regular_cameras: Query<&Transform, (With<Camera2d>, Without<Agent>, Without<Enemy>, Without<Civilian>, Without<crate::systems::isometric_camera::IsometricCamera>)>,
+    isometric_cameras: Query<&Transform, (With<Camera2d>, With<crate::systems::isometric_camera::IsometricCamera>, Without<Agent>, Without<Enemy>, Without<Civilian>)>,
+    
+    atms: Query<(Entity, &Transform), With<ATM>>,
+    billboards: Query<(Entity, &Transform), With<Billboard>>,
+    global_data: Res<GlobalData>,
+    isometric_settings: Option<Res<crate::systems::tilemap::IsometricSettings>>,
+) {
+    // Get camera position - prioritize isometric camera
+    let camera_pos = if let Ok(iso_cam_transform) = isometric_cameras.single() {
+        iso_cam_transform.translation.truncate()
+    } else if let Ok(reg_cam_transform) = regular_cameras.single() {
+        reg_cam_transform.translation.truncate()
+    } else {
+        Vec2::ZERO // Fallback if no camera found
+    };
+    
+    // Clear existing dots
+    for dot_entity in existing_dots.iter() {
+        commands.entity(dot_entity).insert(MarkedForDespawn);
+    }
+    
+    let Ok(canvas_entity) = minimap_canvas.single() else { return; };
+    
+    // Get main agent position for range calculation (use first agent if multiple)
+    let main_agent_pos = agents.iter().next().map(|(_, t)| t.translation.truncate())
+        .unwrap_or(camera_pos);
+    
+    // Update range based on agent upgrades
+    let current_range = calculate_minimap_range(&global_data, &settings);
+
+    // Collect all the dots we need to spawn first
+    let mut dots_to_spawn = Vec::new();
+
+    // Add agent dots (always visible)
+    for (entity, transform) in agents.iter() {
+        let world_pos = transform.translation.truncate();
+        if let Some(minimap_pos) = world_to_minimap_pos(world_pos, main_agent_pos, current_range, settings.size) {
+            dots_to_spawn.push((entity, minimap_pos, get_agent_color(&settings)));
+        }
+    }
+
+    // Add enemy dots
+    for (entity, transform, faction) in enemies.iter() {
+        let world_pos = transform.translation.truncate();
+        if world_pos.distance(main_agent_pos) <= current_range {
+            if let Some(minimap_pos) = world_to_minimap_pos(world_pos, main_agent_pos, current_range, settings.size) {
+                let color = if settings.show_colors {
+                    get_faction_color(faction)
+                } else {
+                    Color::WHITE
+                };
+                dots_to_spawn.push((entity, minimap_pos, color));
+            }
+        }
+    }
+
+    // Add civilian dots
+    for (entity, transform) in civilians.iter() {
+        let world_pos = transform.translation.truncate();
+        if world_pos.distance(main_agent_pos) <= current_range {
+            if let Some(minimap_pos) = world_to_minimap_pos(world_pos, main_agent_pos, current_range, settings.size) {
+                let color = if settings.show_colors {
+                    Color::srgb(0.7, 0.7, 0.7)
+                } else {
+                    Color::WHITE
+                };
+                dots_to_spawn.push((entity, minimap_pos, color));
+            }
+        }
+    }
+
+    // Add terminal dots
+    if settings.show_terminals {
+        for (entity, transform) in terminals.iter() {
+            let world_pos = transform.translation.truncate();
+            if world_pos.distance(main_agent_pos) <= current_range {
+                if let Some(minimap_pos) = world_to_minimap_pos(world_pos, main_agent_pos, current_range, settings.size) {
+                    dots_to_spawn.push((entity, minimap_pos, Color::srgb(0.2, 0.6, 1.0)));
+                }
+            }
+        }
+        
+        for (entity, transform) in atms.iter() {
+            let world_pos = transform.translation.truncate();
+            if world_pos.distance(main_agent_pos) <= current_range {
+                if let Some(minimap_pos) = world_to_minimap_pos(world_pos, main_agent_pos, current_range, settings.size) {
+                    dots_to_spawn.push((entity, minimap_pos, Color::srgb(0.2, 0.6, 1.0)));
+                }
+            }
+        }
+        
+        // Add Billboards (purple)
+        for (entity, transform) in billboards.iter() {
+            let world_pos = transform.translation.truncate();
+            if world_pos.distance(main_agent_pos) <= current_range {
+                if let Some(minimap_pos) = world_to_minimap_pos(world_pos, main_agent_pos, current_range, settings.size) {
+                    dots_to_spawn.push((entity, minimap_pos, Color::srgb(0.8, 0.2, 0.8)));
+                }
+            }
+        }
+    }
+
+    // Now spawn all dots in one go
+    commands.entity(canvas_entity).with_children(|parent| {
+        for (entity_ref, pos, color) in dots_to_spawn {
+            parent.spawn((
+                Node {
+                    position_type: PositionType::Absolute,
+                    left: Val::Px(pos.x + 100.0),
+                    top: Val::Px(-pos.y + 100.0),
+                    width: Val::Px(4.0),
+                    height: Val::Px(4.0),
+                    ..default()
+                },
+                BackgroundColor(color),
+                MinimapDot { entity_ref },
+            ));
+        }
+    });
+}
+
 
 // === HELPER FUNCTIONS ===
 fn world_to_minimap_pos(world_pos: Vec2, center_pos: Vec2, range: f32, minimap_size: f32) -> Option<Vec2> {

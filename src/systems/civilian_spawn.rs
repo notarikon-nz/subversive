@@ -1,9 +1,8 @@
 // src/systems/civilian_spawn.rs
 use bevy::prelude::*;
-use bevy_rapier2d::prelude::*;
 use crate::core::*;
 use crate::systems::*;
-use crate::systems::scenes::*;
+use crate::systems::spawners::*;
 
 #[derive(Resource)]
 pub struct CivilianSpawner {
@@ -82,28 +81,6 @@ fn find_spawn_position(spawn_zones: &[SpawnZone]) -> Option<Vec2> {
     let distance = rand::random::<f32>() * zone.radius;
     let offset = Vec2::new(angle.cos(), angle.sin()) * distance;
     Some(zone.center + offset)
-}
-
-fn spawn_civilian(commands: &mut Commands, position: Vec2, sprites: &GameSprites) {
-    let (sprite, mut transform) = crate::core::sprites::create_civilian_sprite(sprites);
-    transform.translation = position.extend(1.0);
-    
-    commands.spawn((
-        sprite,
-        transform,
-        Civilian,
-        Health(50.0),
-        Morale::new(80.0, 40.0),
-        PanicSpreader::default(),
-        MovementSpeed(100.0 + rand::random::<f32>() * 40.0),
-        Controllable,
-        NeurovectorTarget,
-        CivilianWander::new(position),
-        RigidBody::Dynamic,
-        Collider::ball(7.5),
-        Velocity::default(),
-        Damping { linear_damping: 10.0, angular_damping: 10.0 },
-    ));
 }
 
 #[derive(Component)]

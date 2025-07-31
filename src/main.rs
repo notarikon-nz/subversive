@@ -1,6 +1,7 @@
 // src/main.rs - Fixed system tuple parentheses
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts, EguiPlugin};
+use bevy_ecs_tilemap::prelude::*;
 use bevy_rapier2d::prelude::*;
 use bevy::time::common_conditions::on_timer;
 use leafwing_input_manager::prelude::*;
@@ -13,6 +14,8 @@ use systems::police::{load_police_config, PoliceResponse, PoliceEscalation};
 use systems::ui::enhanced_inventory::*;
 use systems::ui::inventory_integration::*;
 use systems::ui::inventory_compatibility::*;
+
+use systems::scenes::{spawn_fallback_isometric_mission};
 
 mod core;
 mod systems;
@@ -53,6 +56,7 @@ fn main() {
         .add_plugins(InputManagerPlugin::<PlayerAction>::default())
         .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin::default())
         .add_plugins(EguiPlugin::default()) // 0.2.5.4
+        .add_plugins(TilemapPlugin)
 
         .register_type::<PlayerAction>()
         .register_type::<DecalDemoAction>()
@@ -85,7 +89,6 @@ fn main() {
         .init_resource::<PostMissionUIState>() // 0.2.5.4
         
         .init_resource::<StartupFrameCount>()
-
 
         .insert_resource(GameConfig::load())
         .insert_resource(global_data)
@@ -129,7 +132,7 @@ fn main() {
 
         // 0.2.13
         .init_resource::<WeatherSystem>()
-        .init_resource::<WeatherParticlePool>()        
+        .init_resource::<WeatherParticlePool>()
 
         // 0.2.14
         .init_resource::<WorldScanState>()
@@ -139,7 +142,11 @@ fn main() {
         // 0.2.15
         .init_resource::<InventoryGrid>()
         .init_resource::<LoadoutManager>()
-        .init_resource::<InventoryCache>()        
+        .init_resource::<InventoryCache>()
+
+        // 0.2.16
+        .init_resource::<IsometricSettings>()
+        .init_resource::<CameraZoomLevels>()
 
         // older
         .add_event::<ActionEvent>()
@@ -157,17 +164,21 @@ fn main() {
         // 0.2.10
         .add_event::<AccessEvent>()
         .add_event::<GateStateChange>()
-        .add_event::<DoorStateChange>()        
+        .add_event::<DoorStateChange>()
 
         // 0.2.12
         .add_event::<ScientistRecruitmentEvent>()
         .add_event::<ResearchCompletedEvent>()
-        .add_event::<ResearchSabotageEvent>()        
+        .add_event::<ResearchSabotageEvent>()
 
         .add_systems(Startup, (
             fonts::load_fonts,
             load_egui_fonts,
-            setup_camera_and_input,
+            // 0.2.16
+            // setup_camera_and_input,
+            setup_isometric_camera,
+            setup_input_mapping,
+
             audio::setup_audio,
             setup_attachments,
             apply_loaded_research_benefits,
@@ -182,6 +193,7 @@ fn main() {
             setup_traffic_system, // 0.2.9
             setup_banking_network, // 0.2.10
             setup_enhanced_inventory,   // 0.2.15
+
         ))
 
         .add_systems(Startup, (
@@ -197,6 +209,8 @@ fn main() {
         .add_systems(PostStartup, (
             preload_common_scenes,
             main_menu::setup_main_menu_egui,
+            // 0.2.16
+            setup_mission_tilemap,
         ))
 
         .add_systems(Update, loading_system::loading_system.run_if(in_state(GameState::Loading)))
@@ -262,7 +276,9 @@ fn main() {
         // MAIN GAME / MISSION
 
         .add_systems(OnEnter(GameState::Mission), (
-            setup_mission_scene_optimized,
+            // 0.2.16
+            // setup_mission_scene_optimized,
+            setup_isometric_mission_scene,
             (
                 health_bars::spawn_agent_status_bars,
                 health_bars::spawn_enemy_health_bars,
@@ -275,7 +291,7 @@ fn main() {
                 // 0.2.13
                 weather::setup_weather_system,
                 weather::spawn_weather_overlay,                
-            ).after(setup_mission_scene_optimized),
+            ).after(setup_isometric_mission_scene),
         ))
 
         // 0.2.12
@@ -303,12 +319,26 @@ fn main() {
             ui::hub::hub_interaction_system,
         ).chain().run_if(in_state(GameState::GlobalMap)))
 
-        // Core mission systems
+        // 0.2.16
         .add_systems(Update, (
-            camera::movement,
+            // REPLACE: camera::movement,
+            isometric_camera_movement, // USE THIS INSTEAD
+            camera_edge_scrolling,
+            camera_follow_selected_agent,
+            camera_shake_system,
+            camera_zoom_presets,
+            update_camera_bounds,
+            
             selection::system,
-            systems::input::handle_input,
+            // REPLACE: systems::input::handle_input,
+            handle_isometric_mouse_input, // USE THIS INSTEAD
+            
+            // ADD: Isometric depth sorting
+            isometric_depth_sorting,        
+        ).run_if(in_state(GameState::Mission)))
 
+        // Core AI Systems
+        .add_systems(Update, (
             goap::goap_ai_system,
 
             ai::goap_sound_detection_system,
@@ -537,7 +567,7 @@ fn main() {
             fire_burn_system,
             
             // 0.2.12
-            research_gameplay::spawn_scientists_in_mission,
+            spawners::spawn_scientists_in_mission,
         ).run_if(in_state(GameState::Mission)))        
 
         // Hacking and infrastructure
@@ -644,7 +674,75 @@ Great chain reaction scenarios to test:
    - Creates area denial as players/enemies avoid burning zones
 */
 
+// REPLACES setup_mission_scene_optimized
+pub fn setup_isometric_mission_scene(
+    mut commands: Commands,
+    sprites: Res<GameSprites>,
+    global_data: Res<GlobalData>,
+    launch_data: Option<Res<MissionLaunchData>>,
+    cities_db: Res<CitiesDatabase>,
+    cities_progress: Res<CitiesProgress>,
+    mut scene_cache: ResMut<SceneCache>,
+    agents: Query<Entity, With<Agent>>,
+    tilemap_settings: Option<Res<IsometricSettings>>,
+) {
+    info!("setup_isometric_mission_scene");
+    
+    // Clean up existing agents
+    for entity in agents.iter() {
+        commands.entity(entity).insert(MarkedForDespawn);
+    }
 
+    // Determine scene
+    let selected_city = if let Some(launch_data) = launch_data {
+        cities_db.get_city(&launch_data.city_id)
+    } else {
+        None
+    };
+
+    let scene_name = if let Some(city) = selected_city {
+        match city.traits.first() {
+            Some(CityTrait::FinancialHub) => "mission_corporate",
+            Some(CityTrait::DrugCartels) => "mission_syndicate", 
+            Some(CityTrait::Underground) => "mission_underground",
+            _ => "mission1",
+        }
+    } else {
+        match global_data.selected_region {
+            0 => "mission1",
+            1 => "mission2", 
+            2 => "mission3",
+            _ => "mission1",
+        }
+    };
+    
+    // Load and apply scene
+    match load_scene_cached(&mut scene_cache, scene_name) {
+        Some(scene) => {
+            // Generate tilemap from scene data
+            if tilemap_settings.is_some() {
+                commands.insert_resource(scene.clone());
+                info!("Scene data stored for tilemap generation");
+            }
+            
+            // Spawn entities with isometric positioning
+            spawn_from_scene_isometric(&mut commands, &scene, &*global_data, &sprites, &tilemap_settings);
+            info!("Loaded isometric scene: {} for city: {}", 
+                  scene_name, selected_city.map_or("None", |c| &c.name));
+        },
+        None => {
+            error!("Failed to load scene: {}. Creating fallback.", scene_name);
+            spawn_fallback_isometric_mission(&mut commands, &*global_data, &sprites, &tilemap_settings);
+        }
+    }
+
+    // Add environmental hazards (same as before)
+    spawn_oil_spill(&mut commands, Vec2::new(100.0, 100.0), 50.0);
+    spawn_gasoline_spill(&mut commands, Vec2::new(200.0, 100.0), 40.0);
+    spawn_explodable(&mut commands, Vec2::new(250.0, 100.0), ExplodableType::FuelBarrel);
+}
+
+// REPLACED BY ABOVE
 pub fn setup_mission_scene_optimized(
     mut commands: Commands,
     sprites: Res<GameSprites>,
@@ -719,6 +817,45 @@ pub fn setup_mission_scene_optimized(
     setup_chain_reaction_test_scenario(commands);
 }
 
+/*
+
+*/
+// REPLACES setup_camera_and_input
+pub fn setup_input_mapping(mut commands: Commands) {
+    // Setup isometric camera instead of regular 2D camera
+    
+    
+    // Input map remains the same
+    let input_map = InputMap::default()
+        .with(PlayerAction::Pause, KeyCode::Space)
+        .with(PlayerAction::Select, MouseButton::Left)
+        .with(PlayerAction::Move, MouseButton::Right)
+        .with(PlayerAction::Attack, MouseButton::Right)
+        .with(PlayerAction::Neurovector, KeyCode::KeyN)
+        .with(PlayerAction::Combat, KeyCode::KeyF)
+        .with(PlayerAction::Interact, KeyCode::KeyE)
+        .with(PlayerAction::Inventory, KeyCode::KeyI)
+        .with(PlayerAction::Reload, KeyCode::KeyR)
+        .with(PlayerAction::SetTimeBomb, KeyCode::KeyT);
+    
+    commands.spawn((
+        input_map,
+        ActionState::<PlayerAction>::default(),
+    ));
+}
+
+// Add to PostStartup systems:
+pub fn setup_mission_tilemap (
+    commands: Commands,
+    asset_server: Res<AssetServer>,
+) {
+    setup_isometric_tilemap(commands, asset_server);
+}
+
+
+
+
+// ===== ORIGINAL =====
 fn setup_camera_and_input(mut commands: Commands) {
     // FIXED: Proper 2D camera setup for Bevy 0.16.1
     commands.spawn((

@@ -150,35 +150,6 @@ pub fn spawn_explosion(
     ));
 }
 
-/// Spawn a time bomb that explodes after a delay
-/// 
-/// # Example
-/// ```
-/// let bomb = spawn_time_bomb(&mut commands, position, 5.0, 100.0, 60.0);
-/// ```
-pub fn spawn_time_bomb(
-    commands: &mut Commands,
-    position: Vec2,
-    timer: f32,
-    damage: f32,
-    radius: f32,
-) -> Entity {
-    commands.spawn((
-        Sprite {
-            color: Color::srgb(0.8, 0.2, 0.2),
-            custom_size: Some(Vec2::new(12.0, 8.0)),
-            ..default()
-        },
-        Transform::from_translation(position.extend(1.0)),
-        TimeBomb {
-            timer,
-            damage,
-            radius,
-            armed: true,
-        },
-    )).id()
-}
-
 /// Spawn an object that can explode when damaged or triggered by nearby explosions
 /// 
 /// # Example

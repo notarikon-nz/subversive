@@ -62,7 +62,7 @@ pub fn quicksave_system(
                     },
                     None => {
                         error!("Failed to load scene for quickload. Using fallback.");
-                        spawn_fallback_mission(&mut commands, &*global_data, &sprites);
+                        // spawn_fallback_mission(&mut commands, &*global_data, &sprites);
                     }
                 }
                 

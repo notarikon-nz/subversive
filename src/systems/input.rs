@@ -2,6 +2,18 @@ use bevy::prelude::*;
 use crate::core::*;
 use crate::systems::scanner::*;
 use crate::systems::npc_barks::*;
+use crate::systems::isometric_camera::{IsometricCamera};
+
+pub fn get_isometric_world_mouse_position(
+    windows: &Query<&Window>,
+    cameras: &Query<(&Camera, &GlobalTransform, &IsometricCamera)>,
+) -> Option<Vec2> {
+    let window = windows.single().ok()?;
+    let (camera, camera_transform, _) = cameras.single().ok()?;
+    let cursor_pos = window.cursor_position()?;
+    
+    camera.viewport_to_world_2d(camera_transform, cursor_pos).ok()
+}
 
 // Simplified input handler - remove duplicate movement handling
 pub fn handle_input(

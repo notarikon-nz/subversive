@@ -1,7 +1,6 @@
 // src/systems/research_gameplay.rs - Game systems for scientist interactions and research espionage
 use bevy::prelude::*;
 use crate::core::*;
-use crate::core::factions::{Faction};
 
 // === SCIENTIST INTERACTION SYSTEM ===
 pub fn scientist_interaction_system(
@@ -139,38 +138,7 @@ fn handle_facility_hack(
     info!("Industrial espionage bonus: ${}", bonus_credits);
 }
 
-// === SCIENTIST SPAWNING SYSTEM ===
-pub fn spawn_scientists_in_mission(
-    mut commands: Commands,
-    sprites: Res<GameSprites>,
-    global_data: Res<GlobalData>,
-    scientist_query: Query<Entity, With<Scientist>>,
-) {
-    // Only spawn if we don't have many scientists already
-    let existing_count = scientist_query.iter().count();
-    if existing_count >= 3 {
-        return;
-    }
-    
-    // Spawn 1-2 scientists per mission randomly
-    let spawn_count = if rand::random::<f32>() < 0.6 { 1 } else { 2 };
-    
-    for _ in 0..spawn_count {
-        let position = Vec2::new(
-            (rand::random::<f32>() - 0.5) * 400.0,
-            (rand::random::<f32>() - 0.5) * 400.0,
-        );
-        
-        let specialization = match rand::random::<f32>() {
-            x if x < 0.25 => ResearchCategory::Weapons,
-            x if x < 0.5 => ResearchCategory::Equipment,
-            x if x < 0.75 => ResearchCategory::Cybernetics,
-            _ => ResearchCategory::Intelligence,
-        };
-        
-        spawn_scientist_npc(&mut commands, position, specialization, &sprites);
-    }
-}
+
 
 // === SCIENTIST LOYALTY SYSTEM ===
 pub fn scientist_loyalty_system(
@@ -379,39 +347,3 @@ pub fn count_scientists_by_category(
         .count()
 }
 
-// === MISSION INTEGRATION ===
-pub fn spawn_random_research_content(
-    commands: &mut Commands,
-    sprites: &GameSprites,
-    global_data: &GlobalData,
-) {
-    // Spawn 1-2 research facilities per mission
-    for i in 0..2 {
-        let position = Vec2::new(
-            200.0 + i as f32 * 300.0,
-            (rand::random::<f32>() - 0.5) * 200.0,
-        );
-        
-        let faction = match rand::random::<f32>() {
-            x if x < 0.4 => Faction::Corporate,
-            x if x < 0.8 => Faction::Syndicate,
-            _ => Faction::Police,
-        };
-        
-        let available_projects = vec![
-            "advanced_magazines".to_string(),
-            "tech_interface".to_string(),
-            "combat_enhancers".to_string(),
-        ];
-        
-        spawn_research_facility(
-            commands,
-            position,
-            faction,
-            2 + rand::random::<u32>() % 4, // Security level 2-5
-            available_projects,
-        );
-    }
-    
-    // Spawn scientists (handled by spawn_scientists_in_mission)
-}
