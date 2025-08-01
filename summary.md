@@ -1,105 +1,117 @@
 # Subversive - Source Code Structure
 
 ## Overview
-Subversive is a game built using the Bevy game engine in Rust. The codebase follows a modular architecture with distinct systems and core components.
+Subversive is a cyberpunk tactical game built using the Bevy game engine in Rust. The codebase follows a modular architecture with distinct systems for urban simulation, combat, research, and environmental effects.
 
-## Directory Structure
+## Recent Features (v0.2.12 - v0.2.16)
 
-### Main Entry Point (`main.rs`)
-- Initializes the Bevy app with core plugins and resources
-- Sets up game states and systems
-- Configures physics, input management, and UI
-- Orchestrates mission, combat, and environmental systems
+### v0.2.16 - Isometric View Update
+- Isometric camera system and tilemap implementation
+- Depth sorting for entities in isometric view
+- Camera zoom levels and movement adjustments
+- Scene loading optimization for isometric perspective
 
-### Core (`core/`)
-- `agent_upgrades.rs`: Handles agent enhancement systems
-- `attachments.rs`: Weapon attachment system
-- `audio.rs`: Sound management system
-- `cities.rs`: City/location management
-- `collision_groups.rs`: Physics collision group definitions
-- `components.rs`: Core ECS components
-- `config.rs`: Game configuration management
-- `despawn.rs`: Entity cleanup system
-- `entities.rs`: Entity definitions and management
-- `events.rs`: Game event definitions
-- `factions.rs`: Faction system and relationships
-- `fonts.rs`: Font resource management
-- `game_state.rs`: Game state management
-- `goap.rs`: Goal-Oriented Action Planning AI system
-- `hackable.rs`: Hacking mechanics
-- `input.rs`: Input handling system
-- `lore.rs`: Game lore management
-- `missions.rs`: Mission system
-- `research.rs`: Research and progression system
-- `resources.rs`: Resource management
-- `scene_cache.rs`: Scene loading and caching
-- `spawn_damage_text.rs`: Combat feedback system
-- `sprites.rs`: Sprite resource management
-- `weapons.rs`: Weapon system
+### v0.2.15 - Enhanced Inventory
+- Grid-based inventory system
+- Loadout management and caching
+- Item action handling
+- Hotkey system for loadouts
 
-### Systems (`systems/`)
-Primary game systems organized by functionality:
+### v0.2.14 - World Scanning
+- Advanced scanning mechanics for intelligence gathering
+- Scanner energy management
+- Scan overlay visualization
+- Entity scanning and information display
 
-#### Combat & AI
-- `ai.rs`: AI behavior systems
-- `combat.rs`: Combat mechanics
-- `cover.rs`: Cover system
-- `formations.rs`: Unit formation management
-- `projectiles.rs`: Projectile physics and effects
-- `weapon_swap.rs`: Weapon switching mechanics
+### v0.2.13 - Weather System
+- Dynamic weather states (Clear, Light Rain, Heavy Rain, Snow)
+- Weather effects tied to city climate and traits
+- Particle system for weather visualization
+- Gameplay impacts (visibility, movement)
+- Weather overlay system
 
-#### Environment & Simulation
-- `area_control.rs`: Territory control mechanics
-- `day_night.rs`: Day/night cycle system
-- `explosions.rs`: Explosion effects and damage
-- `power_grid.rs`: Infrastructure management
-- `urban_simulation.rs`: City simulation systems
-- `vehicles.rs`: Vehicle mechanics
+### v0.2.12 - Research and Scientists
+- Research facility system
+- Scientist recruitment and management
+- Research progression and sabotage mechanics
+- Loyalty and productivity systems
 
-#### UI & Interaction
-- `message_window.rs`: UI messaging system
-- `scanner.rs`: Scanning mechanics
-- `selection.rs`: Unit selection system
-- `ui/`: User interface components
+## Core Systems
 
-#### Mission & Game Flow
-- `mission.rs`: Mission management
-- `panic_spread.rs`: Morale and panic mechanics
-- `quicksave.rs`: Save system
-- `save.rs`: Game state persistence
-- `scenes.rs`: Scene management
+### Urban Simulation
+- Civilian daily routines and behaviors
+- Urban zones (residential, commercial, industrial)
+- Traffic system with various vehicle types
+- Public transit and foot traffic simulation
 
-## Key Features
+### Traffic System
+- Advanced vehicle AI with flow fields
+- Emergency response vehicles
+- Military convoys
+- Traffic light management
+- Vehicle collisions and damage
+- Road network and pathfinding
 
-### AI and Behavior Systems
-- Goal-Oriented Action Planning (GOAP)
-- Sound detection and alert systems
-- Morale and civilian behavior simulation
-- Formation movement
+### Research and Development
+- Technology tree with multiple categories
+- Scientist management and specializations
+- Research facility mechanics
+- Espionage and sabotage options
+- Benefits system for unlocks
 
-### Combat Mechanics
-- Weapon systems with attachments
-- Cover and suppression mechanics
-- Projectile physics
-- Area control and damage systems
+### Weather and Environment
+- City-specific weather patterns
+- Dynamic particle effects
+- Visual overlays
+- Gameplay impact system
+- Season and climate zone effects
 
-### Environment
-- Urban simulation with civilian routines
-- Day/night cycle
-- Vehicle systems
-- Power grid and infrastructure
-
-### Game Systems
-- Mission management
-- Research and progression
-- Save/load functionality
-- Scene management with caching
-
-### UI and Feedback
-- Health bars and status indicators
-- Message and notification systems
-- Scanner interface
-- Inventory management
+### Hacking and Infrastructure
+- Financial systems (ATMs, banking network)
+- Security systems (cameras, turrets)
+- Power grid management
+- Access control systems
+- Network scanning and infiltration
 
 ## Technical Implementation
-The game uses Bevy's ECS (Entity Component System) architecture extensively, with systems organized by functionality and run conditions based on game state. Physics is handled through the Bevy Rapier 2D plugin, and input through the Leafwing Input Manager.
+
+### Core Architecture
+- Entity Component System (ECS) using Bevy
+- State-based game flow
+- Event-driven systems
+- Resource management
+- Scene caching
+
+### Physics and Movement
+- Rapier 2D physics integration
+- Pathfinding systems
+- Collision handling
+- Movement controls
+
+### UI and Feedback
+- Egui integration for interface
+- Status indicators
+- Minimap system
+- Interaction prompts
+- Debug visualization tools
+
+### Performance Optimizations
+- Entity pooling
+- Scene caching
+- Particle system optimization
+- Grid-based spatial queries
+- Timed system execution
+
+## Asset Management
+- Sprites and animations
+- Audio resources
+- Scene definitions
+- Configuration files
+- Urban layout data
+
+## Development Tools
+- Debug systems
+- Testing scenarios
+- Performance monitoring
+- Scene editing
+- Configuration management
