@@ -119,7 +119,140 @@
       "category": "NewsReport",
       "discovered": false,
       "source": "Public News Feed"
+    },
+    "global_strategy_016": {
+      "id": "global_strategy_016",
+      "title": "Corporate Territorial Control Analysis",
+      "content": "NEXUS CORPORATION - GLOBAL STRATEGY DIVISION\n\nTerritorial Analysis Report Q3 2087:\n\nNEXUS HOLDINGS:\n- Financial Hubs: New York, London, Hong Kong, Singapore, Dubai\n- Tech Centers: Tokyo, Seoul, Stockholm\n- Total Population Under Direct Control: 127 million\n\nCOMPETITOR ANALYSIS:\n- Omnicorp dominates manufacturing (Shanghai, Berlin, Delhi)\n- Syndicate controls criminal networks (Mexico City, Bangkok, Manila)\n- Helix maintains biotech strongholds (Paris, São Paulo, Mumbai)\n- Aegis secures military assets (Moscow, Tehran, Cairo)\n\nRECOMMENDATION: Accelerate Neurovector deployment in contested territories. Priority targets: Buenos Aires, Istanbul, Warsaw.",
+      "category": "Strategy",
+      "discovered": false,
+      "source": "Executive Strategy Terminal"
+    },
+    "resistance_intel_017": {
+      "id": "resistance_intel_017",
+      "title": "Corporate Weakness Analysis",
+      "content": "RESISTANCE INTELLIGENCE NETWORK - CLASSIFIED\n\nCorporate vulnerabilities by region:\n\nAMERICAS: Nexus financial networks centralized through NYC. Single point of failure. Syndicate territories show internal power struggles - opportunity for alliance or exploitation.\n\nEUROPE: Berlin's industrial output feeds global supply chains. Disruption here cascades worldwide. London's surveillance grid has blind spots in underground areas.\n\nASIA: Tokyo houses primary Neurovector research. Shanghai ports = bottleneck for 60% of manufactured goods. Singapore data centers process transactions for all corps.\n\nSTRATEGY: Target infrastructure, not just facilities. Every corporation depends on power grids, traffic systems, banking networks. Turn their own technology against them.\n\n- Cell Commander Phoenix",
+      "category": "Intelligence",
+      "discovered": false,
+      "source": "Encrypted Resistance Channel"
+    },
+    "corporate_alliance_018": {
+      "id": "corporate_alliance_018",
+      "title": "The Five Corporation Pact",
+      "content": "CONFIDENTIAL MEMORANDUM OF UNDERSTANDING\n\nThe Five Corporation Territorial Pact - 2087\n\nNEXUS: Financial systems, surveillance technology\nOMNICORP: Manufacturing, heavy industry, logistics\nSYNDICATE: 'Security services', territorial enforcement\nHELIX: Biotechnology, pharmaceutical control\nAEGIS: Military contracts, weapons systems\n\nAGREED PRINCIPLES:\n1. Non-aggression between signatory corporations\n2. Coordinated response to 'terrorist' activities\n3. Shared intelligence on resistance movements\n4. Joint development of population control technologies\n5. Territorial respect - no corporate expansion into agreed zones\n\nSPECIAL PROVISION: In event of total territorial loss by any signatory, remaining corporations will divide assets according to Appendix C.\n\nSigned in Neo-Tokyo, March 15, 2087",
+      "category": "Treaty",
+      "discovered": false,
+      "source": "Corporate Diplomatic Archive"
+    },
+    "neurovector_global_019": {
+      "id": "neurovector_global_019",
+      "title": "Global Neurovector Deployment Schedule",
+      "content": "PROJECT NEUROVECTOR - PHASE 4 DEPLOYMENT\n\nTIMELINE FOR GLOBAL ROLLOUT:\n\nQUARTER 1: Tier 1 Cities (Tokyo, New York, London)\n- Full neural compliance networks\n- Population monitoring at 97% coverage\n- Resistance identification algorithms active\n\nQUARTER 2: Tier 2 Cities (Shanghai, Berlin, Sydney)\n- Industrial compliance systems\n- Worker productivity optimization\n- Automated loyalty testing\n\nQUARTER 3: Tier 3 Cities (All remaining major urban centers)\n- Basic compliance broadcasting\n- Emergency crowd control capability\n- Youth indoctrination programs\n\nESTIMATED GLOBAL COVERAGE: 2.3 billion people by end of year\nPROJECTED RESISTANCE REDUCTION: 89%\n\nNote: Mumbai and Lagos trials show 34% higher resistance among populations with previous exposure to 'independence movements.' Recommend enhanced neural conditioning protocols.",
+      "category": "Strategy",
+      "discovered": false,
+      "source": "Neurovector Command Center"
+    },
+    "underground_network_020": {
+      "id": "underground_network_020",
+      "title": "The Berlin Underground Railroad",
+      "content": "ENCRYPTED MESSAGE - BERLIN CELL\n\nComrades,\n\nThe underground networks are more extensive than the corps realize. Berlin's subway tunnels connect to Prague's underground, which links to Warsaw's resistance cells.\n\nWe've established supply lines:\n- Berlin → Prague → Warsaw → Moscow (Eastern Route)\n- Amsterdam → Berlin → Rome → Athens (Southern Route)\n- London → Paris → Berlin → Istanbul (Central Route)\n\nEach tunnel system hides:\n- Weapons caches\n- Communication equipment\n- Safe houses for fleeing resistance members\n- Hacking equipment for corporate infiltration\n\nThe corps think they control the surface. They have no idea what's happening beneath their feet.\n\nRemember: Every meter of tunnel is a meter of freedom.\n\n- Underground Commander Ghost",
+      "category": "Intelligence",
+      "discovered": false,
+      "source": "Underground Communication Node"
+    },
+    "financial_war_021": {
+      "id": "financial_war_021",
+      "title": "The Great Financial Manipulation",
+      "content": "NEXUS FINANCIAL WARFARE DIVISION - CLASSIFIED\n\nOperation: MONETARY MAZE\n\nTargets for financial destabilization:\n\n1. RIO DE JANEIRO: Short Brazilian real, trigger hyperinflation\n2. BUENOS AIRES: Manipulate agricultural futures, crash food markets\n3. JOHANNESBURG: Control rare earth mining stocks, create artificial scarcity\n4. JAKARTA: Currency manipulation through palm oil derivatives\n\nOBJECTIVE: Create economic crisis forcing government dependence on corporate bailouts. Economic chaos = political control.\n\nPROJECTED TIMELINE: 18 months to total economic vassalage\nCOLLATERAL DAMAGE: Acceptable (47 million affected)\n\nNOTE: Resistance groups in São Paulo have been targeting our trading algorithms. Recommend enhanced cybersecurity for all South American operations.\n\n- Director Hamilton, Financial Warfare Division",
+      "category": "Strategy",
+      "discovered": false,
+      "source": "Financial War Room Terminal"
+    },
+    "asian_resistance_022": {
+      "id": "asian_resistance_022",
+      "title": "The Seoul Youth Movement",
+      "content": "DECRYPTED SOCIAL MEDIA ANALYSIS\n\nSeoul's youth resistance operates through K-pop fan networks. Corporate monitoring systems can't distinguish between fan coordination and resistance activity.\n\nCODE PHRASES IDENTIFIED:\n- 'Stream the new album' = Coordinate cyber attack\n- 'Concert tickets available' = Weapons distribution\n- 'Fan meeting tonight' = Resistance cell gathering\n- 'Album leaked early' = Corporate security compromised\n\nINFILTRATION ATTEMPTS: 47 corporate agents identified and eliminated by fan 'doxxing'\nSECURITY RECOMMENDATION: Abandon social media monitoring in Seoul. Youth networks too sophisticated.\n\nNOTE: Similar patterns emerging in Tokyo, Bangkok, Manila. Asian youth resistance may be coordinating across national boundaries.\n\n- Intelligence Division, Nexus Asia-Pacific",
+      "category": "Intelligence",
+      "discovered": false,
+      "source": "Corporate Social Media Analysis Center"
+    },
+    "panama_connection_023": {
+      "id": "panama_connection_023",
+      "title": "The Panama Money Pipeline",
+      "content": "SYNDICATE INTERNAL MEMO - EYES ONLY\n\nPanama City operations are functioning beyond projections. The canal provides perfect cover for our financial operations.\n\nCURRENT OPERATIONS:\n- Money laundering through shipping manifests\n- Weapons smuggling in container ships\n- Corporate blackmail material transit\n- Drug trafficking coordination for 3 continents\n\nPANAMA ADVANTAGE:\n- Geographic chokepoint = natural monopoly\n- Government officials 87% compromised\n- Corporate surveillance limited by maritime law\n- Multiple escape routes via Caribbean\n\nREVENUE: $2.4 billion annually\nSECURITY RATING: Green (minimal corporate interference)\n\nWARNING: Resistance groups in Miami and Bogotá showing unusual interest in our canal operations. Recommend enhanced security for container manifests.\n\n- Operations Chief Rivera",
+      "category": "Financial",
+      "discovered": false,
+      "source": "Syndicate Operations Terminal"
+    },
+    "african_liberation_024": {
+      "id": "african_liberation_024",
+      "title": "The Lagos Liberation Model",
+      "content": "RESISTANCE STRATEGY DOCUMENT\n\nLagos represents the perfect model for urban liberation. Key factors:\n\n1. POPULATION DENSITY: 15 million people in concentrated area\n2. CORPORATE VULNERABILITY: Single points of failure in oil infrastructure\n3. EXISTING NETWORKS: Traditional community structures resist corporate infiltration\n4. GEOGRAPHIC ADVANTAGE: Coastal access for supply lines\n\nLIBERATION STRATEGY:\n- Phase 1: Disable oil refinery security systems\n- Phase 2: Coordinate with community leaders for mass uprising\n- Phase 3: Establish popular government before corporate military response\n- Phase 4: Use oil revenues to fund continental liberation\n\nSUCCESS METRICS:\n- 72 hours from initiation to corporate expulsion\n- 89% popular support achieved\n- $50 million in captured corporate assets\n\nREPLICATION TARGETS: Nairobi, Johannesburg, Cairo, Casablanca\n\nNote: Corporate response will be brutal. Ensure civilian protection protocols are in place.\n\n- Liberation Command, African Continental Division",
+      "category": "Strategy",
+      "discovered": false,
+      "source": "Resistance Planning Terminal"
+    },
+    "tech_warfare_025": {
+      "id": "tech_warfare_025",
+      "title": "The Singapore Data War",
+      "content": "OMNICORP CYBERSECURITY ALERT - PRIORITY ALPHA\n\nSingapore data centers under coordinated attack. This isn't random hacking - it's strategic warfare.\n\nATTACK PATTERN:\n- Wave 1: Probe defenses, map network topology\n- Wave 2: Insert dormant malware in backup systems\n- Wave 3: Activate all dormant code simultaneously\n- Wave 4: Data exfiltration while systems crash\n\nTARGETS:\n- Financial transaction databases (Nexus)\n- Manufacturing control systems (Omnicorp)\n- Personnel files for all corporations\n- Military contract specifications (Aegis)\n- Biotech research data (Helix)\n\nDAMAGE ASSESSMENT:\n- 2.4 petabytes of data stolen\n- $47 billion in compromised financial transactions\n- 15,000 corporate agents' identities exposed\n- 3 major weapons systems compromised\n\nATTACKER PROFILE: Sophisticated, multi-national, coordinated timing suggests unified command structure.\n\nRECOMMENDATION: This is not isolated. Expect similar attacks on Hong Kong, Tokyo, London data centers.\n\n- Chief Security Officer Martinez",
+      "category": "TechnicalDoc",
+      "discovered": false,
+      "source": "Cybersecurity Command Center"
+    },
+    "middle_east_networks_026": {
+      "id": "middle_east_networks_026",
+      "title": "Desert Information Networks",
+      "content": "AEGIS INTELLIGENCE BRIEFING\n\nMiddle Eastern resistance networks exploit traditional Bedouin trade routes for information warfare.\n\nROUTE ANALYSIS:\n- Tehran → Baghdad → Damascus → Istanbul (Northern Route)\n- Dubai → Riyadh → Cairo → Casablanca (Southern Route)\n- Istanbul → Ankara → Tehran → Karachi (Eastern Route)\n\nCOMMUNICATION METHODS:\n- Coded messages in traditional poetry\n- Information embedded in trade good manifests\n- Hawala financial networks for funding transfer\n- Pilgrimage routes for personnel movement\n\nCORPORATE COUNTERMEASURES:\n- Surveillance satellites: 67% coverage\n- Human intelligence: 23% penetration\n- Digital monitoring: 12% effective (encryption too sophisticated)\n\nRECOMMENDATION: Traditional monitoring fails against ancient networks. These people have been evading empires for 4,000 years. We need new approaches.\n\nNote: Recent chatter suggests coordination with European and Asian resistance cells. This is becoming a global network.\n\n- Field Intelligence Chief Hassan",
+      "category": "Intelligence",
+      "discovered": false,
+      "source": "Desert Intelligence Post"
+    },
+    "stockholm_surveillance_027": {
+      "id": "stockholm_surveillance_027",
+      "title": "The Stockholm Model",
+      "content": "NEXUS SURVEILLANCE DIVISION - SUCCESS REPORT\n\nStockholm surveillance implementation complete. Citizens voluntarily carry tracking devices, report suspicious neighbors, submit to regular loyalty scans.\n\nKEY SUCCESS FACTORS:\n1. Gradual implementation over 15 years\n2. Framed as 'social safety' and 'crime prevention'\n3. Economic incentives for compliance\n4. Social pressure through gamification\n5. Education system indoctrination from age 3\n\nRESULTS:\n- Crime rate: 0.3% (mostly corporate-designated 'thought crimes')\n- Citizen compliance: 96.7%\n- Resistance activity: Undetectable\n- Economic productivity: +34% over pre-surveillance baseline\n\nREPLICATION SCHEDULE:\n- Phase 1: London, Singapore, Tokyo (already underway)\n- Phase 2: Berlin, Seoul, Sydney\n- Phase 3: All Tier 1 cities\n- Phase 4: Global implementation\n\nNote: Key insight - citizens police themselves when properly conditioned. Traditional enforcement becomes unnecessary.\n\n- Director Andersson, Stockholm Operations",
+      "category": "Surveillance",
+      "discovered": false,
+      "source": "Surveillance Success Archive"
+    },
+    "resistance_prophecy_028": {
+      "id": "resistance_prophecy_028",
+      "title": "The Athens Prophecy",
+      "content": "FOUND CARVED IN ATHENS RESISTANCE SAFE HOUSE\n\n'When the five towers of tyranny stretch across the world,\nWhen screens replace windows and algorithms replace souls,\nWhen children are born into cages they cannot see,\nThen shall rise the inheritors of ancient fire.\n\nFrom the birthplace of democracy,\nTo the neon towers of the East,\nFrom the industrial heart of the North,\nTo the golden sands of the South,\nThe network of liberation shall spread.\n\nNot through violence alone,\nBut through awakened minds,\nNot through destruction alone,\nBut through creation of the new.\n\nThe corporations count their territories,\nBut forget that people are not property.\nThey measure their reach in kilometers,\nBut ignore the infinite depth of human spirit.\n\nForty-six cities shall be the keys,\nForty-six lights in the darkness,\nEach one a node in the network of freedom,\nUntil the whole world remembers how to breathe.'\n\n- Found unsigned, dated three years before the first resistance action",
+      "category": "Prophecy",
+      "discovered": false,
+      "source": "Ancient Wall Carving"
+    },
+    "corporate_endgame_029": {
+      "id": "corporate_endgame_029",
+      "title": "Project Global Mind",
+      "content": "ULTRA-CLASSIFIED - FIVE CORPORATION BOARD ONLY\n\nProject: GLOBAL MIND\nObjective: Complete integration of human consciousness with corporate control networks\n\nPhase 1: Neurovector (COMPLETE)\n- Individual mind control via neural interface\n- 2.3 billion people currently under influence\n- 97% compliance rate in controlled territories\n\nPhase 2: Collective Consciousness (IN PROGRESS)\n- Link individual neural interfaces into unified network\n- Corporate AI becomes collective human subconscious\n- Individual decision-making becomes impossible\n\nPhase 3: Transcendence (PLANNED)\n- Upload select corporate leadership into collective\n- Biological humanity becomes obsolete\n- Perfect corporate efficiency achieved\n\nTIMELINE: 18 months to Phase 2 completion\nRISK FACTORS: Resistance networks may disrupt implementation\nCONTINGENCY: If resistance cannot be contained, initiate selective population reduction\n\nNote: Once Phase 2 is complete, resistance becomes impossible. The human race will think with one mind - our mind.\n\n- Joint Board Declaration, Five Corporation Consortium",
+      "category": "Endgame",
+      "discovered": false,
+      "source": "Ultra-Classified Executive Archive"
+    },
+    "final_hope_030": {
+      "id": "final_hope_030",
+      "title": "The Liberation Code",
+      "content": "RESISTANCE HIGH COMMAND - FINAL TRANSMISSION\n\nTo all cells, all networks, all free minds still fighting:\n\nWe have discovered their endgame. Project Global Mind will link every neural interface into a single corporate-controlled consciousness. In 18 months, individual thought dies forever.\n\nBut we have found the key. Hidden in Dr. Sarah Chen's final research: a liberation protocol that can reverse neural conditioning and break the interfaces permanently.\n\nTHE PLAN:\n- Simultaneous strikes on all 46 major cities\n- Capture corporate data centers in each city\n- Upload liberation code to global networks\n- Break the neural chains of 2.3 billion people\n- Free humanity before the final integration\n\nThis is our last chance. If we fail, there will be no second revolution because there will be no individuals left to rebel.\n\nEvery territory we've liberated, every alliance we've built, every sacrifice we've made - it all leads to this moment.\n\nForty-six cities. One coordinated strike. The future of human consciousness hangs in the balance.\n\nRemember: We are not fighting for territory. We are fighting for the right to think our own thoughts.\n\nSee you on the other side of freedom.\n\n- Commander Phoenix, Resistance High Command\n- Ghost, Underground Networks\n- Hurricane, Urban Liberation Front\n- Avalanche, Tech Warfare Division\n\n[This message will self-delete in 60 seconds]",
+      "category": "FinalMission",
+      "discovered": false,
+      "source": "Resistance Command Archive"
     }
   },
-  "discovered_count": 0
+  "discovered_count": 0,
+  "categories": {
+    "CorpMemo": "Internal corporate communications",
+    "PersonalLog": "Personal diaries and logs",
+    "Intelligence": "Resistance intelligence reports",
+    "Strategy": "Military and operational planning",
+    "Treaty": "Corporate agreements and pacts",
+    "Financial": "Economic warfare and manipulation",
+    "Surveillance": "Population monitoring systems",
+    "TechnicalDoc": "Technical specifications and manuals",
+    "Prophecy": "Resistance mythology and inspiration",
+    "Endgame": "Final corporate objectives",
+    "FinalMission": "Ultimate resistance operations"
+  }
 }

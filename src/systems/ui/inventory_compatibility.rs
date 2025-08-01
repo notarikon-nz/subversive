@@ -8,35 +8,35 @@ use crate::systems::ui::inventory_integration::{weapon_description};
 impl From<&Inventory> for Vec<InventoryItem> {
     fn from(inventory: &Inventory) -> Self {
         let mut items = Vec::new();
-        
+
         // Convert weapons
         for weapon_config in &inventory.weapons {
             if let Some(item) = create_weapon_item_compat(weapon_config) {
                 items.push(item);
             }
         }
-        
+
         // Convert tools
         for tool in &inventory.tools {
             if let Some(item) = create_tool_item_compat(tool) {
                 items.push(item);
             }
         }
-        
+
         // Convert cybernetics
         for cybernetic in &inventory.cybernetics {
             if let Some(item) = create_cybernetic_item_compat(cybernetic) {
                 items.push(item);
             }
         }
-        
+
         // Convert access cards to items
         for inventory_item in &inventory.items {
             if let Some(item) = create_special_item(inventory_item) {
                 items.push(item);
             }
         }
-        
+
         items
     }
 }
@@ -65,9 +65,9 @@ fn create_weapon_item_compat(weapon_config: &WeaponConfig) -> Option<InventoryIt
         stealth: 0,
         hacking: 0,
     };
-    
+
     let rarity = determine_weapon_rarity(&weapon_config.base_weapon);
-    
+
     Some(InventoryItem {
         id: format!("{:?}_{}", weapon_config.base_weapon, fastrand::u32(..)),
         name: weapon_name_display(&weapon_config.base_weapon),
@@ -98,7 +98,7 @@ fn create_tool_item_compat(tool: &ToolType) -> Option<InventoryItem> {
         ToolType::TacticalScanner => ("Tactical Scanner", "...", ItemRarity::Rare, 0.3, 2000, 1),
         ToolType::NetworkScanner => ("Network Scanner", "...", ItemRarity::Epic, 0.3, 4500, 1),
     };
-    
+
     Some(InventoryItem {
         id: format!("{:?}_{}", tool, fastrand::u32(..)),
         name: name.to_string(),
@@ -161,7 +161,7 @@ fn create_cybernetic_item_compat(cybernetic: &CyberneticType) -> Option<Inventor
             35000
         ),
     };
-    
+
     Some(InventoryItem {
         id: format!("{:?}_{}", cybernetic, fastrand::u32(..)),
         name: name.to_string(),
@@ -302,7 +302,7 @@ pub fn migrate_old_inventory_system(
 ) {
     // This system helps migrate from the old inventory format to the new grid system
     // Run only when inventory changes to avoid performance issues
-    
+
     for (entity, inventory) in agent_query.iter() {
         if Some(entity) == inventory_state.selected_agent {
             migrate_inventory_to_grid(&mut inventory_grid, inventory);
@@ -317,22 +317,22 @@ fn migrate_inventory_to_grid(grid: &mut InventoryGrid, inventory: &Inventory) {
             *slot = None;
         }
     }
-    
+
     let items: Vec<InventoryItem> = inventory.into();
     let mut slot_index = 0;
-    
+
     // Place items in grid
     for item in items {
         if slot_index < grid.width * grid.height {
             let x = slot_index % grid.width;
             let y = slot_index / grid.width;
-            
+
             grid.slots[y][x] = Some(InventorySlot {
                 item,
                 position: (x, y),
                 size: (1, 1),
             });
-            
+
             slot_index += 1;
         }
     }
@@ -342,18 +342,18 @@ fn migrate_inventory_to_grid(grid: &mut InventoryGrid, inventory: &Inventory) {
 
 pub fn create_weapon_with_attachments(weapon_config: &WeaponConfig) -> InventoryItem {
     let mut base_item = create_weapon_item_compat(weapon_config).unwrap();
-    
+
     // Modify stats based on attachments
     let attachment_stats = weapon_config.stats();
     base_item.stats.accuracy += attachment_stats.accuracy as i16;
     base_item.stats.range += attachment_stats.range as i16;
     base_item.stats.reload_speed += attachment_stats.reload_speed as i16;
-    
+
     // Update name to show attachments
     if !weapon_config.attachments.is_empty() {
         let attachment_count = weapon_config.attachments.len();
         base_item.name = format!("{} (+{})", base_item.name, attachment_count);
-        
+
         // Upgrade rarity if heavily modified
         if attachment_count >= 3 {
             base_item.rarity = match base_item.rarity {
@@ -363,11 +363,11 @@ pub fn create_weapon_with_attachments(weapon_config: &WeaponConfig) -> Inventory
                 _ => base_item.rarity,
             };
         }
-        
+
         // Increase value based on attachments
         base_item.value += attachment_count as u32 * 500;
     }
-    
+
     base_item
 }
 
@@ -375,7 +375,7 @@ pub fn create_weapon_with_attachments(weapon_config: &WeaponConfig) -> Inventory
 
 pub fn smart_sort_inventory(grid: &mut InventoryGrid, sort_mode: SortMode) {
     let mut items = Vec::new();
-    
+
     // Collect all items
     for row in &mut grid.slots {
         for slot in row {
@@ -384,7 +384,7 @@ pub fn smart_sort_inventory(grid: &mut InventoryGrid, sort_mode: SortMode) {
             }
         }
     }
-    
+
     // Apply sophisticated sorting
     match sort_mode {
         SortMode::Name => {
@@ -423,7 +423,7 @@ pub fn smart_sort_inventory(grid: &mut InventoryGrid, sort_mode: SortMode) {
             items.sort_by(|a, b| b.id.cmp(&a.id));
         },
     }
-    
+
     // Special sorting: Favorites and locked items always on top
     items.sort_by(|a, b| {
         if a.is_favorited && !b.is_favorited {
@@ -438,7 +438,7 @@ pub fn smart_sort_inventory(grid: &mut InventoryGrid, sort_mode: SortMode) {
             std::cmp::Ordering::Equal
         }
     });
-    
+
     // Place items back in grid
     let mut item_index = 0;
     for y in 0..grid.height {
@@ -487,7 +487,7 @@ pub fn optimize_inventory_updates(
         if let Ok(inventory) = agent_query.get(agent_entity) {
             // Simple hash of inventory state
             let current_hash = calculate_inventory_hash(inventory);
-            
+
             if cache.last_inventory_hash != current_hash {
                 cache.cached_items = inventory.into();
                 cache.last_inventory_hash = current_hash;
@@ -500,21 +500,21 @@ pub fn optimize_inventory_updates(
 fn calculate_inventory_hash(inventory: &Inventory) -> u64 {
     use std::collections::hash_map::DefaultHasher;
     use std::hash::{Hash, Hasher};
-    
+
     let mut hasher = DefaultHasher::new();
-    
+
     // Hash key inventory components
     inventory.currency.hash(&mut hasher);
     inventory.weapons.len().hash(&mut hasher);
     inventory.tools.len().hash(&mut hasher);
     inventory.cybernetics.len().hash(&mut hasher);
-    
+
     // Hash equipped weapon if present
     if let Some(weapon) = &inventory.equipped_weapon {
         format!("{:?}", weapon.base_weapon).hash(&mut hasher);
         weapon.attachments.len().hash(&mut hasher);
     }
-    
+
     hasher.finish()
 }
 
@@ -527,35 +527,35 @@ pub fn validate_inventory_integrity(
     // Validate grid integrity
     let mut total_items = 0;
     let mut duplicate_positions = std::collections::HashSet::new();
-    
+
     for (y, row) in inventory_grid.slots.iter().enumerate() {
         for (x, slot) in row.iter().enumerate() {
             if let Some(slot_item) = slot {
                 total_items += 1;
-                
+
                 // Check for position consistency
                 if slot_item.position != (x, y) {
                     warn!("Inventory slot position mismatch at ({}, {})", x, y);
                 }
-                
+
                 // Check for duplicates
                 let pos_key = format!("{}_{}", x, y);
                 if !duplicate_positions.insert(pos_key) {
                     error!("Duplicate item found at position ({}, {})", x, y);
                 }
-                
+
                 // Validate item data
                 if slot_item.item.quantity == 0 {
                     warn!("Item with zero quantity found: {}", slot_item.item.name);
                 }
-                
+
                 if slot_item.item.quantity > slot_item.item.max_stack {
-                    warn!("Item exceeds max stack size: {} ({})", 
+                    warn!("Item exceeds max stack size: {} ({})",
                           slot_item.item.name, slot_item.item.quantity);
                 }
             }
         }
     }
-    
+
     info!("Inventory validation complete: {} items found", total_items);
 }

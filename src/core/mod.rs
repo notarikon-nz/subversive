@@ -5,7 +5,7 @@ use bevy::prelude::*;
 pub mod events;
 pub mod audio;
 pub mod sprites;
-pub mod goap; 
+pub mod goap;
 pub mod research;
 pub mod attachments;
 pub mod agent_upgrades;
@@ -21,13 +21,19 @@ pub mod entities;
 pub mod missions;
 pub mod weapons;
 pub mod config;
-pub mod scene_cache; 
+pub mod scene_cache;
 pub mod factions;
 pub mod lore;
 pub mod hackable;
 pub mod cities;
 pub mod despawn;
 pub mod spawn_damage_text;
+
+// 0.2.17
+pub mod territory;
+pub use territory::*;
+pub mod campaign_extended;
+pub use campaign_extended::*;
 
 // Re-exports for convenience
 pub use events::*;
@@ -63,7 +69,7 @@ pub struct AgentLoadout {
     pub equipped_weapon_idx: usize,
     pub tools: Vec<ToolType>,
     pub cybernetics: Vec<CyberneticType>,
-    
+
 }
 
 impl Default for AgentLoadout {
@@ -85,7 +91,7 @@ pub fn get_world_mouse_position(
     let window = windows.single().ok()?;
     let (camera, camera_transform) = cameras.single().ok()?;
     let cursor_pos = window.cursor_position()?;
-    
+
     // Convert cursor position to world coordinates
     camera.viewport_to_world_2d(camera_transform, cursor_pos).ok()
 }
@@ -98,12 +104,12 @@ pub fn old_get_world_mouse_position(
     let window = windows.single().ok()?;
     let (camera, camera_transform) = cameras.single().ok()?;
     let cursor_pos = window.cursor_position()?;
-    
+
     // Flip Y coordinate to match UI coordinate system
     let flipped_cursor = Vec2::new(cursor_pos.x, cursor_pos.y);
-    
+
     camera.viewport_to_world_2d(camera_transform, flipped_cursor).ok()
-        
+
     // camera.viewport_to_world_2d(camera_transform, cursor_pos).ok()
 }
 
@@ -114,12 +120,12 @@ pub fn get_global_map_mouse_position(
     let window = windows.single().ok()?;
     let (camera, camera_transform) = cameras.single().ok()?;
     let cursor_pos = window.cursor_position()?;
-    
+
     // Flip Y coordinate to match UI coordinate system
     let flipped_cursor = Vec2::new(cursor_pos.x, window.height() - cursor_pos.y);
-    
+
     camera.viewport_to_world_2d(camera_transform, flipped_cursor).ok()
-        
+
     // camera.viewport_to_world_2d(camera_transform, cursor_pos).ok()
 }
 

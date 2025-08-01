@@ -6,7 +6,7 @@ use crate::core::*;
 
 const SAVE_FILE: &str = "subversive_save.json";
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct SaveData {
     pub credits: u32,
     pub current_day: u32,
@@ -18,11 +18,14 @@ pub struct SaveData {
     pub research_progress: ResearchProgress,
     pub cities_progress: CitiesProgress,
     pub recruited_scientists: Vec<Scientist>,
-    pub research_facilities_discovered: HashSet<String>,    
+    pub research_facilities_discovered: HashSet<String>,
     pub alert_level: u8,
+     // 0.2.17
+    pub territory_manager: Option<TerritoryManager>,
+    pub progression_tracker: Option<ProgressionTracker>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct SaveRegion {
     pub name: String,
     pub threat_level: u8,
@@ -55,6 +58,9 @@ impl From<&GlobalData> for SaveData {
             recruited_scientists: data.recruited_scientists.clone(),
             research_facilities_discovered: data.research_facilities_discovered.clone(),
             alert_level: data.alert_level,
+            // 0.2.17
+            territory_manager: None,
+            progression_tracker: None,
         }
     }
 }
@@ -86,7 +92,7 @@ impl From<SaveData> for GlobalData {
             research_facilities_discovered: save.research_facilities_discovered,
             alert_level: save.alert_level,
         };
-        
+
         global_data
     }
 }
@@ -94,28 +100,40 @@ impl From<SaveData> for GlobalData {
 pub fn save_game_complete(
     global_data: &GlobalData,
     research_progress: &ResearchProgress,
+    territory_manager: &TerritoryManager,
+    progression_tracker: &ProgressionTracker,
 ) {
-    // Create a mutable copy of global data with current research
     let mut updated_global_data = global_data.clone();
     updated_global_data.research_progress = research_progress.clone();
-    
-    let save_data = SaveData::from(&updated_global_data);
+
+    let mut save_data = SaveData::from(&updated_global_data);
+
+    // ADD TERRITORY DATA:
+    save_data.territory_manager = Some(territory_manager.clone());
+    save_data.progression_tracker = Some(progression_tracker.clone());
+
     if let Ok(json) = serde_json::to_string_pretty(&save_data) {
         if fs::write(SAVE_FILE, json).is_ok() {
-            info!("Game saved successfully - {} research projects completed, {} cities unlocked", 
+            info!("Game saved successfully - {} research projects, {} cities unlocked, {} territories controlled",
                   research_progress.completed.len(),
-                  updated_global_data.cities_progress.unlocked_cities.len());
+                  updated_global_data.cities_progress.unlocked_cities.len(),
+                  territory_manager.territory_count);
         } else {
             warn!("Failed to save game");
         }
     }
 }
 
-pub fn load_game() -> Option<GlobalData> {
+pub fn load_game() -> Option<(GlobalData, TerritoryManager, ProgressionTracker)> {
     fs::read_to_string(SAVE_FILE)
         .ok()
         .and_then(|content| serde_json::from_str::<SaveData>(&content).ok())
-        .map(|save_data| save_data.into())
+        .map(|save_data| {
+            let global_data = GlobalData::from(save_data.clone());
+            let territory_manager = save_data.territory_manager.unwrap_or_default();
+            let progression_tracker = save_data.progression_tracker.unwrap_or_default();
+            (global_data, territory_manager, progression_tracker)
+        })
 }
 
 // Used by Main Menu for Continue logic
@@ -123,33 +141,28 @@ pub fn save_game_exists() -> bool {
     std::path::Path::new(SAVE_FILE).exists()
 }
 
-// Legacy function for backward compatibility
-pub fn save_game(global_data: &GlobalData) {
-    // Create default cities progress if not available
-    let default_cities_progress = CitiesProgress::new("new_york".to_string());
-    save_game_complete(global_data, &global_data.research_progress);
-}
-
-// Update the save input system
 pub fn save_input_system(
     input: Res<ButtonInput<KeyCode>>,
     global_data: Res<GlobalData>,
     research_progress: Res<ResearchProgress>,
+    territory_manager: Res<TerritoryManager>,
+    progression_tracker: Res<ProgressionTracker>,
     game_state: Res<State<GameState>>,
 ) {
     if input.just_pressed(KeyCode::F5) && *game_state.get() == GameState::GlobalMap {
-        save_game_complete(&global_data, &research_progress);
+        save_game_complete(&global_data, &research_progress, &territory_manager, &progression_tracker);
     }
 }
 
-// Update auto_save_system
 pub fn auto_save_system(
     global_data: Res<GlobalData>,
     research_progress: Res<ResearchProgress>,
+    territory_manager: Res<TerritoryManager>,
+    progression_tracker: Res<ProgressionTracker>,
     mut last_day: Local<u32>,
 ) {
     if global_data.current_day != *last_day && global_data.current_day > 1 {
-        save_game_complete(&global_data, &research_progress);
+        save_game_complete(&global_data, &research_progress, &territory_manager, &progression_tracker);
         *last_day = global_data.current_day;
     }
 }
@@ -158,12 +171,14 @@ pub fn post_mission_save_system(
     mut processed: ResMut<PostMissionProcessed>,
     global_data: Res<GlobalData>,
     research_progress: Res<ResearchProgress>,
+    territory_manager: Res<TerritoryManager>,
+    progression_tracker: Res<ProgressionTracker>,
     cities_progress: Res<CitiesProgress>,
     post_mission: Res<PostMissionResults>,
 ) {
     if processed.0 && post_mission.success {
-        save_game_complete(&global_data, &research_progress);
+        save_game_complete(&global_data, &research_progress, &territory_manager, &progression_tracker);
         info!("Auto-saved after successful mission completion");
-        processed.0 = false; // Reset for next mission
+        processed.0 = false;
     }
 }

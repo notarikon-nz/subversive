@@ -11,7 +11,7 @@ pub fn get_isometric_world_mouse_position(
     let window = windows.single().ok()?;
     let (camera, camera_transform, _) = cameras.single().ok()?;
     let cursor_pos = window.cursor_position()?;
-    
+
     camera.viewport_to_world_2d(camera_transform, cursor_pos).ok()
 }
 
@@ -141,27 +141,27 @@ fn handle_continuous_attack(
     time: &Time,
 ) {
     let current_time = time.elapsed_secs();
-    
+
     // Combat mode is default - check if we're NOT in other modes
     let combat_enabled = match &game_mode.targeting {
         Some(TargetingMode::Neurovector { .. }) => false,
         Some(TargetingMode::Scanning { .. }) => false, // Add this variant to your TargetingMode enum
         _ => true, // Combat is default
     };
-    
+
     if !combat_enabled {
         continuous_attack.attacking = false;
         continuous_attack.current_target = None;
         return;
     }
-    
+
     // Right mouse button for continuous attack
     if mouse.just_pressed(MouseButton::Right) {
         if let Some(target) = find_target_under_mouse(windows, cameras, target_query, agent_query, selection) {
             continuous_attack.attacking = true;
             continuous_attack.current_target = Some(target);
             continuous_attack.record_attack(current_time);
-            
+
             // Initial attack
             for &agent in &selection.selected {
                 action_events.write(ActionEvent {
@@ -179,7 +179,7 @@ fn handle_continuous_attack(
             }
         }
     }
-    
+
     // Continue attacking while held
     if mouse.pressed(MouseButton::Right) && continuous_attack.attacking {
         if let Some(target) = continuous_attack.current_target {
@@ -201,7 +201,7 @@ fn handle_continuous_attack(
             }
         }
     }
-    
+
     // Stop on release
     if mouse.just_released(MouseButton::Right) {
         continuous_attack.attacking = false;
@@ -216,22 +216,22 @@ fn handle_agent_selection(
     action_events: &mut EventWriter<ActionEvent>,
 ) {
     use std::time::Instant;
-    
+
     // Static to track double-tap timing
     static mut LAST_KEY_TIME: [Option<Instant>; 3] = [None; 3];
     const DOUBLE_TAP_TIME: std::time::Duration = std::time::Duration::from_millis(300);
-    
+
     let keys = [KeyCode::Digit1, KeyCode::Digit2, KeyCode::Digit3];
-    
+
     for (idx, &key) in keys.iter().enumerate() {
         if keyboard.just_pressed(key) {
             let now = Instant::now();
             let is_double_tap = unsafe {
                 LAST_KEY_TIME[idx].map_or(false, |t| now.duration_since(t) < DOUBLE_TAP_TIME)
             };
-            
+
             unsafe { LAST_KEY_TIME[idx] = Some(now); }
-            
+
             if is_double_tap {
                 // Double tap - center camera on agent but don't change selection
                 action_events.write(ActionEvent {
@@ -257,13 +257,13 @@ fn find_target_under_mouse(
     selection: &SelectionState,
 ) -> Option<Entity> {
     let mouse_pos = get_world_mouse_position(windows, cameras)?;
-    
+
     // Get the primary selected agent to determine range
     let primary_agent = selection.selected.first()?;
     let (agent_transform, inventory) = agent_query.get(*primary_agent).ok()?;
     let agent_pos = agent_transform.translation.truncate();
     let range = get_weapon_range_simple(inventory);
-    
+
     // Find the closest valid target under the mouse
     target_query.iter()
         .filter(|(_, _, health)| health.0 > 0.0) // Target must be alive

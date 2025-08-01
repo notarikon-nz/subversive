@@ -41,14 +41,14 @@ pub fn sync_inventory_to_grid(
     if selection.is_changed() && !selection.selected.is_empty() {
         inventory_state.selected_agent = selection.selected.first().copied();
     }
-    
+
     // Sync grid when inventory changes or when agent selection changes
     let should_sync = if let Some(agent_entity) = inventory_state.selected_agent {
         agent_query.get(agent_entity).is_ok()
     } else {
         false
     };
-    
+
     if should_sync {
         if let Ok(inventory) = agent_query.get(inventory_state.selected_agent.unwrap()) {
             populate_grid_from_inventory(&mut inventory_grid, inventory);
@@ -85,42 +85,42 @@ fn populate_grid_from_inventory(grid: &mut InventoryGrid, inventory: &Inventory)
             *slot = None;
         }
     }
-    
+
     let mut slot_index = 0;
-    
+
     // Add equipped weapon
     if let Some(weapon_config) = &inventory.equipped_weapon {
         if let Some(item) = create_weapon_item(weapon_config) {
             place_item_in_next_slot(grid, item, &mut slot_index);
         }
     }
-    
+
     // Add other weapons
     for weapon_config in &inventory.weapons {
         let is_equipped = inventory.equipped_weapon.as_ref()
             .map_or(false, |equipped| equipped.base_weapon == weapon_config.base_weapon);
-        
+
         if !is_equipped {
             if let Some(item) = create_weapon_item(weapon_config) {
                 place_item_in_next_slot(grid, item, &mut slot_index);
             }
         }
     }
-    
+
     // Add tools
     for tool in &inventory.tools {
         if let Some(item) = create_tool_item(tool) {
             place_item_in_next_slot(grid, item, &mut slot_index);
         }
     }
-    
+
     // Add cybernetics
     for cybernetic in &inventory.cybernetics {
         if let Some(item) = create_cybernetic_item(cybernetic) {
             place_item_in_next_slot(grid, item, &mut slot_index);
         }
     }
-    
+
     // Add currency as special item
     if inventory.currency > 0 {
         let currency_item = InventoryItem {
@@ -147,13 +147,13 @@ fn place_item_in_next_slot(grid: &mut InventoryGrid, item: InventoryItem, slot_i
     if *slot_index < total_slots {
         let x = *slot_index % grid.width;
         let y = *slot_index / grid.width;
-        
+
         grid.slots[y][x] = Some(InventorySlot {
             item,
             position: (x, y),
             size: (1, 1),
         });
-        
+
         *slot_index += 1;
     }
 }
@@ -165,7 +165,7 @@ fn update_inventory_from_grid(grid: &InventoryGrid, inventory: &mut Inventory) {
     inventory.cybernetics.clear();
     inventory.equipped_weapon = None;
     inventory.currency = 0;
-    
+
     // Extract items from grid
     for row in &grid.slots {
         for slot in row {
@@ -224,7 +224,7 @@ fn create_weapon_item(weapon_config: &WeaponConfig) -> Option<InventoryItem> {
         WeaponType::LaserRifle => 45,
         WeaponType::PlasmaGun => 70,
     };
-        
+
     let item_stats = ItemStats {
         damage: base_damage,
         accuracy: stats.accuracy as i16,
@@ -370,16 +370,16 @@ pub fn handle_item_actions(
             }
         }
     }
-    
+
     // Handle keyboard shortcuts
     if input.just_pressed(KeyCode::KeyF) {
         toggle_favorite_selected_item(&mut inventory_grid, &mut audio_events);
     }
-    
+
     if input.just_pressed(KeyCode::KeyL) {
         toggle_lock_selected_item(&mut inventory_grid, &mut audio_events);
     }
-    
+
     if input.just_pressed(KeyCode::Delete) {
         delete_selected_item(&mut inventory_grid, &mut audio_events);
     }
@@ -389,7 +389,7 @@ fn show_context_menu(item: &mut InventoryItem, audio_events: &mut EventWriter<Au
     // This would typically show an egui context menu
     // For now, we'll just toggle favorite as an example
     item.is_favorited = !item.is_favorited;
-    
+
     audio_events.write(AudioEvent {
         sound: AudioType::CursorInteract,
         volume: 0.2,
@@ -403,7 +403,7 @@ fn toggle_favorite_selected_item(
     if let Some(selected) = inventory_grid.selected_slot {
         if let Some(slot) = &mut inventory_grid.slots[selected.1][selected.0] {
             slot.item.is_favorited = !slot.item.is_favorited;
-            
+
             audio_events.write(AudioEvent {
                 sound: AudioType::CursorInteract,
                 volume: 0.3,
@@ -419,7 +419,7 @@ fn toggle_lock_selected_item(
     if let Some(selected) = inventory_grid.selected_slot {
         if let Some(slot) = &mut inventory_grid.slots[selected.1][selected.0] {
             slot.item.is_locked = !slot.item.is_locked;
-            
+
             audio_events.write(AudioEvent {
                 sound: AudioType::CursorInteract,
                 volume: 0.3,
@@ -437,7 +437,7 @@ fn delete_selected_item(
             if !slot.item.is_locked {
                 inventory_grid.slots[selected.1][selected.0] = None;
                 inventory_grid.selected_slot = None;
-                
+
                 audio_events.write(AudioEvent {
                     sound: AudioType::CursorInteract,
                     volume: 0.4,
@@ -455,40 +455,40 @@ pub fn apply_inventory_filters(
     if !inventory_grid.is_changed() {
         return;
     }
-    
+
     // Extract all the immutable data we need first
     let filter_text = inventory_grid.filter.text.clone();
     let show_favorites_only = inventory_grid.filter.show_favorites_only;
     let current_tab = inventory_grid.tab.clone();
-    
+
     // Now we can safely do mutable operations
     for row in &mut inventory_grid.slots {
         for slot in row {
             if let Some(slot_item) = slot {
                 let mut visible = true;
-                
+
                 // Text filter
                 if !filter_text.is_empty() {
                     visible &= slot_item.item.name.to_lowercase()
                         .contains(&filter_text.to_lowercase());
                 }
-                
+
                 // Favorites filter
                 if show_favorites_only {
                     visible &= slot_item.item.is_favorited;
                 }
-                
+
                 // Tab filter
                 visible &= match current_tab {
                     InventoryTab::All => true,
                     InventoryTab::Weapons => matches!(slot_item.item.item_type, ItemType::Weapon(_)),
-                    InventoryTab::Gear => matches!(slot_item.item.item_type, 
+                    InventoryTab::Gear => matches!(slot_item.item.item_type,
                         ItemType::Tool(_) | ItemType::Cybernetic(_) | ItemType::Attachment(_)),
                     InventoryTab::Consumables => matches!(slot_item.item.item_type, ItemType::Consumable),
                     InventoryTab::Materials => matches!(slot_item.item.item_type, ItemType::Material),
                     InventoryTab::Intel => matches!(slot_item.item.item_type, ItemType::Intel),
                 };
-                
+
                 // Store visibility (you might want to add a visible field to InventorySlot)
                 // For now, we'll hide by setting to None temporarily
                 // This is a simplified approach - in production you'd want better filtering
@@ -501,7 +501,7 @@ pub fn apply_inventory_filters(
 
 pub fn calculate_inventory_weight(inventory_grid: &InventoryGrid) -> f32 {
     let mut total_weight = 0.0;
-    
+
     for row in &inventory_grid.slots {
         for slot in row {
             if let Some(slot_item) = slot {
@@ -509,13 +509,13 @@ pub fn calculate_inventory_weight(inventory_grid: &InventoryGrid) -> f32 {
             }
         }
     }
-    
+
     total_weight
 }
 
 pub fn calculate_inventory_value(inventory_grid: &InventoryGrid) -> u32 {
     let mut total_value = 0;
-    
+
     for row in &inventory_grid.slots {
         for slot in row {
             if let Some(slot_item) = slot {
@@ -523,7 +523,7 @@ pub fn calculate_inventory_value(inventory_grid: &InventoryGrid) -> u32 {
             }
         }
     }
-    
+
     total_value
 }
 
@@ -543,7 +543,7 @@ pub fn handle_loadout_hotkeys(
         (KeyCode::F3, 2),
         (KeyCode::F4, 3),
     ];
-    
+
     for (key, slot_index) in hotkeys {
         if input.just_pressed(key) {
             if input.pressed(KeyCode::ShiftLeft) || input.pressed(KeyCode::ShiftRight) {
@@ -551,7 +551,7 @@ pub fn handle_loadout_hotkeys(
                 if let Some(agent_entity) = inventory_state.selected_agent {
                     if let Ok(inventory) = agent_query.get(agent_entity) {
                         save_loadout_to_slot(&mut loadout_manager, inventory, slot_index);
-                        
+
                         audio_events.write(AudioEvent {
                             sound: AudioType::CursorInteract,
                             volume: 0.5,
@@ -564,7 +564,7 @@ pub fn handle_loadout_hotkeys(
                     if let Some(agent_entity) = inventory_state.selected_agent {
                         if let Ok(mut inventory) = agent_query.get_mut(agent_entity) {
                             apply_loadout_preset(&loadout_manager, preset_name, &mut inventory);
-                            
+
                             audio_events.write(AudioEvent {
                                 sound: AudioType::CursorInteract,
                                 volume: 0.5,
@@ -583,7 +583,7 @@ fn save_loadout_to_slot(
     slot_index: usize,
 ) {
     let preset_name = format!("Quick Slot {}", slot_index + 1);
-    
+
     let preset = LoadoutPreset {
         name: preset_name.clone(),
         weapon: inventory.equipped_weapon.clone(),
@@ -591,7 +591,7 @@ fn save_loadout_to_slot(
         cybernetics: inventory.cybernetics.clone(),
         consumables: std::collections::HashMap::new(),
     };
-    
+
     loadout_manager.presets.insert(preset_name.clone(), preset);
     loadout_manager.quick_slots[slot_index] = Some(preset_name);
 }

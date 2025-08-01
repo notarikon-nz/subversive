@@ -121,11 +121,11 @@ impl Patrol {
     pub fn new(points: Vec<Vec2>) -> Self {
         Self { points, current_index: 0 }
     }
-    
+
     pub fn current_target(&self) -> Option<Vec2> {
         self.points.get(self.current_index).copied()
     }
-    
+
     pub fn advance(&mut self) {
         if !self.points.is_empty() {
             self.current_index = (self.current_index + 1) % self.points.len();
@@ -178,29 +178,29 @@ impl Inventory {
         }
         self.weapons.push(config);
     }
-    
+
     pub fn add_weapon_config(&mut self, config: WeaponConfig) {
         if self.equipped_weapon.is_none() {
             self.equipped_weapon = Some(config.clone());
         }
         self.weapons.push(config);
     }
-    
+
     pub fn add_currency(&mut self, amount: u32) {
         self.currency += amount;
     }
-    
+
     pub fn add_tool(&mut self, tool: crate::core::ToolType) {
         if self.equipped_tools.len() < 2 {
             self.equipped_tools.push(tool.clone());
         }
         self.tools.push(tool);
     }
-    
+
     pub fn add_cybernetic(&mut self, cybernetic: crate::core::CyberneticType) {
         self.cybernetics.push(cybernetic);
     }
-    
+
     pub fn add_intel(&mut self, document: String) {
         self.intel_documents.push(document);
     }
@@ -209,7 +209,7 @@ impl Inventory {
         self.items.push(OriginalInventoryItem::AccessCard { level, card_type });
         info!("Added {:?} access card (level {})", card_type, level);
     }
-    
+
     pub fn has_access_card(&self, required_level: u8) -> bool {
         self.items.iter().any(|item| {
             match item {
@@ -218,7 +218,7 @@ impl Inventory {
             }
         })
     }
-    
+
     pub fn get_highest_access_level(&self) -> u8 {
         self.items.iter().fold(0, |max_level, item| {
             match item {
@@ -227,7 +227,7 @@ impl Inventory {
             }
         })
     }
-    
+
     pub fn remove_access_card(&mut self, required_level: u8) -> bool {
         if let Some(pos) = self.items.iter().position(|item| {
             match item {

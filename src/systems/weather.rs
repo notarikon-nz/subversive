@@ -37,7 +37,7 @@ pub struct WeatherParticle {
     pub lifetime: f32,
     pub max_lifetime: f32,
     pub particle_type: WeatherParticleType,
-    pub layer: WeatherLayer,    
+    pub layer: WeatherLayer,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -82,7 +82,7 @@ impl Default for WeatherParticlePool {
 impl WeatherSystem {
     pub fn determine_weather_for_city(city: &City, day_of_year: u32) -> WeatherState {
         use crate::core::cities::CityTrait;
-        
+
         // Base weather on location (latitude) and season
         let season = match day_of_year % 365 {
             0..=90 => Season::Winter,
@@ -185,7 +185,7 @@ pub fn setup_weather_system(
     };
 
     info!("Mission weather: {:?} (intensity: {:.2})", weather.current_weather, weather.intensity);
-    
+
     commands.insert_resource(weather);
     commands.insert_resource(WeatherParticlePool::default());
 }
@@ -238,10 +238,10 @@ pub fn weather_particle_system(
     }
 
     let Ok(camera_transform) = camera_query.single() else { return; };
-    
+
     // Update spawn timer
     particle_pool.spawn_timer.tick(time.delta());
-    
+
     // Spawn new particles
     if particle_pool.spawn_timer.finished() {
         let (fg_count, bg_count) = match weather.current_weather {
@@ -263,12 +263,12 @@ pub fn weather_particle_system(
         let current_count = particles.iter().count();
         if current_count < particle_pool.max_particles {
             let total_to_spawn = (fg_count + bg_count).min(particle_pool.max_particles - current_count);
-            
+
             // Spawn foreground particles
             for _ in 0..(fg_count.min(total_to_spawn)) {
                 spawn_weather_particle(&mut commands, &weather, camera_transform, WeatherLayer::Foreground);
             }
-            
+
             // Spawn background particles
             let remaining = total_to_spawn.saturating_sub(fg_count);
             for _ in 0..(bg_count.min(remaining)) {
@@ -280,7 +280,7 @@ pub fn weather_particle_system(
     // Update existing particles
     for (entity, mut transform, mut particle) in particles.iter_mut() {
         particle.lifetime -= time.delta_secs();
-        
+
         // Check if particle is far below camera before despawning
         let camera_bottom = camera_transform.translation.y - 400.0; // More generous despawn distance
         if particle.lifetime <= 0.0 || transform.translation.y < camera_bottom {
@@ -291,7 +291,7 @@ pub fn weather_particle_system(
         // Apply velocity with wind influence
         let wind_effect = weather.wind_direction * weather.wind_strength * 0.3;
         let final_velocity = particle.velocity + wind_effect;
-        
+
         transform.translation.x += final_velocity.x * time.delta_secs();
         transform.translation.y += final_velocity.y * time.delta_secs();
 
@@ -300,7 +300,7 @@ pub fn weather_particle_system(
             let life_ratio = particle.lifetime / particle.max_lifetime;
             let scale = 0.8 + life_ratio * 0.2; // Even subtler scaling
             transform.scale = Vec3::splat(scale);
-            
+
             // Add gentle swaying motion for snow based on layer
             let sway_multiplier = match particle.layer {
                 WeatherLayer::Foreground => 1.0,
@@ -322,21 +322,21 @@ fn spawn_weather_particle(
 ) {
     let screen_width = 1280.0;
     let screen_height = 720.0;
-    
+
     // Spawn in a wider area with random distribution to avoid banding
     let spawn_width = screen_width + 500.0; // Even wider for better distribution
-    let spawn_x = camera_transform.translation.x + 
+    let spawn_x = camera_transform.translation.x +
         (fastrand::f32() - 0.5) * spawn_width;
-    
+
     // Spawn higher above screen to give particles more travel time
-    let spawn_y = camera_transform.translation.y + screen_height / 2.0 + 
+    let spawn_y = camera_transform.translation.y + screen_height / 2.0 +
         150.0 + fastrand::f32() * 300.0; // More height variation
 
     let (particle_type, velocity, lifetime, color, size, z_layer) = match weather.current_weather {
         WeatherState::LightRain => {
             let base_velocity = Vec2::new(0.0, -350.0) + weather.wind_direction * 80.0;
             let base_lifetime = 5.0;
-            
+
             match layer {
                 WeatherLayer::Foreground => (
                     WeatherParticleType::Raindrop,
@@ -359,7 +359,7 @@ fn spawn_weather_particle(
         WeatherState::HeavyRain => {
             let base_velocity = Vec2::new(0.0, -500.0) + weather.wind_direction * 120.0;
             let base_lifetime = 4.0;
-            
+
             match layer {
                 WeatherLayer::Foreground => (
                     WeatherParticleType::Raindrop,
@@ -380,10 +380,10 @@ fn spawn_weather_particle(
             }
         },
         WeatherState::Snow => {
-            let base_velocity = Vec2::new(0.0, -40.0) + weather.wind_direction * 20.0 + 
+            let base_velocity = Vec2::new(0.0, -40.0) + weather.wind_direction * 20.0 +
                 Vec2::new(fastrand::f32() * 15.0 - 7.5, 0.0); // More random drift
             let base_lifetime = 30.0; // Much longer for snow
-            
+
             match layer {
                 WeatherLayer::Foreground => (
                     WeatherParticleType::Snowflake,
@@ -429,7 +429,7 @@ pub fn update_weather_overlay(
     camera_query: Query<&Transform, (With<Camera>, Without<WeatherOverlay>)>,
 ) {
     let Ok(camera_transform) = camera_query.single() else { return; };
-    
+
     for mut overlay_transform in overlay_query.iter_mut() {
         overlay_transform.translation.x = camera_transform.translation.x;
         overlay_transform.translation.y = camera_transform.translation.y;
@@ -445,7 +445,7 @@ pub fn cleanup_weather_system(
     for entity in particles.iter() {
         commands.entity(entity).insert(MarkedForDespawn);
     }
-    
+
     for entity in overlays.iter() {
         commands.entity(entity).insert(MarkedForDespawn);
     }

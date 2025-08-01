@@ -36,7 +36,7 @@ pub fn setup_main_menu_egui(mut menu_state: ResMut<MainMenuState>) {
 
     menu_state.has_save = save_game_exists();
     menu_state.selected_index = 0;
-    
+
     // Build options list
     menu_state.options.clear();
     if menu_state.has_save {
@@ -55,6 +55,9 @@ pub fn main_menu_system_egui(
     mut app_exit: EventWriter<bevy::app::AppExit>,
     mut global_data: ResMut<GlobalData>,
     input: Res<ButtonInput<KeyCode>>,
+    mut research_progress: ResMut<ResearchProgress>,
+    mut territory_manager: ResMut<TerritoryManager>,
+    mut progression_tracker: ResMut<ProgressionTracker>,
 ) {
 
     // Handle keyboard navigation - this works even without egui context
@@ -76,7 +79,7 @@ pub fn main_menu_system_egui(
 
     if input.just_pressed(KeyCode::Space) || input.just_pressed(KeyCode::Enter) {
         if let Some((option_type, _)) = menu_state.options.get(menu_state.selected_index) {
-            execute_menu_option(*option_type, &mut next_state, &mut app_exit, &mut global_data);
+            execute_menu_option(*option_type, &mut next_state, &mut app_exit, &mut global_data, &mut research_progress, &mut territory_manager, &mut progression_tracker);
         }
     }
 
@@ -89,25 +92,25 @@ pub fn main_menu_system_egui(
                     let available_height = ui.available_height();
                     let menu_height = 400.0;
                     let top_padding = (available_height - menu_height) / 2.0;
-                    
+
                     ui.add_space(top_padding.max(20.0));
-                    
+
                     ui.label(egui::RichText::new("SUBVERSIVE")
                         .size(48.0)
                         .strong()
                         .color(egui::Color32::from_rgb(252, 255, 82)));
-                    
+
                     ui.add_space(50.0);
-                    
+
                     for (i, (option_type, text)) in menu_state.options.iter().enumerate() {
                         let is_selected = i == menu_state.selected_index;
-                        
+
                         let button_color = if is_selected {
                             egui::Color32::from_rgb(252, 255, 82)
                         } else {
                             egui::Color32::WHITE
                         };
-                        
+
                         let button = egui::Button::new(
                             egui::RichText::new(*text)
                                 .size(24.0)
@@ -119,14 +122,22 @@ pub fn main_menu_system_egui(
                         } else {
                             egui::Stroke::NONE
                         });
-                        
+
                         if ui.add_sized([200.0, 40.0], button).clicked() {
-                            execute_menu_option(*option_type, &mut next_state, &mut app_exit, &mut global_data);
+                            execute_menu_option(
+                                *option_type,
+                                &mut next_state,
+                                &mut app_exit,
+                                &mut global_data,
+                                &mut research_progress,
+                                &mut territory_manager,
+                                &mut progression_tracker,
+                            );
                         }
-                        
+
                         ui.add_space(10.0);
                     }
-                    
+
                     ui.add_space(20.0);
                     ui.add_space(50.0);
                     ui.label(egui::RichText::new("W/S or ↑/↓: Navigate | Enter/Space: Select | Esc: Quit")
@@ -143,17 +154,25 @@ fn execute_menu_option(
     next_state: &mut NextState<GameState>,
     app_exit: &mut EventWriter<bevy::app::AppExit>,
     global_data: &mut GlobalData,
+    research_progress: &mut ResearchProgress,
+    territory_manager: &mut TerritoryManager,
+    progression_tracker: &mut ProgressionTracker,
 ) {
     match option_type {
         MenuOptionType::Continue => {
-            if let Some(loaded_data) = crate::systems::save::load_game() {
+            if let Some((loaded_data, loaded_territory, loaded_progression)) = crate::systems::save::load_game() {
                 *global_data = loaded_data;
+                *territory_manager = loaded_territory;
+                *progression_tracker = loaded_progression;
                 next_state.set(GameState::GlobalMap);
             }
         },
         MenuOptionType::NewGame => {
             *global_data = GlobalData::default();
-            crate::systems::save::save_game(global_data);
+            *research_progress = ResearchProgress::default();
+            *territory_manager = TerritoryManager::default();
+            *progression_tracker = ProgressionTracker::default();
+            crate::systems::save::save_game_complete(global_data, research_progress, territory_manager, progression_tracker);
             next_state.set(GameState::GlobalMap);
         },
         MenuOptionType::Settings => {

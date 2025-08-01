@@ -70,12 +70,12 @@ pub fn power_grid_management_system(
     for (entity, station, device_state) in power_stations.iter() {
         if let Some(network) = power_grid.networks.get_mut(&station.network_id) {
             let was_powered = network.powered;
-            
+
             // Network is powered if at least one power station is operational
             network.powered = power_stations.iter()
                 .filter(|(_, s, _)| s.network_id == station.network_id)
                 .any(|(_, _, state)| state.operational && state.powered);
-            
+
             // Send event if power state changed
             if was_powered != network.powered {
                 power_events.write(PowerGridEvent {
@@ -111,9 +111,9 @@ pub fn traffic_light_system(
             sprite.color = Color::srgb(0.2, 0.2, 0.2);
             continue;
         }
-        
+
         traffic_light.timer -= time.delta_secs();
-        
+
         if traffic_light.timer <= 0.0 {
             traffic_light.state = match traffic_light.state {
                 TrafficState::Green => {
@@ -131,7 +131,7 @@ pub fn traffic_light_system(
                 TrafficState::Disabled => TrafficState::Green,
             };
         }
-        
+
         sprite.color = match traffic_light.state {
             TrafficState::Green => Color::srgb(0.2, 0.8, 0.2),
             TrafficState::Yellow => Color::srgb(0.8, 0.8, 0.2),
@@ -149,30 +149,30 @@ pub fn security_camera_system(
 ) {
     for (mut camera, mut vision, camera_transform, device_state) in cameras.iter_mut() {
         camera.active = device_state.powered && device_state.operational;
-        
+
         if !camera.active {
             continue;
         }
-        
+
         // Slowly rotate camera (simple patrol)
         let rotation_speed = 0.5; // radians per second
         let angle = time.elapsed_secs() * rotation_speed;
         camera.direction = Vec2::new(angle.cos(), angle.sin());
         vision.direction = camera.direction;
-        
+
         // Check for agents in view
         let camera_pos = camera_transform.translation.truncate();
-        
+
         for agent_transform in agent_query.iter() {
             let agent_pos = agent_transform.translation.truncate();
             let to_agent = agent_pos - camera_pos;
             let distance = to_agent.length();
-            
+
             if distance <= camera.detection_range {
                 let agent_direction = to_agent.normalize();
                 let dot_product = camera.direction.dot(agent_direction);
                 let angle_cos = (camera.fov_angle.to_radians() / 2.0).cos();
-                
+
                 if dot_product >= angle_cos {
                     // Agent spotted by camera!
                     alert_events.write(AlertEvent {
@@ -200,10 +200,10 @@ pub fn automated_turret_system(
             turret.target = None;
             continue;
         }
-        
+
         turret.fire_timer -= time.delta_secs();
         let turret_pos = turret_transform.translation.truncate();
-        
+
         // Find target
         if turret.target.is_none() {
             turret.target = agent_query.iter()
@@ -217,12 +217,12 @@ pub fn automated_turret_system(
                 })
                 .map(|(entity, _)| entity);
         }
-        
+
         // Fire at target
         if let Some(target) = turret.target {
             if let Ok((_, target_transform)) = agent_query.get(target) {
                 let distance = turret_pos.distance(target_transform.translation.truncate());
-                
+
                 if distance <= turret.range && turret.fire_timer <= 0.0 {
                     // Fire!
                     combat_events.write(CombatEvent {
@@ -231,12 +231,12 @@ pub fn automated_turret_system(
                         damage: turret.damage,
                         hit: rand::random::<f32>() < 0.8, // 80% accuracy
                     });
-                    
+
                     audio_events.write(AudioEvent {
                         sound: AudioType::Gunshot,
                         volume: 0.6,
                     });
-                    
+
                     turret.fire_timer = 1.0 / turret.fire_rate;
                 } else if distance > turret.range {
                     turret.target = None; // Lost target
@@ -256,7 +256,7 @@ pub fn security_door_system(
         if !device_state.operational || !device_state.powered {
             door.locked = false;
         }
-        
+
         // Update physics collider based on door state
         if door.locked {
             *collider = bevy_rapier2d::prelude::Collider::cuboid(4.0, 16.0); // Solid
@@ -273,7 +273,7 @@ pub fn setup_district_power_grid(
     center: Vec2,
 ) {
     let network_id = "district_main".to_string();
-    
+
     // Main power station
     spawn_power_station(
         commands,
@@ -281,7 +281,7 @@ pub fn setup_district_power_grid(
         network_id.clone(),
         &mut power_grid,
     );
-    
+
     // Street lights along main road
     for i in 0..8 {
         let x = center.x - 200.0 + (i as f32 * 50.0);
@@ -292,7 +292,7 @@ pub fn setup_district_power_grid(
             &mut power_grid,
         );
     }
-    
+
     // Traffic lights at intersections
     spawn_traffic_light(
         commands,
@@ -306,24 +306,24 @@ pub fn setup_district_power_grid(
         network_id.clone(),
         &mut power_grid,
     );
-    
+
     // Security infrastructure
     let mut power_grid_option = Some(power_grid);
-    
+
     spawn_security_camera(
         commands,
         center + Vec2::new(0.0, 100.0),
         Some(network_id.clone()),
         &mut power_grid_option,
     );
-    
+
     spawn_automated_turret(
         commands,
         center + Vec2::new(150.0, -50.0),
         Some(network_id.clone()),
         &mut power_grid_option,
     );
-    
+
     spawn_security_door(
         commands,
         center + Vec2::new(200.0, 0.0),
@@ -342,18 +342,18 @@ pub fn power_grid_debug_system(
 ) {
     if input.just_pressed(KeyCode::KeyH) {
         *show_power_debug = !*show_power_debug;
-        info!("Power grid debug: {} ({} networks)", 
+        info!("Power grid debug: {} ({} networks)",
               if *show_power_debug { "ON" } else { "OFF" },
               power_grid.networks.len());
     }
-    
+
     if !*show_power_debug { return; }
-    
+
     // Draw power connections
     for (transform, hackable, device_state) in hackable_query.iter() {
         if let Some(network_id) = &hackable.network_id {
             let pos = transform.translation.truncate();
-            
+
             let color = if device_state.powered {
                 if device_state.operational {
                     Color::srgb(0.2, 0.8, 0.2) // Green = powered and working
@@ -363,10 +363,10 @@ pub fn power_grid_debug_system(
             } else {
                 Color::srgb(0.8, 0.2, 0.2) // Red = no power
             };
-            
+
             // Draw power indicator
             gizmos.circle_2d(pos + Vec2::new(0.0, 20.0), 4.0, color);
-            
+
             // Draw network ID (simplified)
             let network_hash = network_id.chars().fold(0u32, |acc, c| acc.wrapping_add(c as u32));
             let network_color = match network_hash % 3 {

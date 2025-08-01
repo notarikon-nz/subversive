@@ -16,7 +16,7 @@ pub fn process_attack_events(
 ) {
     for event in action_events.read() {
         if let Action::Attack(target) = event.action {
-            execute_attack(event.entity, target, &mut commands, &agent_query, &mut agent_weapon_query, 
+            execute_attack(event.entity, target, &mut commands, &agent_query, &mut agent_weapon_query,
                          &target_query, &mut audio_events, &weapon_db);
         }
     }
@@ -41,7 +41,7 @@ pub fn system(
 
     // Handle combat targeting mode - show UI for primary agent
     if let Some(TargetingMode::Combat { agent }) = &game_mode.targeting {
-        handle_combat_targeting(*agent, &mut commands, &input, &agent_query, &mut agent_weapon_query, 
+        handle_combat_targeting(*agent, &mut commands, &input, &agent_query, &mut agent_weapon_query,
                                &target_query, &mut audio_events, &weapon_db, &mut gizmos, &windows, &cameras, &selection);
     }
 }
@@ -63,14 +63,14 @@ fn handle_combat_targeting(
 ) {
     let Ok(action_state) = input.single() else { return; };
     let Ok((primary_transform, primary_inventory)) = agent_query.get(primary_agent) else { return; };
-    
+
     let primary_pos = primary_transform.translation.truncate();
     let range = get_weapon_range(primary_inventory, agent_weapon_query.get(primary_agent).ok());
-    
+
     // Draw targeting UI for primary agent
     gizmos.circle_2d(primary_pos, range, Color::srgba(0.8, 0.2, 0.2, 0.3));
     draw_targets_in_range(gizmos, target_query, primary_pos, range);
-    
+
     // Handle mouse click for target selection - directly execute attacks
     if action_state.just_pressed(&PlayerAction::Move) {
         if let Some(target) = find_target_at_mouse(target_query, primary_pos, range, windows, cameras) {
@@ -99,39 +99,39 @@ fn execute_attack(
     // Get positions first
     let Ok((attacker_transform, inventory)) = agent_query.get(attacker) else { return; };
     let Ok((_, target_transform, _)) = target_query.get(target) else { return; };
-    
+
     let attacker_pos = attacker_transform.translation.truncate();
     let target_pos = target_transform.translation.truncate();
     let distance = attacker_pos.distance(target_pos);
-    
+
     // Get weapon range
     let range = get_weapon_range(inventory, agent_weapon_query.get(attacker).ok());
-    
+
     // If out of range, simply don't attack (no auto-movement)
     if distance > range {
         return;
     }
-    
+
     // Rest of the attack logic remains the same...
     if let Ok(mut weapon_state) = agent_weapon_query.get_mut(attacker) {
         if !weapon_state.can_fire() || !weapon_state.consume_ammo() {
             return;
         }
     }
-    
+
     let weapon_type = inventory.equipped_weapon
         .as_ref()
         .map(|w| w.base_weapon.clone())
         .unwrap_or(WeaponType::Pistol);
-    
+
     let (damage, accuracy, noise) = get_attack_stats(
-        Some((attacker_transform, inventory)), 
+        Some((attacker_transform, inventory)),
         agent_weapon_query.get(attacker).ok(),
         weapon_db
     );
-    
+
     let hit = rand::random::<f32>() < accuracy;
-    
+
     if hit {
         spawn_projectile(
             commands,
@@ -142,10 +142,10 @@ fn execute_attack(
             damage,
             weapon_type.clone(),
         );
-        
-        audio_events.write(AudioEvent { 
-            sound: AudioType::Gunshot, 
-            volume: (0.7 * noise).clamp(0.1, 1.0) 
+
+        audio_events.write(AudioEvent {
+            sound: AudioType::Gunshot,
+            volume: (0.7 * noise).clamp(0.1, 1.0)
         });
     } else {
         // Miss logic
@@ -154,12 +154,12 @@ fn execute_attack(
             (rand::random::<f32>() - 0.5) * 100.0,
         );
         let miss_target_pos = target_pos + miss_offset;
-        
+
         let miss_target = commands.spawn((
             Transform::from_translation(miss_target_pos.extend(0.0)),
             MissTarget,
         )).id();
-        
+
         spawn_projectile(
             commands,
             attacker,
@@ -169,10 +169,10 @@ fn execute_attack(
             0.0,
             weapon_type,
         );
-        
-        audio_events.write(AudioEvent { 
-            sound: AudioType::Gunshot, 
-            volume: (0.5 * noise).clamp(0.1, 1.0) 
+
+        audio_events.write(AudioEvent {
+            sound: AudioType::Gunshot,
+            volume: (0.5 * noise).clamp(0.1, 1.0)
         });
     }
 }
@@ -189,7 +189,7 @@ pub fn cleanup_miss_targets(
     for miss_target in miss_targets.iter() {
         // Check if any projectile is targeting this miss target
         let still_targeted = projectiles.iter().any(|p| p.target == miss_target);
-        
+
         if !still_targeted {
             commands.entity(miss_target).insert(MarkedForDespawn);
         }
@@ -207,19 +207,19 @@ fn get_weapon_range(inventory: &Inventory, weapon_state: Option<&WeaponState>) -
 }
 
 fn get_attack_stats(
-    agent_data: Option<(&Transform, &Inventory)>, 
+    agent_data: Option<(&Transform, &Inventory)>,
     _weapon_state: Option<&WeaponState>,
     weapon_db: &WeaponDatabase,
 ) -> (f32, f32, f32) {
     if let Some((_, inventory)) = agent_data {
         if let Some(weapon_config) = &inventory.equipped_weapon {
             let stats = weapon_config.calculate_total_stats();
-            
+
             // Get base damage from weapon database
             let base_damage = weapon_db.get(&weapon_config.base_weapon)
                 .map(|weapon_data| weapon_data.damage)
                 .unwrap_or(35.0);
-            
+
             let damage = base_damage * (1.0 + stats.accuracy as f32 * 0.02);
             let accuracy = (0.8 + stats.accuracy as f32 * 0.05).clamp(0.1, 0.95);
             let noise = (1.0 + stats.noise as f32 * 0.1).max(0.1);
@@ -252,7 +252,7 @@ fn find_target_at_mouse(
     cameras: &Query<(&Camera, &GlobalTransform)>,
 ) -> Option<Entity> {
     let mouse_pos = get_world_mouse_position(windows, cameras)?;
-    
+
     target_query.iter()
         .filter(|(_, _, health)| health.0 > 0.0)
         .filter(|(_, transform, _)| agent_pos.distance(transform.translation.truncate()) <= range)
@@ -339,42 +339,42 @@ fn execute_enemy_attack(
 ) {
     // Debug output
     // println!("Enemy {:?} executing attack on agent {:?}. Ammo: {}/{}", attacker, target, weapon_state.current_ammo, weapon_state.max_ammo);
-    
+
     // Validate and consume ammo
     if !weapon_state.can_fire() {
         // println!("Enemy {:?} cannot fire - no ammo", attacker);
         return;
     }
-    
+
     if !weapon_state.consume_ammo() {
         // println!("Enemy {:?} failed to consume ammo", attacker);
         return;
     }
-    
+
     // Get positions
-    let Ok((_, target_transform, _)) = target_query.get(target) else { 
+    let Ok((_, target_transform, _)) = target_query.get(target) else {
         // println!("Enemy {:?} target {:?} not found in agent query", attacker, target);
-        return; 
+        return;
     };
-    
+
     let attacker_pos = attacker_transform.translation.truncate();
     let target_pos = target_transform.translation.truncate();
-    
+
     // println!("Enemy {:?} firing at agent {:?}! Distance: {:.1}, Remaining ammo: {}", attacker, target, attacker_pos.distance(target_pos), weapon_state.current_ammo);
-    
+
     // Get weapon type and calculate damage
     let weapon_type = inventory.equipped_weapon
         .as_ref()
         .map(|w| w.base_weapon.clone())
         .unwrap_or(WeaponType::Pistol);
-    
+
     let (damage, accuracy, noise) = get_enemy_attack_stats(inventory, weapon_state, weapon_db);
-    
+
     // Check if shot hits (accuracy check)
     let hit = rand::random::<f32>() < accuracy;
-    
+
     // println!("Enemy attack: damage={:.1}, accuracy={:.2}, hit={}", damage, accuracy, hit);
-    
+
     if hit {
         // Spawn projectile that will hit
         spawn_projectile(
@@ -386,13 +386,13 @@ fn execute_enemy_attack(
             damage,
             weapon_type.clone(),
         );
-        
+
         // println!("Enemy {:?} HIT agent {:?} for {:.1} damage", attacker, target, damage);
-        
+
         // Play audio
-        audio_events.write(AudioEvent { 
-            sound: AudioType::Gunshot, 
-            volume: (0.7 * noise).clamp(0.1, 1.0) 
+        audio_events.write(AudioEvent {
+            sound: AudioType::Gunshot,
+            volume: (0.7 * noise).clamp(0.1, 1.0)
         });
     } else {
         // Miss - spawn projectile that goes past target
@@ -401,12 +401,12 @@ fn execute_enemy_attack(
             (rand::random::<f32>() - 0.5) * 80.0,
         );
         let miss_target_pos = target_pos + miss_offset;
-        
+
         let miss_target = commands.spawn((
             Transform::from_translation(miss_target_pos.extend(0.0)),
             MissTarget,
         )).id();
-        
+
         spawn_projectile(
             commands,
             attacker,
@@ -420,9 +420,9 @@ fn execute_enemy_attack(
         // println!("Enemy {:?} MISSED agent {:?}", attacker, target);
 
         // Still play audio for misses
-        audio_events.write(AudioEvent { 
-            sound: AudioType::Gunshot, 
-            volume: (0.5 * noise).clamp(0.1, 1.0) 
+        audio_events.write(AudioEvent {
+            sound: AudioType::Gunshot,
+            volume: (0.5 * noise).clamp(0.1, 1.0)
         });
     }
 }
@@ -434,12 +434,12 @@ fn get_enemy_attack_stats(
 ) -> (f32, f32, f32) {
     if let Some(weapon_config) = &inventory.equipped_weapon {
         let stats = weapon_config.calculate_total_stats();
-        
+
         // Get base damage from weapon database
         let base_damage = weapon_db.get(&weapon_config.base_weapon)
             .map(|weapon_data| weapon_data.damage)
             .unwrap_or(25.0); // Slightly lower than player default
-        
+
         let damage = base_damage * (1.0 + stats.accuracy as f32 * 0.02);
         let accuracy = (0.6 + stats.accuracy as f32 * 0.03).clamp(0.1, 0.85); // Lower than player
         let noise = (1.0 + stats.noise as f32 * 0.1).max(0.1);
@@ -458,7 +458,7 @@ pub fn auto_reload_system(
     game_mode: Res<GameMode>,
 ) {
     if game_mode.paused { return; }
-    
+
     for agent_entity in agent_query.iter() {
         if let Ok(mut weapon_state) = agent_weapon_query.get_mut(agent_entity) {
             // Handle ongoing reload

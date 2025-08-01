@@ -1,0 +1,466 @@
+{
+  "campaign": {
+    "title": "Digital Liberation",
+    "description": "A global campaign to free humanity from corporate control",
+    "total_chapters": 46,
+    "acts": [
+      {
+        "id": 1,
+        "title": "Corporate Foothold",
+        "theme": "Foundation",
+        "description": "Establish your syndicate's presence in the Americas and build the foundation for global operations.",
+        "chapters": [
+          {
+            "id": 1,
+            "city_id": "new_york",
+            "title": "First Strike",
+            "theme": "Tutorial",
+            "story_beat": "Your syndicate makes its first move against the megacorps. New York's financial networks hold the keys to corporate power.",
+            "prerequisites": [],
+            "rewards": {
+              "credits": 5000,
+              "research_unlocks": ["basic_hacking"],
+              "special_equipment": ["scanner_mk1"]
+            }
+          },
+          {
+            "id": 2,
+            "city_id": "chicago",
+            "title": "Industrial Might",
+            "theme": "Corporate",
+            "story_beat": "Chicago's industrial complex and Aegis Corporation's manufacturing base. Secure heavy weapons production.",
+            "prerequisites": ["new_york"],
+            "rewards": {
+              "credits": 6000,
+              "research_unlocks": ["heavy_weapons"],
+              "special_equipment": ["assault_rifle"]
+            }
+          },
+          {
+            "id": 3,
+            "city_id": "toronto",
+            "title": "Northern Expansion",
+            "theme": "Corporate",
+            "story_beat": "Expand into Canada's financial sector. Nexus Corporation's northern operations are vulnerable.",
+            "prerequisites": ["new_york"],
+            "rewards": {
+              "credits": 6500,
+              "research_unlocks": ["financial_warfare"],
+              "special_equipment": ["encryption_module"]
+            }
+          },
+          {
+            "id": 4,
+            "city_id": "miami",
+            "title": "Gateway Drugs",
+            "theme": "Underground",
+            "story_beat": "Miami's drug cartels control the Caribbean supply routes. Form alliances or eliminate competition.",
+            "prerequisites": ["new_york"],
+            "rewards": {
+              "credits": 7000,
+              "research_unlocks": ["black_market_contacts"],
+              "special_equipment": ["stealth_gear"]
+            }
+          },
+          {
+            "id": 5,
+            "city_id": "los_angeles",
+            "title": "Hollywood Hackers",
+            "theme": "Technology",
+            "story_beat": "LA's entertainment industry masks serious cyber-crime operations. Infiltrate the digital underworld.",
+            "prerequisites": ["chicago"],
+            "rewards": {
+              "credits": 7500,
+              "research_unlocks": ["media_manipulation"],
+              "special_equipment": ["hacking_suite"]
+            }
+          },
+          {
+            "id": 6,
+            "city_id": "mexico_city",
+            "title": "Cartel Politics",
+            "theme": "Underground",
+            "story_beat": "Navigate Mexico City's complex cartel politics. The Syndicate's stronghold won't fall easily.",
+            "prerequisites": ["miami", "los_angeles"],
+            "rewards": {
+              "credits": 8000,
+              "research_unlocks": ["guerrilla_tactics"],
+              "special_equipment": ["explosive_kit"]
+            }
+          },
+          {
+            "id": 7,
+            "city_id": "sao_paulo",
+            "title": "South American Media",
+            "theme": "Revolution",
+            "story_beat": "Control São Paulo's massive media infrastructure. Broadcast your message across South America.",
+            "prerequisites": ["mexico_city"],
+            "rewards": {
+              "credits": 8500,
+              "research_unlocks": ["propaganda_networks"],
+              "special_equipment": ["broadcast_jammer"]
+            }
+          },
+          {
+            "id": 8,
+            "city_id": "bogota",
+            "title": "Mountain Fortress",
+            "theme": "Underground",
+            "story_beat": "Bogotá's high-altitude location and civil unrest make it a perfect revolutionary stronghold.",
+            "prerequisites": ["sao_paulo"],
+            "rewards": {
+              "credits": 9000,
+              "research_unlocks": ["mountain_warfare"],
+              "special_equipment": ["tactical_gear"]
+            }
+          }
+        ],
+        "act_requirements": {
+          "min_territories": 0,
+          "min_daily_income": 0,
+          "required_research": [],
+          "previous_act_completion": false
+        }
+      },
+      {
+        "id": 2,
+        "title": "Old World Networks",
+        "theme": "Foundation",
+        "description": "Infiltrate Europe's ancient power structures and established corporate hierarchies.",
+        "chapters": [
+          {
+            "id": 9,
+            "city_id": "london",
+            "title": "Eyes Everywhere",
+            "theme": "Surveillance",
+            "story_beat": "London's omnipresent surveillance network. Turn their own cameras against them.",
+            "prerequisites": ["new_york", "toronto"],
+            "rewards": {
+              "credits": 10000,
+              "research_unlocks": ["surveillance_hacking"],
+              "special_equipment": ["camera_disruptor"]
+            }
+          },
+          {
+            "id": 10,
+            "city_id": "paris",
+            "title": "Revolution Rising",
+            "theme": "Revolution",
+            "story_beat": "Paris knows revolution. Organize the first major anti-corporate uprising since the old days.",
+            "prerequisites": ["london"],
+            "rewards": {
+              "credits": 11000,
+              "research_unlocks": ["mass_coordination"],
+              "special_equipment": ["riot_control_gear"]
+            }
+          },
+          {
+            "id": 11,
+            "city_id": "berlin",
+            "title": "Underground Networks",
+            "theme": "Underground",
+            "story_beat": "Berlin's underground scenes hide the continent's most dangerous hackers and black market dealers.",
+            "prerequisites": ["london", "paris"],
+            "rewards": {
+              "credits": 12000,
+              "research_unlocks": ["underground_networks"],
+              "special_equipment": ["tunnel_scanner"]
+            }
+          },
+          {
+            "id": 12,
+            "city_id": "amsterdam",
+            "title": "Financial Haven",
+            "theme": "Corporate",
+            "story_beat": "Amsterdam's banking sector launders money for half the world's criminal organizations.",
+            "prerequisites": ["london"],
+            "rewards": {
+              "credits": 12500,
+              "research_unlocks": ["money_laundering"],
+              "special_equipment": ["financial_virus"]
+            }
+          },
+          {
+            "id": 13,
+            "city_id": "rome",
+            "title": "Ancient Corruption",
+            "theme": "Underground",
+            "story_beat": "Rome's ancient corruption networks run deeper than you imagine. Helix Corporation has deep roots here.",
+            "prerequisites": ["paris"],
+            "rewards": {
+              "credits": 13000,
+              "research_unlocks": ["ancient_networks"],
+              "special_equipment": ["archaeological_scanner"]
+            }
+          },
+          {
+            "id": 14,
+            "city_id": "moscow",
+            "title": "Bear's Den",
+            "theme": "Technology",
+            "story_beat": "Moscow's military-industrial complex controls weapons that could change the war's balance.",
+            "prerequisites": ["berlin"],
+            "rewards": {
+              "credits": 14000,
+              "research_unlocks": ["military_tech"],
+              "special_equipment": ["plasma_rifle"]
+            }
+          },
+          {
+            "id": 15,
+            "city_id": "istanbul",
+            "title": "Bridge Between Worlds",
+            "theme": "Underground",
+            "story_beat": "Istanbul connects Europe to Asia. Control this hub, control the flow of information and contraband.",
+            "prerequisites": ["moscow"],
+            "rewards": {
+              "credits": 15000,
+              "research_unlocks": ["intercontinental_networks"],
+              "special_equipment": ["satellite_uplink"]
+            }
+          },
+          {
+            "id": 16,
+            "city_id": "stockholm",
+            "title": "Nordic Model",
+            "theme": "Surveillance",
+            "story_beat": "Stockholm's advanced surveillance state is the model other cities want to copy. Break it first.",
+            "prerequisites": ["amsterdam"],
+            "rewards": {
+              "credits": 16000,
+              "research_unlocks": ["surveillance_immunity"],
+              "special_equipment": ["stealth_suit_mk2"]
+            }
+          }
+        ],
+        "act_requirements": {
+          "min_territories": 4,
+          "min_daily_income": 15000,
+          "required_research": ["basic_hacking", "surveillance_hacking"],
+          "previous_act_completion": true
+        }
+      },
+      {
+        "id": 3,
+        "title": "Digital Dragons",
+        "theme": "Expansion",
+        "description": "Challenge the tech giants in their home territory. Asia's megacities hold the future of human consciousness.",
+        "chapters": [
+          {
+            "id": 17,
+            "city_id": "tokyo",
+            "title": "Silicon Shadows",
+            "theme": "Technology",
+            "story_beat": "Nexus Corporation's Tokyo headquarters houses their experimental AI research. The neural interface prototypes could give your agents superhuman capabilities.",
+            "prerequisites": ["istanbul"],
+            "rewards": {
+              "credits": 18000,
+              "research_unlocks": ["neural_interface", "ai_research"],
+              "special_equipment": ["neural_headset"]
+            }
+          },
+          {
+            "id": 18,
+            "city_id": "seoul",
+            "title": "K-Pop Resistance",
+            "theme": "Technology",
+            "story_beat": "Seoul's youth culture masks a sophisticated cyber-resistance movement. They've been waiting for someone like you.",
+            "prerequisites": ["tokyo"],
+            "rewards": {
+              "credits": 19000,
+              "research_unlocks": ["youth_networks"],
+              "special_equipment": ["social_media_virus"]
+            }
+          },
+          {
+            "id": 19,
+            "city_id": "shanghai",
+            "title": "Industrial Heart",
+            "theme": "Corporate",
+            "story_beat": "Shanghai's massive industrial output feeds corporate power worldwide. Sabotage the supply chains.",
+            "prerequisites": ["tokyo"],
+            "rewards": {
+              "credits": 20000,
+              "research_unlocks": ["supply_chain_warfare"],
+              "special_equipment": ["industrial_virus"]
+            }
+          },
+          {
+            "id": 20,
+            "city_id": "hong_kong",
+            "title": "Financial Fortress",
+            "theme": "Corporate",
+            "story_beat": "Hong Kong's financial networks process corporate transactions globally. Take control of the money flow.",
+            "prerequisites": ["shanghai"],
+            "rewards": {
+              "credits": 22000,
+              "research_unlocks": ["global_finance_hacking"],
+              "special_equipment": ["quantum_processor"]
+            }
+          },
+          {
+            "id": 21,
+            "city_id": "singapore",
+            "title": "Data Fortress",
+            "theme": "Technology",
+            "story_beat": "Singapore's status as Asia's data hub makes it perfect for a massive cyber-warfare campaign.",
+            "prerequisites": ["hong_kong"],
+            "rewards": {
+              "credits": 24000,
+              "research_unlocks": ["data_warfare"],
+              "special_equipment": ["data_bomb"]
+            }
+          },
+          {
+            "id": 22,
+            "city_id": "bangkok",
+            "title": "Golden Triangle",
+            "theme": "Underground",
+            "story_beat": "Bangkok sits at the center of Southeast Asia's criminal networks. The Syndicate's influence runs deep here.",
+            "prerequisites": ["singapore"],
+            "rewards": {
+              "credits": 25000,
+              "research_unlocks": ["criminal_networks"],
+              "special_equipment": ["trafficking_scanner"]
+            }
+          },
+          {
+            "id": 23,
+            "city_id": "manila",
+            "title": "Island Networks",
+            "theme": "Underground",
+            "story_beat": "Manila's island geography creates natural safe havens for resistance operations.",
+            "prerequisites": ["bangkok", "hong_kong"],
+            "rewards": {
+              "credits": 26000,
+              "research_unlocks": ["island_operations"],
+              "special_equipment": ["boat_stealth_system"]
+            }
+          },
+          {
+            "id": 24,
+            "city_id": "jakarta",
+            "title": "Archipelago Rebellion",
+            "theme": "Revolution",
+            "story_beat": "Indonesia's thousands of islands could hide a revolutionary army. If you can unite them.",
+            "prerequisites": ["singapore", "manila"],
+            "rewards": {
+              "credits": 28000,
+              "research_unlocks": ["archipelago_coordination"],
+              "special_equipment": ["island_communication_array"]
+            }
+          },
+          {
+            "id": 25,
+            "city_id": "mumbai",
+            "title": "Bollywood Dreams",
+            "theme": "Revolution",
+            "story_beat": "Mumbai's entertainment industry influences a billion minds. Control the narrative, control the people.",
+            "prerequisites": ["singapore"],
+            "rewards": {
+              "credits": 30000,
+              "research_unlocks": ["mass_media_control"],
+              "special_equipment": ["entertainment_virus"]
+            }
+          },
+          {
+            "id": 26,
+            "city_id": "delhi",
+            "title": "Seat of Power",
+            "theme": "Corporate",
+            "story_beat": "Delhi's government connections to Omnicorp run deeper than anyone realizes. Expose the corruption.",
+            "prerequisites": ["mumbai"],
+            "rewards": {
+              "credits": 32000,
+              "research_unlocks": ["government_infiltration"],
+              "special_equipment": ["political_blackmail_kit"]
+            }
+          },
+          {
+            "id": 27,
+            "city_id": "karachi",
+            "title": "Port of Storms",
+            "theme": "Underground",
+            "story_beat": "Karachi's chaotic port districts hide weapons shipments that could arm a revolution.",
+            "prerequisites": ["delhi"],
+            "rewards": {
+              "credits": 34000,
+              "research_unlocks": ["weapons_trafficking"],
+              "special_equipment": ["port_scanner"]
+            }
+          },
+          {
+            "id": 28,
+            "city_id": "dhaka",
+            "title": "River Networks",
+            "theme": "Revolution",
+            "story_beat": "Dhaka's river networks provide hidden transport routes for revolutionary supplies.",
+            "prerequisites": ["karachi"],
+            "rewards": {
+              "credits": 36000,
+              "research_unlocks": ["river_logistics"],
+              "special_equipment": ["river_stealth_boat"]
+            }
+          }
+        ],
+        "act_requirements": {
+          "min_territories": 10,
+          "min_daily_income": 50000,
+          "required_research": ["neural_interface", "advanced_ai"],
+          "previous_act_completion": true
+        }
+      }
+    ],
+    "victory_conditions": {
+      "min_territories_per_region": {
+        "americas": 8,
+        "europe": 8,
+        "asia": 12,
+        "middle_east_africa": 8,
+        "pacific": 4
+      },
+      "total_liberation_threshold": 0.75,
+      "final_corporate_targets": [
+        "tokyo",
+        "new_york", 
+        "london",
+        "shanghai",
+        "dubai"
+      ]
+    }
+  },
+  "regional_campaigns": {
+    "americas": {
+      "region_name": "Americas",
+      "corporate_focus": "Syndicate",
+      "narrative_theme": "Establishing the foundation of resistance in corporate heartland",
+      "key_cities": ["new_york", "chicago", "los_angeles", "mexico_city", "sao_paulo", "bogota", "toronto", "miami"],
+      "regional_objectives": [
+        {
+          "objective_type": "EstablishBeachhead",
+          "target_cities": ["new_york"],
+          "description": "Establish first foothold in corporate financial networks",
+          "rewards": {
+            "credits": 5000,
+            "research_unlocks": [],
+            "special_equipment": []
+          }
+        }
+      ]
+    },
+    "europe": {
+      "region_name": "Europe", 
+      "corporate_focus": "Nexus",
+      "narrative_theme": "Breaking ancient power structures and surveillance states",
+      "key_cities": ["london", "paris", "berlin", "amsterdam", "rome", "moscow", "istanbul", "stockholm"],
+      "regional_objectives": []
+    },
+    "asia": {
+      "region_name": "Asia",
+      "corporate_focus": "Omnicorp", 
+      "narrative_theme": "Challenging tech giants and breaking manufacturing chains",
+      "key_cities": ["tokyo", "shanghai", "hong_kong", "seoul", "singapore", "bangkok", "manila", "jakarta", "mumbai", "delhi", "karachi", "dhaka"],
+      "regional_objectives": []
+    }
+  }
+}

@@ -331,15 +331,15 @@ pub fn access_control_system(
             if let Ok((gate_entity, mut gate, gate_transform, access_reader)) = gate_query.get_mut(target) {
                 if let Ok((agent_transform, inventory)) = agent_query.get(event.entity) {
                     let result = check_access(inventory, access_reader);
-                    
+
                     if matches!(result, AccessResult::Granted) {
                         gate.is_open = !gate.is_open;
-                        gate_events.write(GateStateChange { 
-                            gate: gate_entity, 
-                            opened: gate.is_open 
+                        gate_events.write(GateStateChange {
+                            gate: gate_entity,
+                            opened: gate.is_open
                         });
                     }
-                    
+
                     access_events.write(AccessEvent {
                         entity: gate_entity,
                         agent: event.entity,
@@ -347,20 +347,20 @@ pub fn access_control_system(
                     });
                 }
             }
-            
+
             // Check if target is a door
             if let Ok((door_entity, mut door, door_transform, access_reader)) = door_query.get_mut(target) {
                 if let Ok((agent_transform, inventory)) = agent_query.get(event.entity) {
                     let result = check_access(inventory, access_reader);
-                    
+
                     if matches!(result, AccessResult::Granted) {
                         door.is_open = !door.is_open;
-                        door_events.write(DoorStateChange { 
-                            door: door_entity, 
-                            opened: door.is_open 
+                        door_events.write(DoorStateChange {
+                            door: door_entity,
+                            opened: door.is_open
                         });
                     }
-                    
+
                     access_events.write(AccessEvent {
                         entity: door_entity,
                         agent: event.entity,
@@ -384,7 +384,7 @@ pub fn gate_door_audio_system(
             volume: 0.4,
         });
     }
-    
+
     for event in door_events.read() {
         audio_events.write(AudioEvent {
             sound: if event.opened { AudioType::TerminalAccess } else { AudioType::Alert },
@@ -411,7 +411,7 @@ pub fn gate_door_visual_system(
             *collider = Collider::cuboid(4.0, 30.0); // Solid barrier
         }
     }
-    
+
     // Update door visuals and physics
     for (door, mut sprite, mut collider) in door_query.iter_mut() {
         if door.is_open {
@@ -454,11 +454,11 @@ pub fn access_control_prompts(
             for (entity, transform, gate, access_reader) in gate_query.iter() {
                 let gate_pos = transform.translation.truncate();
                 let distance = agent_pos.distance(gate_pos);
-                
+
                 if distance <= 50.0 {
                     let prompt_pos = gate_pos + Vec2::new(0.0, 35.0);
                     let access_result = check_access(inventory, access_reader);
-                    
+
                     spawn_access_prompt(
                         &mut commands,
                         &interaction_sprites,
@@ -474,11 +474,11 @@ pub fn access_control_prompts(
             for (entity, transform, door, access_reader) in door_query.iter() {
                 let door_pos = transform.translation.truncate();
                 let distance = agent_pos.distance(door_pos);
-                
+
                 if distance <= 30.0 {
                     let prompt_pos = door_pos + Vec2::new(0.0, 20.0);
                     let access_result = check_access(inventory, access_reader);
-                    
+
                     spawn_access_prompt(
                         &mut commands,
                         &interaction_sprites,
@@ -499,12 +499,12 @@ fn check_access(inventory: &Inventory, access_reader: Option<&AccessReader>) -> 
         if !reader.active {
             return AccessResult::Denied;
         }
-        
+
         // Check for access cards in inventory items (simplified - check if agent has any access card)
         let has_access_card = inventory.items.iter().any(|item| {
             matches!(item, crate::core::components::OriginalInventoryItem::AccessCard { .. })
         });
-        
+
         if has_access_card {
             AccessResult::Granted
         } else if can_hack_access_system(inventory) {
@@ -597,16 +597,16 @@ pub fn setup_secure_facility(
 ) {
     // Main entrance gate (requires vehicle)
     spawn_gate(commands, center + Vec2::new(-100.0, 0.0), true, Some(2));
-    
+
     // Personnel door (requires person + access card)
     spawn_door(commands, center + Vec2::new(-120.0, 0.0), true, Some(1));
-    
+
     // Emergency exit (no access control)
     spawn_door(commands, center + Vec2::new(100.0, 50.0), true, None);
-    
+
     // High security area
     spawn_door(commands, center + Vec2::new(0.0, 80.0), true, Some(3));
-    
+
     // Access cards
     spawn_access_card(commands, center + Vec2::new(-50.0, -20.0), 1, CardType::Basic);
     spawn_access_card(commands, center + Vec2::new(50.0, -20.0), 2, CardType::Security);

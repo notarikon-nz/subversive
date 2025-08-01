@@ -36,13 +36,13 @@ pub fn inventory_system(
 
     // Check for various update triggers
     let mut needs_update = inventory_ui_query.is_empty(); // UI doesn't exist
-    
+
     // Check if selected agent changed
     if inventory_ui_state.last_selected_agent != inventory_state.selected_agent {
         inventory_ui_state.last_selected_agent = inventory_state.selected_agent;
         needs_update = true;
     }
-    
+
     // Check if any agent's inventory changed
     if !changed_inventory_query.is_empty() {
         if let Some(selected) = inventory_state.selected_agent {
@@ -51,7 +51,7 @@ pub fn inventory_system(
             }
         }
     }
-    
+
     // Check if any agent's weapon state changed
     if !changed_weapon_query.is_empty() {
         if let Some(selected) = inventory_state.selected_agent {
@@ -60,30 +60,30 @@ pub fn inventory_system(
             }
         }
     }
-    
+
     // Manual refresh flag
     if inventory_ui_state.needs_refresh {
         needs_update = true;
         inventory_ui_state.needs_refresh = false;
     }
-    
+
     if needs_update {
         // Clean up existing UI
         for entity in inventory_ui_query.iter() {
             commands.entity(entity).insert(MarkedForDespawn);
         }
-        
+
         // Get current agent data
         let agent_data = inventory_state.selected_agent
             .and_then(|agent| agent_query.get(agent).ok());
-        
+
         create_modern_inventory_ui(&mut commands, agent_data);
     }
 }
 
 // Modern Division 2-style inventory UI
 fn create_modern_inventory_ui(
-    commands: &mut Commands, 
+    commands: &mut Commands,
     agent_data: Option<(&Inventory, &WeaponState)>
 ) {
     commands.spawn((
@@ -102,10 +102,10 @@ fn create_modern_inventory_ui(
         ZIndex(100),
         InventoryUI,
     )).with_children(|parent| {
-        
+
         // Header section
         create_inventory_header(parent);
-        
+
         // Main content area
         parent.spawn((
             Node {
@@ -117,7 +117,7 @@ fn create_modern_inventory_ui(
                 ..default()
             },
         )).with_children(|content| {
-            
+
             if let Some((inventory, weapon_state)) = agent_data {
                 create_agent_stats_section(content, inventory);
                 create_weapon_section(content, inventory, weapon_state);
@@ -131,7 +131,7 @@ fn create_modern_inventory_ui(
                 ));
             }
         });
-        
+
         // Footer with controls
         create_inventory_footer(parent);
     });
@@ -151,18 +151,18 @@ fn create_inventory_header(parent: &mut ChildSpawnerCommands) {
     )).with_children(|header| {
         header.spawn((
             Text::new("AGENT INVENTORY"),
-            TextFont { 
-                font_size: 28.0, 
-                ..default() 
+            TextFont {
+                font_size: 28.0,
+                ..default()
             },
             TextColor(Color::srgb(0.9, 0.9, 0.9)),
         ));
-        
+
         header.spawn((
             Text::new("[I] CLOSE"),
-            TextFont { 
-                font_size: 16.0, 
-                ..default() 
+            TextFont {
+                font_size: 16.0,
+                ..default()
             },
             TextColor(Color::srgb(0.6, 0.6, 0.6)),
         ));
@@ -187,13 +187,13 @@ fn create_agent_stats_section(parent: &mut ChildSpawnerCommands, inventory: &Inv
             TextFont { font_size: 18.0, ..default() },
             TextColor(Color::srgb(0.8, 0.8, 0.9)),
         ));
-        
+
         section.spawn((
             Text::new(format!("CREDITS: {}", inventory.currency)),
             TextFont { font_size: 16.0, ..default() },
             TextColor(Color::srgb(0.8, 0.8, 0.2)),
         ));
-        
+
         // Add health, stress, etc. here when available
     });
 }
@@ -216,7 +216,7 @@ fn create_weapon_section(parent: &mut ChildSpawnerCommands, inventory: &Inventor
             TextFont { font_size: 18.0, ..default() },
             TextColor(Color::srgb(0.8, 0.8, 0.9)),
         ));
-        
+
         if let Some(weapon_config) = &inventory.equipped_weapon {
             // Weapon name and type
             section.spawn((
@@ -224,42 +224,42 @@ fn create_weapon_section(parent: &mut ChildSpawnerCommands, inventory: &Inventor
                 TextFont { font_size: 16.0, ..default() },
                 TextColor(Color::srgb(0.9, 0.7, 0.3)),
             ));
-            
+
             // Ammo status with color coding
             let ammo_color = match weapon_state.current_ammo {
                 0 => Color::srgb(0.8, 0.2, 0.2),
                 n if n <= weapon_state.max_ammo / 4 => Color::srgb(0.8, 0.6, 0.2),
                 _ => Color::srgb(0.2, 0.8, 0.2),
             };
-            
+
             let reload_text = if weapon_state.is_reloading {
                 format!(" (Reloading: {:.1}s)", weapon_state.reload_timer)
             } else {
                 String::new()
             };
-            
+
             section.spawn((
-                Text::new(format!("AMMO: {}/{}{}", 
-                    weapon_state.current_ammo, 
+                Text::new(format!("AMMO: {}/{}{}",
+                    weapon_state.current_ammo,
                     weapon_state.max_ammo,
                     reload_text
                 )),
                 TextFont { font_size: 14.0, ..default() },
                 TextColor(ammo_color),
             ));
-            
+
             // Weapon stats
             let stats = weapon_config.stats();
             if stats.accuracy != 0 || stats.range != 0 || stats.noise != 0 {
                 section.spawn((
-                    Text::new(format!("MODS: Accuracy{:+} Range{:+} Noise{:+}", 
+                    Text::new(format!("MODS: Accuracy{:+} Range{:+} Noise{:+}",
                         stats.accuracy, stats.range, stats.noise
                     )),
                     TextFont { font_size: 12.0, ..default() },
                     TextColor(Color::srgb(0.6, 0.8, 0.6)),
                 ));
             }
-            
+
             // Attachments list
             if !weapon_config.attachments.is_empty() {
                 for (slot, attachment) in &weapon_config.attachments {
@@ -304,7 +304,7 @@ fn create_equipment_section(parent: &mut ChildSpawnerCommands, inventory: &Inven
             TextFont { font_size: 18.0, ..default() },
             TextColor(Color::srgb(0.8, 0.8, 0.9)),
         ));
-        
+
         if !inventory.equipped_tools.is_empty() {
             for tool in &inventory.equipped_tools {
                 section.spawn((
@@ -320,7 +320,7 @@ fn create_equipment_section(parent: &mut ChildSpawnerCommands, inventory: &Inven
                 TextColor(Color::srgb(0.5, 0.5, 0.5)),
             ));
         }
-        
+
         // Show cybernetics if any
         if !inventory.cybernetics.is_empty() {
             section.spawn((
@@ -328,7 +328,7 @@ fn create_equipment_section(parent: &mut ChildSpawnerCommands, inventory: &Inven
                 TextFont { font_size: 14.0, ..default() },
                 TextColor(Color::srgb(0.6, 0.8, 0.9)),
             ));
-            
+
             for cybernetic in &inventory.cybernetics {
                 // Convert CyberneticType to string representation
                 let cybernetic_name = match cybernetic {
@@ -340,7 +340,7 @@ fn create_equipment_section(parent: &mut ChildSpawnerCommands, inventory: &Inven
                     CyberneticType::ArmorPlating => "Armor Plating",
                     CyberneticType::ReflexEnhancer => "Reflex Enhancer",
                 };
-                
+
                 section.spawn((
                     Text::new(format!("└ {}", cybernetic_name)),
                     TextFont { font_size: 12.0, ..default() },
@@ -369,7 +369,7 @@ fn create_consumables_section(parent: &mut ChildSpawnerCommands, inventory: &Inv
             TextFont { font_size: 18.0, ..default() },
             TextColor(Color::srgb(0.8, 0.8, 0.9)),
         ));
-        
+
         // Show collected intel if inventory has intel field
         // For now, show placeholder since intel field doesn't exist
         section.spawn((
@@ -377,19 +377,19 @@ fn create_consumables_section(parent: &mut ChildSpawnerCommands, inventory: &Inv
             TextFont { font_size: 14.0, ..default() },
             TextColor(Color::srgb(0.8, 0.8, 0.6)),
         ));
-        
+
         section.spawn((
             Text::new("📊 Corporate Files: 1"),
             TextFont { font_size: 14.0, ..default() },
             TextColor(Color::srgb(0.8, 0.8, 0.6)),
         ));
-        
+
         section.spawn((
             Text::new("🔍 Mission Intel: Available"),
             TextFont { font_size: 14.0, ..default() },
             TextColor(Color::srgb(0.6, 0.8, 0.8)),
         ));
-        
+
         // Note: Once intel field is added to Inventory, replace above with:
         // if inventory.intel.len() > 0 {
         //     for intel_item in &inventory.intel {
@@ -419,7 +419,7 @@ fn create_inventory_footer(parent: &mut ChildSpawnerCommands) {
             TextFont { font_size: 14.0, ..default() },
             TextColor(Color::srgb(0.7, 0.7, 0.7)),
         ));
-        
+
         footer.spawn((
             Text::new("[I] Close • [R] Reload • [TAB] Next Agent • [M] Manufacture"),
             TextFont { font_size: 12.0, ..default() },

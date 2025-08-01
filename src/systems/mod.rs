@@ -82,11 +82,13 @@ pub use spawners::*;
 pub use tilemap::*;
 pub use isometric_camera::*;
 
+// 0.2.17
+pub mod territory_events;
+pub use territory_events::*;
 
 pub use minimap::*;
 pub use message_window::*;
 pub use urban_simulation::*;
-pub use panic_spread::*;
 pub use enhanced_neurovector::*;
 pub use civilian_spawn::*;
 pub use npc_barks::*;

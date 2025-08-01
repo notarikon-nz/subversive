@@ -111,12 +111,12 @@ impl Default for CombatTextSettings {
 
 // === MAIN EXPLOSION API ===
 /// Spawn an explosion at the given position
-/// 
+///
 /// # Examples
 /// ```
 /// // Basic explosion
 /// spawn_explosion(&mut commands, Vec2::new(100.0, 50.0), 50.0, 75.0, ExplosionType::Grenade);
-/// 
+///
 /// // Vehicle explosion (larger radius and damage)
 /// spawn_explosion(&mut commands, vehicle_pos, 80.0, 120.0, ExplosionType::Vehicle);
 /// ```
@@ -151,7 +151,7 @@ pub fn spawn_explosion(
 }
 
 /// Spawn an object that can explode when damaged or triggered by nearby explosions
-/// 
+///
 /// # Example
 /// ```
 /// spawn_explodable(&mut commands, position, ExplodableType::FuelBarrel);
@@ -193,7 +193,7 @@ pub fn spawn_explodable(
             }
         ),
     };
-    
+
     commands.spawn((
         Sprite {
             color,
@@ -234,25 +234,25 @@ pub fn explosion_damage_system(
             ExplosionType::TimeBomb => 2.5,
             ExplosionType::Cascading => 1.5,
         };
-        
+
         explosion.duration -= time.delta_secs();
-        
+
         if is_new {
             let explosion_pos = explosion_transform.translation.truncate();
-            
+
             // Damage entities
             for (entity, target_transform, mut health) in damageable_query.iter_mut() {
                 let target_pos = target_transform.translation.truncate();
                 let distance = explosion_pos.distance(target_pos);
-                
+
                 if distance <= explosion.radius {
                     let damage_factor = (1.0 - (distance / explosion.radius)).max(0.1);
                     let damage = explosion.damage * damage_factor;
-                    
+
                     health.0 = (health.0 - damage).max(0.0);
-                    
+
                     // Apply fire effect for some explosions
-                    if matches!(explosion.explosion_type, ExplosionType::Vehicle | ExplosionType::TimeBomb) 
+                    if matches!(explosion.explosion_type, ExplosionType::Vehicle | ExplosionType::TimeBomb)
                        && damage > 20.0 && rand::random::<f32>() < 0.3 {
                         commands.entity(entity).insert(StatusEffect {
                             effect_type: StatusType::Fire,
@@ -262,7 +262,7 @@ pub fn explosion_damage_system(
                             tick_rate: 1.0,
                         });
                     }
-                    
+
                     if combat_text_settings.enabled {
                         spawn_damage_text(&mut commands, target_pos, damage, &combat_text_settings);
                     }
@@ -271,12 +271,12 @@ pub fn explosion_damage_system(
                     // add_explosion_decal(&mut commands, target_pos, explosion.radius, &decal_settings);
                 }
             }
-            
+
             // Chain reactions
             for (explodable_entity, explodable_transform, explodable) in explodable_query.iter() {
                 let explodable_pos = explodable_transform.translation.truncate();
                 let distance = explosion_pos.distance(explodable_pos);
-                
+
                 if distance <= explodable.chain_radius {
                     commands.entity(explodable_entity).insert(PendingExplosion {
                         timer: explodable.delay,
@@ -286,13 +286,13 @@ pub fn explosion_damage_system(
                     });
                 }
             }
-            
+
             audio_events.write(AudioEvent {
                 sound: AudioType::Alert,
                 volume: 1.0,
             });
         }
-        
+
         if explosion.duration <= 0.0 {
             commands.entity(explosion_entity).insert(MarkedForDespawn);
         }
@@ -310,9 +310,9 @@ pub fn time_bomb_system(
 
     for (entity, mut bomb, transform) in bomb_query.iter_mut() {
         if !bomb.armed { continue; }
-        
+
         bomb.timer -= time.delta_secs();
-        
+
         if bomb.timer <= 0.0 {
             spawn_explosion(
                 &mut commands,
@@ -337,10 +337,10 @@ pub fn pending_explosion_system(
 
     for (entity, mut pending, transform, explodable) in pending_query.iter_mut() {
         pending.timer -= time.delta_secs();
-        
+
         if pending.timer <= 0.0 {
             let pos = transform.translation.truncate();
-            
+
             // Spawn the actual explosion
             spawn_explosion(
                 &mut commands,
@@ -349,7 +349,7 @@ pub fn pending_explosion_system(
                 pending.damage,
                 pending.explosion_type.clone(),
             );
-            
+
             // Clean up the entity
             if explodable.is_some() {
                 // This was an explodable object, remove it entirely
@@ -375,12 +375,12 @@ pub fn status_effect_system(
     for (entity, mut status, mut health, transform) in affected_query.iter_mut() {
         status.duration -= time.delta_secs();
         status.tick_timer -= time.delta_secs();
-        
+
         if status.tick_timer <= 0.0 {
             match status.effect_type {
                 StatusType::Fire => {
                     health.0 = (health.0 - status.intensity).max(0.0);
-                    
+
                     if combat_text_settings.enabled {
                         spawn_fire_text(&mut commands, transform.translation.truncate(), status.intensity);
                     }
@@ -391,7 +391,7 @@ pub fn status_effect_system(
             }
             status.tick_timer = status.tick_rate;
         }
-        
+
         if status.duration <= 0.0 {
             commands.entity(entity).remove::<StatusEffect>();
         }
@@ -409,7 +409,7 @@ pub fn floating_text_system(
 
     for (entity, mut transform, mut floating_text, mut text_color) in text_query.iter_mut() {
         floating_text.lifetime -= time.delta_secs();
-        
+
         if floating_text.lifetime <= 0.0 {
             commands.entity(entity).insert(MarkedForDespawn);
         } else {
@@ -451,7 +451,7 @@ pub fn handle_vehicle_explosions(
             vehicle.explosion_damage(),
             ExplosionType::Vehicle,
         );
-        
+
         commands.entity(entity).insert(MarkedForDespawn);
     }
 }
@@ -509,7 +509,7 @@ pub fn explosion_road_blocking_system(
     for explosion in explosion_events.read() {
         // Block roads near explosions
         mark_road_blocked(&mut traffic_system, explosion.target_pos, explosion.explosion_radius);
-        
+
         // Roads should clear after some time (need to add a timer system for this)
     }
 }

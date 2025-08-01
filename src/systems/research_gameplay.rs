@@ -43,18 +43,18 @@ fn handle_scientist_interaction(
         info!("Discovered scientist: {:?} ({:?})", scientist.name, scientist.specialization);
         return;
     }
-    
+
     if scientist.is_recruited {
         info!("{} is already working for you", scientist.name);
         return;
     }
-    
+
     // Reduce recruitment difficulty through conversation
     if npc.recruitment_difficulty > 0 {
         npc.recruitment_difficulty -= 1;
         scientist.loyalty += 0.1; // Talking increases loyalty
-        
-        info!("Building rapport with {}... (difficulty: {})", 
+
+        info!("Building rapport with {}... (difficulty: {})",
               scientist.name, npc.recruitment_difficulty);
     }
 }
@@ -67,14 +67,14 @@ fn attempt_scientist_recruitment(
     if scientist.is_recruited {
         return;
     }
-    
+
     let total_cost = scientist.recruitment_cost + (npc.recruitment_difficulty * 500);
-    
+
     if global_data.credits >= total_cost && npc.recruitment_difficulty == 0 {
         global_data.credits -= total_cost;
         scientist.is_recruited = true;
         scientist.loyalty = 0.8; // Start with good loyalty
-        
+
         info!("Successfully recruited {} for ${}", scientist.name, total_cost);
     } else if global_data.credits < total_cost {
         info!("Not enough credits to recruit {} (need ${})", scientist.name, total_cost);
@@ -92,7 +92,7 @@ fn force_recruit_scientist(
         scientist.is_recruited = true;
         scientist.loyalty = 0.2; // Very low loyalty when kidnapped
         npc.recruitment_difficulty = 0;
-        
+
         info!("Forcibly recruited {} through neurovector control", scientist.name);
     }
 }
@@ -116,25 +116,25 @@ fn handle_facility_hack(
     research_progress: &mut ResearchProgress,
     global_data: &mut GlobalData,
 ) {
-    info!("Successfully hacked {:?} research facility (Level {})", 
+    info!("Successfully hacked {:?} research facility (Level {})",
           facility.owning_faction, facility.security_level);
-    
+
     // Steal research data
     for project_id in &facility.available_data {
         let stolen_amount = facility.data_quality * (0.2 + rand::random::<f32>() * 0.3);
         let current = research_progress.stolen_data.get(project_id).unwrap_or(&0.0);
         let new_total = (current + stolen_amount).min(1.0);
-        
+
         research_progress.stolen_data.insert(project_id.clone(), new_total);
-        
-        info!("Acquired research data for '{}': {:.0}% complete", 
+
+        info!("Acquired research data for '{}': {:.0}% complete",
               project_id, new_total * 100.0);
     }
-    
+
     // Bonus credits from industrial espionage
     let bonus_credits = facility.security_level * 200;
     global_data.credits += bonus_credits;
-    
+
     info!("Industrial espionage bonus: ${}", bonus_credits);
 }
 
@@ -152,22 +152,22 @@ pub fn scientist_loyalty_system(
         return;
     }
     *last_day = global_data.current_day;
-    
+
     for mut scientist in scientist_query.iter_mut() {
         if !scientist.is_recruited {
             continue;
         }
-        
+
         // Base loyalty decay
         scientist.loyalty -= 0.01;
-        
+
         // Loyalty effects based on salary payment ability
         if global_data.credits >= scientist.daily_salary {
             scientist.loyalty += 0.02; // Paid on time = loyalty boost
         } else {
             scientist.loyalty -= 0.05; // Can't pay = big loyalty hit
         }
-        
+
         // Random events
         if rand::random::<f32>() < 0.1 {
             match rand::random::<f32>() {
@@ -185,10 +185,10 @@ pub fn scientist_loyalty_system(
                 }
             }
         }
-        
+
         // Clamp loyalty
         scientist.loyalty = scientist.loyalty.clamp(0.0, 1.0);
-        
+
         // Handle defection
         if scientist.loyalty < 0.2 && rand::random::<f32>() < 0.1 {
             scientist.is_recruited = false;
@@ -211,11 +211,11 @@ pub fn research_sabotage_system(
         // PLACEHOLDER
         // let sabotage_chance = global_data.alert_level as f32 / 5.0 * 0.1; // Higher alert = more sabotage
         let sabotage_chance = 5.0 * 0.1; // Higher alert = more sabotage
-        
+
         if rand::random::<f32>() < sabotage_chance && !research_progress.active_queue.is_empty() {
             let target_idx = rand::random::<usize>() % research_progress.active_queue.len();
             let target = &mut research_progress.active_queue[target_idx];
-            
+
             // Sabotage effects
             match rand::random::<f32>() {
                 x if x < 0.4 => {
@@ -248,14 +248,14 @@ pub fn scientist_productivity_system(
         if !scientist.is_recruited || scientist.current_project.is_none() {
             continue;
         }
-        
+
         // Dynamic productivity based on conditions
         let base_productivity = scientist.productivity_bonus;
         let mut current_productivity = base_productivity;
-        
+
         // Loyalty affects productivity
         current_productivity *= 0.5 + (scientist.loyalty * 0.5);
-        
+
         // Working on preferred specialization gives bonus
         if let Some(project_id) = &scientist.current_project {
             if let Some(active) = research_progress.active_queue.iter()
@@ -265,16 +265,16 @@ pub fn scientist_productivity_system(
                 current_productivity *= 1.2; // Assume 20% bonus for now
             }
         }
-        
+
         // Overwork penalty - working multiple projects reduces efficiency
         let projects_assigned = research_progress.active_queue.iter()
             .filter(|a| a.assigned_scientist == Some(Entity::PLACEHOLDER)) // Would need proper entity comparison
             .count();
-        
+
         if projects_assigned > 1 {
             current_productivity *= 0.8_f32.powi(projects_assigned as i32 - 1);
         }
-        
+
         // Update the scientist's effective productivity
         scientist.productivity_bonus = current_productivity;
     }
@@ -290,10 +290,10 @@ pub fn research_facility_security_system(
         // Security level increases over time after successful hacks
         if rand::random::<f32>() < 0.005 { // Small chance each frame
             facility.security_level = (facility.security_level + 1).min(10);
-            info!("Corporate security tightened at research facility (Level {})", 
+            info!("Corporate security tightened at research facility (Level {})",
                   facility.security_level);
         }
-        
+
         // Higher alert levels make facilities more secure
         // Needs to be relative to the city we're in, not global
         // PLACEHOLDER
@@ -311,12 +311,12 @@ pub fn calculate_research_efficiency(
     if research_progress.active_queue.is_empty() {
         return 0.0;
     }
-    
+
     let mut total_efficiency = 0.0;
-    
+
     for active in &research_progress.active_queue {
         let mut project_efficiency = 1.0;
-        
+
         if let Some(scientist_entity) = active.assigned_scientist {
             if let Ok((_, scientist)) = scientist_query.get(scientist_entity) {
                 project_efficiency = scientist.productivity_bonus * scientist.loyalty;
@@ -324,10 +324,10 @@ pub fn calculate_research_efficiency(
         } else {
             project_efficiency = 0.5; // No scientist = half speed
         }
-        
+
         total_efficiency += project_efficiency;
     }
-    
+
     total_efficiency / research_progress.active_queue.len() as f32
 }
 

@@ -59,7 +59,7 @@ impl EscalationLevel {
             Self::Military | Self::Corporate => Self::Corporate,
         }
     }
-    
+
     pub fn prev(self) -> Self {
         match self {
             Self::None | Self::Patrol => Self::None,
@@ -69,7 +69,7 @@ impl EscalationLevel {
             Self::Corporate => Self::Military,
         }
     }
-    
+
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::None => "None",
@@ -80,7 +80,7 @@ impl EscalationLevel {
             Self::Corporate => "Corporate",
         }
     }
-    
+
     pub fn get_config<'a>(&self, config: &'a PoliceConfig) -> &'a LevelConfig {
         config.escalation_levels.get(self.as_str())
             .expect("Missing escalation level config")
@@ -164,7 +164,7 @@ impl IncidentType {
             Self::MassHysteria => "MassHysteria",
         }
     }
-    
+
     fn heat_value(&self, config: &PoliceConfig) -> f32 {
         config.incident_heat_values.get(self.as_str())
             .copied()
@@ -185,22 +185,22 @@ impl PoliceEscalation {
         self.incident_count += 1;
         self.heat_level += incident_type.heat_value(config) * severity;
         self.escalation_timer = config.escalation_check_delay;
-        
+
         //info!("Police incident: {:?} | Heat: {:.1} | Level: {:?}", incident_type, self.heat_level, self.current_level);
     }
-    
+
     fn should_escalate(&self, config: &PoliceConfig) -> bool {
-        self.escalation_cooldown <= 0.0 && 
+        self.escalation_cooldown <= 0.0 &&
         self.heat_level >= self.current_level.get_config(config).heat_threshold
     }
-    
+
     fn escalate(&mut self, config: &PoliceConfig) {
         self.current_level = self.current_level.next();
         let level_config = self.current_level.get_config(config);
         self.spawn_timer = level_config.response_time;
         self.escalation_cooldown = config.escalation_cooldown;
-        
-        info!("POLICE ESCALATION: {:?} | Response in {:.1}s", 
+
+        info!("POLICE ESCALATION: {:?} | Response in {:.1}s",
               self.current_level, self.spawn_timer);
     }
 }
@@ -257,29 +257,29 @@ pub fn police_incident_tracking_system(
     escalation.spawn_timer -= dt;
     escalation.escalation_cooldown -= dt;
     escalation.heat_level = (escalation.heat_level - dt * config.heat_decay_rate).max(0.0);
-    
+
     // Process combat events
     for event in combat_events.read() {
         if !event.hit { continue; }
-        
+
         if let Ok(transform) = civilian_query.get(event.target) {
             escalation.civilian_casualties += 1;
             escalation.add_incident(
-                transform.translation.truncate(), 
+                transform.translation.truncate(),
                 1.0,
                 IncidentType::CivilianKilled,
                 &config
             );
         } else if let Ok(transform) = police_query.get(event.target) {
             escalation.add_incident(
-                transform.translation.truncate(), 
+                transform.translation.truncate(),
                 1.5,
                 IncidentType::PoliceKilled,
                 &config
             );
         }
     }
-    
+
     // Process audio events
     for event in audio_events.read() {
         if matches!(event.sound, AudioType::Gunshot) {
@@ -288,18 +288,18 @@ pub fn police_incident_tracking_system(
             }
         }
     }
-    
+
     // Check mass hysteria
     let panicked_count = urban_civilian_query.iter()
         .filter(|c| matches!(c.daily_state, DailyState::Panicked))
         .count();
-    
+
     if panicked_count >= config.mass_hysteria_threshold && escalation.incident_count % 10 == 0 {
         if let Some(pos) = escalation.last_incident_pos {
             escalation.add_incident(pos, 1.0, IncidentType::MassHysteria, &config);
         }
     }
-    
+
     // Check escalation
     if escalation.escalation_timer <= 0.0 && escalation.should_escalate(&config) {
         escalation.escalate(&config);
@@ -314,33 +314,33 @@ pub fn police_spawn_system(
     config: Res<PoliceConfig>,
 ) {
     if game_mode.paused || escalation.current_level == EscalationLevel::None { return; }
-    
+
     if escalation.spawn_timer <= 0.0 {
         let level_config = escalation.current_level.get_config(&config);
         let spawn_pos = escalation.last_incident_pos.unwrap_or(Vec2::new(400.0, 0.0));
         let current_level = escalation.current_level; // Store before mutable borrow
-        
+
         for i in 0..level_config.count {
             let offset = Vec2::new(
                 (i as f32 - level_config.count as f32 / 2.0) * 40.0,
                 (i % 2) as f32 * 30.0,
             );
-            
+
             let entity = spawn_police_unit(
-                &mut commands, 
-                spawn_pos + Vec2::new(400.0, 0.0) + offset, 
+                &mut commands,
+                spawn_pos + Vec2::new(400.0, 0.0) + offset,
                 current_level,
                 &sprites,
                 &config
             );
-            
+
             escalation.active_units.push(PoliceUnit {
                 entity,
                 unit_type: current_level,
                 spawn_time: 0.0,
             });
         }
-        
+
         escalation.spawn_timer = level_config.spawn_interval;
         info!("Spawned {} {:?} units", level_config.count, current_level);
     }
@@ -349,10 +349,10 @@ pub fn police_spawn_system(
 pub fn generate_patrol_pattern(position: Vec2, unit_type: EscalationLevel, config: &PoliceConfig) -> Vec<Vec2> {
     let pattern_name = config.level_patrol_patterns.get(unit_type.as_str())
         .expect("Missing patrol pattern mapping");
-    
+
     let pattern = config.patrol_patterns.get(pattern_name)
         .expect("Missing patrol pattern");
-    
+
     pattern.iter()
         .map(|(x, y)| position + Vec2::new(*x, *y))
         .collect()
@@ -375,7 +375,7 @@ pub fn police_deescalation_system(
     config: Res<PoliceConfig>,
 ) {
     if game_mode.paused { return; }
-    
+
     // De-escalate conditions
     if escalation.heat_level < 10.0 && escalation.escalation_timer <= -30.0 {
         if escalation.current_level != EscalationLevel::None {
@@ -384,7 +384,7 @@ pub fn police_deescalation_system(
             escalation.escalation_timer = 0.0;
         }
     }
-    
+
     // Extra heat decay when no agents
     if agent_query.is_empty() {
         escalation.heat_level = (escalation.heat_level - time.delta_secs() * 5.0).max(0.0);
@@ -401,7 +401,7 @@ pub fn render_threat_level(
     mut threat_text_query: Query<&mut Text, With<ThreatLevelText>>,
 ) {
     let threat_text = format!("{}", police_escalation.current_level as u32);
-    
+
     if let Ok(mut text) = threat_text_query.single_mut() {
         if police_escalation.is_changed() {
             **text = threat_text;
@@ -427,7 +427,7 @@ pub fn render_threat_level(
 
 impl TryFrom<u8> for EscalationLevel {
     type Error = ();
-    
+
     fn try_from(value: u8) -> std::result::Result<Self, Self::Error> {
         match value {
             0 => Ok(Self::None),

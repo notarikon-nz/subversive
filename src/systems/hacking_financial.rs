@@ -66,17 +66,17 @@ pub fn atm_hacking_system(
         if let Ok(mut atm) = atm_query.get_mut(event.target) {
             if let Ok(mut inventory) = agent_query.get_mut(event.agent) {
                 let withdrawal_amount = calculate_atm_withdrawal(&atm, &inventory, &banking_network);
-                
+
                 if withdrawal_amount > 0 {
                     inventory.add_currency(withdrawal_amount);
                     atm.current_balance = atm.current_balance.saturating_sub(withdrawal_amount);
-                    
+
                     // Success audio
                     audio_events.write(AudioEvent {
                         sound: AudioType::AccessGranted,
                         volume: 0.6,
                     });
-                    
+
                     info!("ATM hack successful! Withdrew ${}", withdrawal_amount);
                 } else {
                     // Failure audio
@@ -84,7 +84,7 @@ pub fn atm_hacking_system(
                         sound: AudioType::AccessDenied,
                         volume: 0.4,
                     });
-                    
+
                     info!("ATM hack failed - no valid account data or insufficient funds");
                 }
             }
@@ -99,20 +99,20 @@ pub fn billboard_influence_system(
     mut persuasion_bonus: Local<f32>,
 ) {
     *persuasion_bonus = 0.0;
-    
+
     // Calculate total billboard influence
     for (billboard_transform, billboard, device_state) in billboard_query.iter() {
         if !billboard.active || !device_state.operational || !device_state.powered {
             continue;
         }
-        
+
         let billboard_pos = billboard_transform.translation.truncate();
-        
+
         // Apply influence to nearby civilians
         for (_, civilian_transform, mut neurovector_target) in civilian_query.iter_mut() {
             let civilian_pos = civilian_transform.translation.truncate();
             let distance = billboard_pos.distance(civilian_pos);
-            
+
             if distance <= billboard.influence_radius {
                 // Closer = stronger influence
                 let influence_strength = 1.0 - (distance / billboard.influence_radius);
@@ -120,7 +120,7 @@ pub fn billboard_influence_system(
             }
         }
     }
-    
+
     // Store bonus for neurovector system to use
     // This would integrate with your existing neurovector system
 }
@@ -141,12 +141,12 @@ pub fn terminal_account_data_system(
                     if rand::random::<f32>() < 0.3 {
                         let account_data = generate_stolen_account_data();
                         banking_network.stolen_accounts.push(account_data.clone());
-                        
+
                         // Add to inventory as intel
-                        inventory.add_intel(format!("Bank Account: {} - ${}", 
-                                                  account_data.account_number, 
+                        inventory.add_intel(format!("Bank Account: {} - ${}",
+                                                  account_data.account_number,
                                                   account_data.balance));
-                        
+
                         info!("Found bank account data: {} (${}) from {}",
                               account_data.account_number,
                               account_data.balance,
@@ -180,12 +180,12 @@ pub fn financial_interaction_prompts(
             for (entity, transform, atm, hackable, device_state) in atm_query.iter() {
                 let atm_pos = transform.translation.truncate();
                 let distance = agent_pos.distance(atm_pos);
-                
+
                 if distance <= 40.0 {
                     let can_hack = check_hack_tool_available(inventory, hackable);
                     let has_account_data = has_valid_account_data(inventory, &banking_network, &atm.bank_id);
                     let is_operational = device_state.powered && device_state.operational;
-                    
+
                     let (prompt_type, color, tooltip) = if hackable.is_hacked {
                         (InteractionType::Unavailable, Color::srgb(0.2, 0.8, 0.2), "ATM Already Hacked")
                     } else if can_hack && is_operational {
@@ -199,9 +199,9 @@ pub fn financial_interaction_prompts(
                     } else {
                         (InteractionType::Unavailable, Color::srgb(0.6, 0.6, 0.2), "ATM Offline")
                     };
-                    
-                    spawn_financial_prompt(&mut commands, &interaction_sprites, 
-                                         atm_pos + Vec2::new(0.0, 30.0), entity, 
+
+                    spawn_financial_prompt(&mut commands, &interaction_sprites,
+                                         atm_pos + Vec2::new(0.0, 30.0), entity,
                                          prompt_type, color, tooltip);
                 }
             }
@@ -210,11 +210,11 @@ pub fn financial_interaction_prompts(
             for (entity, transform, billboard, hackable, device_state) in billboard_query.iter() {
                 let billboard_pos = transform.translation.truncate();
                 let distance = agent_pos.distance(billboard_pos);
-                
+
                 if distance <= 50.0 {
                     let can_hack = check_hack_tool_available(inventory, hackable);
                     let is_operational = device_state.powered && device_state.operational;
-                    
+
                     let (prompt_type, color, tooltip) = if hackable.is_hacked {
                         (InteractionType::Unavailable, Color::srgb(0.2, 0.8, 0.2), "Billboard Hacked")
                     } else if can_hack && is_operational {
@@ -224,7 +224,7 @@ pub fn financial_interaction_prompts(
                     } else {
                         (InteractionType::Unavailable, Color::srgb(0.6, 0.6, 0.2), "Billboard Offline")
                     };
-                    
+
                     spawn_financial_prompt(&mut commands, &interaction_sprites,
                                          billboard_pos + Vec2::new(0.0, 35.0), entity,
                                          prompt_type, color, tooltip);
@@ -243,10 +243,10 @@ pub fn update_financial_minimap(
     camera: Query<&Transform, (With<Camera2d>, Without<ATM>, Without<Billboard>)>,
 ) {
     minimap_dots.clear();
-    
+
     let camera_pos = camera.single().map(|t| t.translation.truncate()).unwrap_or(Vec2::ZERO);
     let range = settings.range;
-    
+
     // Add ATMs (blue like terminals)
     for (entity, transform) in atm_query.iter() {
         let world_pos = transform.translation.truncate();
@@ -256,7 +256,7 @@ pub fn update_financial_minimap(
             }
         }
     }
-    
+
     // Add Billboards (purple)
     for (entity, transform) in billboard_query.iter() {
         let world_pos = transform.translation.truncate();
@@ -274,7 +274,7 @@ fn calculate_atm_withdrawal(atm: &ATM, inventory: &Inventory, banking_network: &
         // Find valid account for this bank
         let valid_account = banking_network.stolen_accounts.iter()
             .find(|account| account.bank_id == atm.bank_id);
-        
+
         if let Some(account) = valid_account {
             let max_withdrawal = atm.max_withdrawal.min(atm.current_balance).min(account.balance);
             // Reduce by 10-20% for "transaction fees" and realism
@@ -299,7 +299,7 @@ fn has_valid_account_data(inventory: &Inventory, banking_network: &BankingNetwor
 fn generate_stolen_account_data() -> StolenAccountData {
     let banks = ["MegaBank", "CyberCredit", "DataVault Financial", "NeoTokyo Savings"];
     let bank_id = banks[rand::random::<usize>() % banks.len()].to_string();
-    
+
     StolenAccountData {
         account_number: format!("{:08}", rand::random::<u32>() % 100000000),
         bank_id,
@@ -350,11 +350,11 @@ fn spawn_financial_prompt(
 fn world_to_minimap_pos(world_pos: Vec2, center_pos: Vec2, range: f32, minimap_size: f32) -> Option<Vec2> {
     let relative_pos = world_pos - center_pos;
     let distance = relative_pos.length();
-    
+
     if distance > range {
         return None;
     }
-    
+
     let normalized = relative_pos / range;
     let minimap_pos = normalized * (minimap_size * 0.4);
     Some(minimap_pos)
@@ -364,7 +364,7 @@ fn check_hack_tool_available(inventory: &Inventory, hackable: &Hackable) -> bool
     match &hackable.requires_tool {
         Some(required_tool) => {
             inventory.equipped_tools.iter().any(|tool| {
-                matches!((tool, required_tool), 
+                matches!((tool, required_tool),
                     (ToolType::Hacker, HackTool::BasicHacker) |
                     (ToolType::Hacker, HackTool::AdvancedHacker)
                 )
@@ -382,7 +382,7 @@ pub fn setup_financial_district(
     center: Vec2,
 ) {
     let network_id = "financial_district".to_string();
-    
+
     // Set up banking network
     banking_network.banks.push(Bank {
         id: "MegaBank".to_string(),
@@ -390,24 +390,24 @@ pub fn setup_financial_district(
         total_funds: 1000000,
         security_level: 4,
     });
-    
+
     banking_network.banks.push(Bank {
         id: "CyberCredit".to_string(),
         name: "CyberCredit Union".to_string(),
         total_funds: 500000,
         security_level: 3,
     });
-    
+
     // Spawn ATMs
     let mut power_grid_option = Some(power_grid);
-    spawn_atm(commands, center + Vec2::new(-50.0, 100.0), 
+    spawn_atm(commands, center + Vec2::new(-50.0, 100.0),
              "MegaBank".to_string(), Some(network_id.clone()), &mut power_grid_option);
-    spawn_atm(commands, center + Vec2::new(150.0, -80.0), 
+    spawn_atm(commands, center + Vec2::new(150.0, -80.0),
              "CyberCredit".to_string(), Some(network_id.clone()), &mut power_grid_option);
-    
+
     // Spawn Billboards
-    spawn_billboard(commands, center + Vec2::new(0.0, 200.0), 
+    spawn_billboard(commands, center + Vec2::new(0.0, 200.0),
                    Some(network_id.clone()), &mut power_grid_option);
-    spawn_billboard(commands, center + Vec2::new(300.0, 0.0), 
+    spawn_billboard(commands, center + Vec2::new(300.0, 0.0),
                    Some(network_id), &mut power_grid_option);
 }

@@ -17,7 +17,7 @@ macro_rules! world_state {
 pub enum WorldKey {
     // Position & Movement
     AtPatrolPoint, AtLastKnownPosition, AtTarget,
-    // Knowledge & Awareness  
+    // Knowledge & Awareness
     HasTarget, TargetVisible, HeardSound, IsAlert, IsInvestigating,
     // Equipment & Resources
     HasWeapon, WeaponLoaded, HasMedKit, HasGrenade,
@@ -113,7 +113,7 @@ impl GoapAgent {
             WorldKey::AgentsGroupedInRange => false, WorldKey::IsReloading => false,
         ];
     }
-    
+
     pub fn update_world_state(&mut self, key: WorldKey, value: bool) {
         self.world_state.insert(key, value);
     }
@@ -122,26 +122,26 @@ impl GoapAgent {
         for (key, value) in updates {
             self.update_world_state(key, value);
         }
-    }    
+    }
 
     pub fn plan(&mut self) -> bool {
         let goal = self.goals.iter()
             .filter(|g| !self.is_goal_satisfied(&g.desired_state))
             .max_by(|a, b| a.priority.partial_cmp(&b.priority).unwrap_or(std::cmp::Ordering::Equal));
-        
+
         if let Some(goal) = goal {
             // println!("GOAP Planning: Selected goal '{}' (priority: {:.1})", goal.name, goal.priority);
-            
+
             // Debug world state that triggered this goal
-            /* println!("GOAP Planning: Current world state - HasTarget: {:?}, Outnumbered: {:?}, IsInjured: {:?}, IsRetreating: {:?}", 
+            /* println!("GOAP Planning: Current world state - HasTarget: {:?}, Outnumbered: {:?}, IsInjured: {:?}, IsRetreating: {:?}",
                      self.world_state.get(&WorldKey::HasTarget),
                      self.world_state.get(&WorldKey::Outnumbered),
                      self.world_state.get(&WorldKey::IsInjured),
                      self.world_state.get(&WorldKey::IsRetreating));
-            */       
+            */
             self.current_goal = Some(goal.clone());
             self.current_plan = self.find_plan(&goal.desired_state);
-            
+
             if !self.current_plan.is_empty() {
                 // println!("GOAP Planning: Generated plan with {} actions", self.current_plan.len());
                 for (i, action) in self.current_plan.iter().enumerate() {
@@ -150,52 +150,52 @@ impl GoapAgent {
             } else {
                 // println!("GOAP Planning: Failed to generate plan for goal '{}'", goal.name);
             }
-            
+
             !self.current_plan.is_empty()
         } else {
             // println!("GOAP Planning: No unsatisfied goals found");
             false
         }
     }
-    
+
     fn is_goal_satisfied(&self, desired_state: &WorldState) -> bool {
         desired_state.iter().all(|(key, &desired_value)| {
             self.world_state.get(key).unwrap_or(&false) == &desired_value
         })
     }
-    
+
     fn find_plan(&self, goal_state: &WorldState) -> VecDeque<GoapAction> {
         // println!("GOAP Debug: Finding plan for goal state: {:?}", goal_state);
-        
+
         let mut plan = VecDeque::new();
         let mut current_state = self.world_state.clone();
         let mut remaining_goals = goal_state.clone();
-        
-        /* println!("GOAP Debug: Current world state: WeaponLoaded={:?}, IsReloading={:?}, HasWeapon={:?}", 
+
+        /* println!("GOAP Debug: Current world state: WeaponLoaded={:?}, IsReloading={:?}, HasWeapon={:?}",
                  current_state.get(&WorldKey::WeaponLoaded),
-                 current_state.get(&WorldKey::IsReloading), 
+                 current_state.get(&WorldKey::IsReloading),
                  current_state.get(&WorldKey::HasWeapon));
         */
         for iteration in 0..10 {
-            if remaining_goals.is_empty() { 
+            if remaining_goals.is_empty() {
                 // println!("GOAP Debug: All goals satisfied after {} iterations", iteration);
-                break; 
+                break;
             }
-            
+
             if let Some(action) = self.find_satisfying_action(&remaining_goals) {
                 // println!("GOAP Debug: Found action '{}' for remaining goals: {:?}", action.name, remaining_goals);
                 // println!("GOAP Debug: Action preconditions: {:?}", action.preconditions);
-                
+
                 if self.can_execute_action(&action, &current_state) {
                     // println!("GOAP Debug: Action '{}' can be executed", action.name);
                     self.apply_effects(&action.effects, &mut current_state);
-                    
+
                     for (key, &value) in &action.effects {
                         if remaining_goals.get(key) == Some(&value) {
                             remaining_goals.remove(key);
                         }
                     }
-                    
+
                     plan.push_front(action);
                 } else {
                     // println!("GOAP Debug: Action '{}' cannot be executed, adding preconditions to goals", action.name);
@@ -215,38 +215,38 @@ impl GoapAgent {
                 break;
             }
         }
-        
-        if remaining_goals.is_empty() { 
+
+        if remaining_goals.is_empty() {
             // println!("GOAP Debug: Plan generated successfully with {} actions", plan.len());
-            plan 
-        } else { 
+            plan
+        } else {
             // println!("GOAP Debug: Failed to generate plan, remaining goals: {:?}", remaining_goals);
-            VecDeque::new() 
+            VecDeque::new()
         }
     }
-    
+
     fn find_satisfying_action(&self, goals: &WorldState) -> Option<GoapAction> {
         self.available_actions.iter()
             .find(|action| action.effects.iter().any(|(key, &value)| goals.get(key) == Some(&value)))
             .cloned()
     }
-    
+
     fn can_execute_action(&self, action: &GoapAction, current_state: &WorldState) -> bool {
         action.preconditions.iter().all(|(key, &required_value)| {
             current_state.get(key).unwrap_or(&false) == &required_value
         })
     }
-    
+
     fn apply_effects(&self, effects: &WorldState, current_state: &mut WorldState) {
         for (&key, &value) in effects {
             current_state.insert(key, value);
         }
     }
-    
+
     pub fn get_next_action(&mut self) -> Option<GoapAction> {
         self.current_plan.pop_front()
     }
-    
+
     pub fn abort_plan(&mut self) {
         self.current_plan.clear();
         self.current_goal = None;
@@ -301,14 +301,14 @@ pub fn goap_ai_system(
     for (enemy_entity, enemy_transform, mut ai_state, mut goap_agent, mut vision, patrol, health, faction, weapon_state) in enemy_query.iter_mut() {
         goap_agent.planning_cooldown -= time.delta_secs();
         ai_state.target_last_seen += time.delta_secs(); // Increment target age
-        
+
         // Validate current target visibility
         if let Some(current_target) = ai_state.current_target {
             let target_visible = check_line_of_sight_goap(
-                enemy_transform, &vision, faction, enemy_entity, 
+                enemy_transform, &vision, faction, enemy_entity,
                 &agent_query, &all_enemy_query
             );
-            
+
             if target_visible == Some(current_target) {
                 ai_state.target_last_seen = 0.0; // Reset timer if we can see our target
                 if let Some(target_pos) = get_entity_position(current_target, &agent_query, &all_enemy_query) {
@@ -316,13 +316,13 @@ pub fn goap_ai_system(
                 }
             }
         }
-        
+
         update_world_state_from_perception(&mut goap_agent, enemy_transform, &mut vision, faction,
             enemy_entity, &agent_query, &all_enemy_query, &mut ai_state, patrol, &cover_query, health, weapon_state);
-        
+
         let should_replan = goap_agent.current_plan.is_empty() || goap_agent.planning_cooldown <= 0.0 ||
                           plan_invalidated(&goap_agent, &ai_state, health);
-        
+
         if should_replan {
             goap_agent.plan();
             goap_agent.planning_cooldown = match (health.0 < 30.0, *goap_agent.world_state.get(&WorldKey::HasTarget).unwrap_or(&false)) {
@@ -331,7 +331,7 @@ pub fn goap_ai_system(
                 _ => 2.0,
             };
         }
-        
+
         if let Some(action) = goap_agent.get_next_action() {
             execute_goap_action(&action, enemy_entity, enemy_transform, &mut ai_state,
                 &mut action_events, &mut audio_events, &mut alert_events, patrol,
@@ -344,28 +344,28 @@ fn update_world_state_from_perception(
     current_entity: Entity, agent_query: &Query<(Entity, &Transform), With<Agent>>,
     enemy_query: &Query<(Entity, &Transform, &Faction), (With<Enemy>, Without<Dead>)>,
     ai_state: &mut AIState, patrol: &Patrol, cover_query: &Query<(Entity, &Transform, &CoverPoint), Without<Enemy>>,
-    health: &Health, weapon_state: Option<&WeaponState>,    
+    health: &Health, weapon_state: Option<&WeaponState>,
 ) {
     let enemy_pos = enemy_transform.translation.truncate();
-    
+
     update_vision_direction(goap_agent, ai_state, patrol, vision, enemy_pos, current_entity, agent_query, enemy_query);
-    
+
     let visible_hostile = check_line_of_sight_goap(enemy_transform, vision, faction, current_entity, agent_query, enemy_query);
     let has_target = visible_hostile.is_some();
-    
+
     if let Some(target_entity) = visible_hostile {
         if let Some(pos) = get_entity_position(target_entity, agent_query, enemy_query) {
             ai_state.last_known_target = Some(pos);
         }
     }
-    
+
     let enemy_positions: Vec<(Entity, Vec2)> = enemy_query.iter()
         .map(|(entity, transform, _)| (entity, transform.translation.truncate()))
         .collect();
-    
+
     let tactical_state = assess_tactical_situation(enemy_pos, patrol, cover_query, &enemy_positions,
         current_entity, health, agent_query, visible_hostile);
-    
+
     update_weapon_state(goap_agent, weapon_state);
     update_world_states(goap_agent, &tactical_state, has_target, visible_hostile);
     update_ai_mode(goap_agent, ai_state, has_target, visible_hostile);
@@ -381,31 +381,31 @@ struct TacticalState {
 fn assess_tactical_situation(enemy_pos: Vec2, patrol: &Patrol, cover_query: &Query<(Entity, &Transform, &CoverPoint), Without<Enemy>>,
     enemy_positions: &[(Entity, Vec2)], current_enemy: Entity, health: &Health,
     agent_query: &Query<(Entity, &Transform), With<Agent>>, visible_hostile: Option<Entity>) -> TacticalState {
-    
+
     let at_patrol_point = patrol.current_target().map(|t| enemy_pos.distance(t) < 20.0).unwrap_or(true);
     let cover_available = find_cover(enemy_pos, cover_query, None, false).is_some();
     let nearby_allies = enemy_positions.iter().filter(|(e, p)| *e != current_enemy && enemy_pos.distance(*p) <= 200.0).count() > 0;
-    
+
     // More conservative injury threshold - only consider injured if health is very low
     let is_injured = health.0 < 25.0; // Changed from 50.0
-    
+
     let (agent_count, enemy_count) = count_entities_in_range(enemy_pos, agent_query, enemy_positions, current_enemy);
-    
+
     // More conservative outnumbered calculation - need significant disadvantage
     let outnumbered = agent_count >= enemy_count + 2; // Changed from > enemy_count + 1
-    
+
     let at_safe_distance = !agent_query.iter().any(|(_, t)| enemy_pos.distance(t.translation.truncate()) <= 100.0); // Reduced from 150.0
-    
+
     let (target_grouped, safe_throw_distance) = assess_group_targets(enemy_pos, agent_query, 300.0, 80.0, (100.0, 250.0));
-    
+
     TacticalState {
-        at_patrol_point, 
-        cover_available, 
-        nearby_allies, 
-        is_injured, 
-        outnumbered, 
+        at_patrol_point,
+        cover_available,
+        nearby_allies,
+        is_injured,
+        outnumbered,
         at_safe_distance,
-        target_grouped, 
+        target_grouped,
         safe_throw_distance,
         has_medkit: is_injured && rand::random::<f32>() < 0.3,
         has_grenade: target_grouped && rand::random::<f32>() < 0.2,
@@ -426,14 +426,14 @@ fn count_entities_in_range(enemy_pos: Vec2, agent_query: &Query<(Entity, &Transf
 fn update_vision_direction(goap_agent: &mut GoapAgent, ai_state: &AIState, patrol: &Patrol, vision: &mut Vision,
     enemy_pos: Vec2, current_entity: Entity, agent_query: &Query<(Entity, &Transform), With<Agent>>,
     enemy_query: &Query<(Entity, &Transform, &Faction), (With<Enemy>, Without<Dead>)>) {
-    
+
     let direction = match &ai_state.mode {
         AIMode::Patrol => patrol.current_target().map(|t| t - enemy_pos),
         AIMode::Combat { target } => get_entity_position(*target, agent_query, enemy_query).map(|p| p - enemy_pos),
         AIMode::Investigate { location } | AIMode::Search { area: location } => Some(*location - enemy_pos),
         AIMode::Panic => { goap_agent.update_multiple([(WorldKey::IsPanicked, true), (WorldKey::IsRetreating, true)]); None },
     };
-    
+
     if let Some(dir) = direction {
         let normalized = dir.normalize_or_zero();
         if normalized != Vec2::ZERO { vision.direction = normalized; }
@@ -446,11 +446,11 @@ fn update_weapon_state(goap_agent: &mut GoapAgent, weapon_state: Option<&WeaponS
         let is_reloading = w.is_reloading;
         (loaded, true, is_reloading)
     });
-    
+
     // println!("GOAP Debug: Updating weapon state - loaded: {}, has_weapon: {}, is_reloading: {}", loaded, has_weapon, is_reloading);
-    
+
     goap_agent.update_multiple([
-        (WorldKey::WeaponLoaded, loaded), 
+        (WorldKey::WeaponLoaded, loaded),
         (WorldKey::HasWeapon, has_weapon),
         (WorldKey::IsReloading, is_reloading),
     ]);
@@ -493,7 +493,7 @@ fn update_ai_mode(goap_agent: &mut GoapAgent, ai_state: &mut AIState, has_target
 
 fn assess_group_targets(enemy_pos: Vec2, agent_query: &Query<(Entity, &Transform), With<Agent>>,
     detection_range: f32, group_proximity: f32, throw_range: (f32, f32)) -> (bool, bool) {
-    
+
     let agents_in_range: Vec<_> = agent_query.iter()
         .filter(|(_, t)| enemy_pos.distance(t.translation.truncate()) <= detection_range).collect();
 
@@ -524,19 +524,19 @@ fn check_retreat_path(enemy_pos: Vec2, patrol: &Patrol, agent_query: &Query<(Ent
 fn plan_invalidated(goap_agent: &GoapAgent, ai_state: &AIState, health: &Health) -> bool {
     let critically_injured = health.0 < 15.0; // Reduced from 30.0
     let planning_survival = goap_agent.current_goal.as_ref().map(|g| g.name.contains("survival")).unwrap_or(false);
-    
+
     if critically_injured && !planning_survival { return true; }
-    
-    let severely_outnumbered = *goap_agent.world_state.get(&WorldKey::Outnumbered).unwrap_or(&false) 
+
+    let severely_outnumbered = *goap_agent.world_state.get(&WorldKey::Outnumbered).unwrap_or(&false)
                               && health.0 < 40.0; // Only replan for outnumbered if also injured
     let has_tactical_goal = goap_agent.current_goal.as_ref()
         .map(|g| ["tactical_advantage", "survival", "panic_survival"].contains(&g.name)).unwrap_or(false);
-    
+
     if severely_outnumbered && !has_tactical_goal { return true; }
-    
+
     let is_panicked = *goap_agent.world_state.get(&WorldKey::IsPanicked).unwrap_or(&false);
     if is_panicked && !planning_survival { return true; }
-    
+
     match &ai_state.mode {
         AIMode::Combat { .. } => !goap_agent.world_state.get(&WorldKey::HasTarget).unwrap_or(&false),
         AIMode::Panic => true,
@@ -545,44 +545,44 @@ fn plan_invalidated(goap_agent: &GoapAgent, ai_state: &AIState, health: &Health)
 }
 
 fn check_line_of_sight_goap(
-    enemy_transform: &Transform, 
-    vision: &Vision, 
-    faction: &Faction, 
+    enemy_transform: &Transform,
+    vision: &Vision,
+    faction: &Faction,
     current_entity: Entity,  // This is the key - exclude self
-    agent_query: &Query<(Entity, &Transform), With<Agent>>, 
+    agent_query: &Query<(Entity, &Transform), With<Agent>>,
     enemy_query: &Query<(Entity, &Transform, &Faction), (With<Enemy>, Without<Dead>)>
 ) -> Option<Entity> {
-    
+
     let enemy_pos = enemy_transform.translation.truncate();
-    
+
     // Check agents first (enemies should prioritize attacking players)
     for (agent_entity, agent_transform) in agent_query.iter() {
         if in_vision_cone(enemy_pos, agent_transform.translation.truncate(), vision) {
             return Some(agent_entity);
         }
     }
-    
+
     // Only check other enemies if they're hostile factions
     for (other_entity, other_transform, other_faction) in enemy_query.iter() {
         // KEY FIX: Don't target yourself!
         if other_entity == current_entity {
             continue;
         }
-        
+
         if faction.is_hostile_to(other_faction) {
             if in_vision_cone(enemy_pos, other_transform.translation.truncate(), vision) {
                 return Some(other_entity);
             }
         }
     }
-    
+
     None
 }
 
 fn in_vision_cone(observer_pos: Vec2, target_pos: Vec2, vision: &Vision) -> bool {
     let to_target = target_pos - observer_pos;
     let distance = to_target.length();
-    
+
     if distance <= vision.range && distance > 1.0 {
         let target_direction = to_target.normalize();
         let dot_product = vision.direction.dot(target_direction);
@@ -595,7 +595,7 @@ fn in_vision_cone(observer_pos: Vec2, target_pos: Vec2, vision: &Vision) -> bool
 
 fn get_entity_position(entity: Entity, agent_query: &Query<(Entity, &Transform), With<Agent>>,
     enemy_query: &Query<(Entity, &Transform, &Faction), (With<Enemy>, Without<Dead>)>) -> Option<Vec2> {
-    
+
     if let Ok((_, transform)) = agent_query.get(entity) {
         Some(transform.translation.truncate())
     } else if let Ok((_, transform, _)) = enemy_query.get(entity) {
@@ -609,7 +609,7 @@ fn execute_goap_action(action: &GoapAction, enemy_entity: Entity, enemy_transfor
     action_events: &mut EventWriter<ActionEvent>, audio_events: &mut EventWriter<AudioEvent>, alert_events: &mut EventWriter<AlertEvent>,
     patrol: &Patrol, agent_query: &Query<(Entity, &Transform), With<Agent>>, all_enemy_query: &Query<(Entity, &Transform, &Faction), (With<Enemy>, Without<Dead>)>,
     vision: &Vision, cover_query: &Query<(Entity, &Transform, &CoverPoint), Without<Enemy>>, commands: &mut Commands) {
-    
+
     match &action.action_type {
         ActionType::Patrol => {
             if let Some(target) = patrol.current_target() {
@@ -623,12 +623,12 @@ fn execute_goap_action(action: &GoapAction, enemy_entity: Entity, enemy_transfor
 ActionType::Attack { .. } => {
     // Check if we have a valid cached target first
     let mut target_entity = None;
-    
+
     if let Some(cached_target) = ai_state.current_target {
         // Verify the cached target is still valid and alive
         if let Some(target_pos) = get_entity_position(cached_target, agent_query, all_enemy_query) {
             let distance = enemy_transform.translation.truncate().distance(target_pos);
-            
+
             // Target is still valid if it's close enough and we saw it recently
             if distance <= 250.0 && ai_state.target_last_seen < 8.0 { // Increased range and time
                 target_entity = Some(cached_target);
@@ -642,7 +642,7 @@ ActionType::Attack { .. } => {
             ai_state.current_target = None;
         }
     }
-    
+
     // If no valid cached target, find a new one
     if target_entity.is_none() {
         if let Some(new_target) = find_closest_agent(enemy_transform, agent_query) {
@@ -652,41 +652,41 @@ ActionType::Attack { .. } => {
             // println!("GOAP: Enemy {:?} found new target {:?}", enemy_entity, new_target);
         }
     }
-    
+
     // Execute with the target (cached or new)
     if let Some(target) = target_entity {
         if let Some(pos) = get_entity_position(target, agent_query, all_enemy_query) {
             let distance = enemy_transform.translation.truncate().distance(pos);
             ai_state.mode = AIMode::Combat { target };
-            
+
             // More generous attack range - simplified without world state checks
             let attack_range = 180.0; // Increased from 150.0
-            
+
             // println!("GOAP: Enemy {:?} to target {:?} - dist: {:.1}, range: {:.1}", enemy_entity, target, distance, attack_range);
-            
+
             if distance <= attack_range {
-                action_events.write(ActionEvent { 
-                    entity: enemy_entity, 
+                action_events.write(ActionEvent {
+                    entity: enemy_entity,
                     action: Action::Attack(target)
                 });
                 // println!("GOAP: Enemy {:?} ATTACKING target {:?} at range {:.1}", enemy_entity, target, distance);
             } else {
                 // println!("GOAP: Enemy {:?} moving closer to target {:?} (need {:.1} more units)", enemy_entity, target, distance - attack_range);
-                
-                action_events.write(ActionEvent { 
-                    entity: enemy_entity, 
-                    action: Action::MoveTo(pos) 
+
+                action_events.write(ActionEvent {
+                    entity: enemy_entity,
+                    action: Action::MoveTo(pos)
                 });
             }
             return;
         }
     }
-    
+
     // Fallback: investigate last known position
     if let Some(last_pos) = ai_state.last_known_target {
-        action_events.write(ActionEvent { 
-            entity: enemy_entity, 
-            action: Action::MoveTo(last_pos) 
+        action_events.write(ActionEvent {
+            entity: enemy_entity,
+            action: Action::MoveTo(last_pos)
         });
         ai_state.mode = AIMode::Investigate { location: last_pos };
         // println!("GOAP: Enemy {:?} investigating last known position", enemy_entity);
@@ -702,10 +702,10 @@ ActionType::Attack { .. } => {
                     let to_agent = (agent_pos - enemy_pos).normalize_or_zero();
                     let flank_offset = Vec2::new(-to_agent.y, to_agent.x) * 80.0;
                     let flank_position = agent_pos + flank_offset;
-                    
-                    action_events.write(ActionEvent { 
-                        entity: enemy_entity, 
-                        action: Action::MoveTo(flank_position) 
+
+                    action_events.write(ActionEvent {
+                        entity: enemy_entity,
+                        action: Action::MoveTo(flank_position)
                     });
                     ai_state.mode = AIMode::Combat { target: agent_entity };
                 }
@@ -714,7 +714,7 @@ ActionType::Attack { .. } => {
         ActionType::Wait => {
             // Do nothing - just wait
             // println!("GOAP: Enemy {:?} waiting (likely for reload to complete)", enemy_entity);
-        },        
+        },
         ActionType::Investigate { .. } => {
             let investigation_target = ai_state.last_known_target.unwrap_or(Vec2::ZERO);
             ai_state.mode = AIMode::Investigate { location: investigation_target };
@@ -726,7 +726,7 @@ ActionType::Attack { .. } => {
             let angle = (enemy_pos.x + enemy_pos.y) * 0.1;
             let search_offset = Vec2::new(angle.cos(), angle.sin()) * radius;
             let search_point = search_center + search_offset;
-            
+
             action_events.write(ActionEvent { entity: enemy_entity, action: Action::MoveTo(search_point) });
             ai_state.mode = AIMode::Search { area: search_center };
         },
@@ -748,7 +748,7 @@ ActionType::Attack { .. } => {
             } else {
                 patrol.current_target().map(|p| (p - enemy_pos).normalize_or_zero()).unwrap_or(Vec2::new(1.0, 0.0))
             };
-            
+
             let retreat_point = enemy_pos + retreat_direction * 120.0;
             action_events.write(ActionEvent { entity: enemy_entity, action: Action::MoveTo(retreat_point) });
             ai_state.mode = AIMode::Patrol;
@@ -762,16 +762,16 @@ ActionType::Attack { .. } => {
         },
         ActionType::Reload => {
             // println!("GOAP: Enemy {:?} starting reload", enemy_entity);
-            action_events.write(ActionEvent { 
-                entity: enemy_entity, 
-                action: Action::Reload 
+            action_events.write(ActionEvent {
+                entity: enemy_entity,
+                action: Action::Reload
             });
         },
         ActionType::TacticalReload => {
             // println!("GOAP: Enemy {:?} performing tactical reload", enemy_entity);
-            action_events.write(ActionEvent { 
-                entity: enemy_entity, 
-                action: Action::Reload 
+            action_events.write(ActionEvent {
+                entity: enemy_entity,
+                action: Action::Reload
             });
         },
         ActionType::UseMedKit => {
@@ -783,7 +783,7 @@ ActionType::Attack { .. } => {
                     agent_transform.translation.truncate() + Vec2::new(20.0, 0.0)
                 } else { enemy_transform.translation.truncate() + Vec2::new(50.0, 0.0) }
             } else { enemy_transform.translation.truncate() + Vec2::new(50.0, 0.0) };
-            
+
             audio_events.write(AudioEvent { sound: AudioType::Alert, volume: 1.0 });
         },
         ActionType::ActivateAlarm { .. } => {
@@ -812,7 +812,7 @@ ActionType::Attack { .. } => {
                     let enemy_pos = enemy_transform.translation.truncate();
                     let away_direction = (enemy_pos - agent_pos).normalize_or_zero();
                     let retreat_pos = enemy_pos + away_direction * 80.0;
-                    
+
                     action_events.write(ActionEvent { entity: enemy_entity, action: Action::MoveTo(retreat_pos) });
                 }
             }
@@ -830,13 +830,13 @@ ActionType::Attack { .. } => {
                     } else { enemy_pos + Vec2::new(100.0, 0.0) }
                 } else { enemy_pos + Vec2::new(100.0, 0.0) }
             };
-            
+
             action_events.write(ActionEvent { entity: enemy_entity, action: Action::MoveTo(retreat_target) });
-            
+
             if let Some(agent_entity) = find_closest_agent(enemy_transform, agent_query) {
                 action_events.write(ActionEvent { entity: enemy_entity, action: Action::Attack(agent_entity) });
             }
-            
+
             ai_state.mode = AIMode::Patrol;
         },
     }
@@ -844,7 +844,7 @@ ActionType::Attack { .. } => {
 
 fn find_cover(enemy_pos: Vec2, cover_q: &Query<(Entity, &Transform, &CoverPoint), Without<Enemy>>,
     agent_q: Option<&Query<(Entity, &Transform), With<Agent>>>, use_score: bool) -> Option<(Entity, Vec2)> {
-    
+
     let (mut best, mut val) = (None, if use_score { f32::MIN } else { f32::MAX });
     for (e, t, c) in cover_q.iter() {
         if c.current_users >= c.capacity { continue; }
@@ -874,8 +874,8 @@ fn find_closest_agent(enemy_transform: &Transform, agent_query: &Query<(Entity, 
 }
 
 fn find_any_hostile_target(
-    enemy_transform: &Transform, 
-    vision: &Vision, 
+    enemy_transform: &Transform,
+    vision: &Vision,
     agent_query: &Query<(Entity, &Transform), With<Agent>>,
     all_enemy_query: &Query<(Entity, &Transform, &Faction), (With<Enemy>, Without<Dead>)>
 ) -> Option<Entity> {

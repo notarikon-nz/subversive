@@ -42,7 +42,7 @@ pub struct RoadTile {
 #[derive(Debug, Clone)]
 pub enum RoadDirection {
     North,
-    South, 
+    South,
     East,
     West,
     NorthSouth, // Two-way
@@ -147,7 +147,7 @@ impl Default for RoadNetwork {
             intersections: create_default_intersections(),
             spawn_points: vec![
                 Vec2::new(-400.0, 0.0),
-                Vec2::new(400.0, 0.0), 
+                Vec2::new(400.0, 0.0),
                 Vec2::new(0.0, -400.0),
                 Vec2::new(0.0, 400.0),
             ],
@@ -166,7 +166,7 @@ impl FlowField {
             costs: vec![1.0; width * height],
         }
     }
-    
+
     pub fn update_flow(&mut self, roads: &[RoadSegment]) {
         // Simple flow field calculation
         for (i, flow_vec) in self.flow_vectors.iter_mut().enumerate() {
@@ -176,7 +176,7 @@ impl FlowField {
                 (x as f32 - self.width as f32 * 0.5) * self.grid_size,
                 (y as f32 - self.height as f32 * 0.5) * self.grid_size,
             );
-            
+
             // Find nearest road and set flow direction
             if let Some(road) = find_nearest_road(world_pos, roads) {
                 *flow_vec = (road.end - road.start).normalize_or_zero();
@@ -198,11 +198,11 @@ pub fn point_to_line_distance(point: Vec2, line_start: Vec2, line_end: Vec2) -> 
     let line_vec = line_end - line_start;
     let point_vec = point - line_start;
     let line_len = line_vec.length();
-    
+
     if line_len < 0.01 {
         return point_vec.length();
     }
-    
+
     let t = (point_vec.dot(line_vec) / (line_len * line_len)).clamp(0.0, 1.0);
     let projection = line_start + line_vec * t;
     point.distance(projection)
@@ -275,10 +275,10 @@ pub fn traffic_spawn_system(
     sprites: Res<GameSprites>,
 ) {
     if game_mode.paused { return; }
-    
+
     traffic_system.spawn_timer -= time.delta_secs();
     let current_count = vehicle_query.iter().count();
-    
+
     if traffic_system.spawn_timer <= 0.0 && current_count < traffic_system.max_vehicles {
         if let Some(&spawn_pos) = traffic_system.road_network.spawn_points.get(rand::random::<usize>() % traffic_system.road_network.spawn_points.len()) {
             let vehicle_type = choose_vehicle_type();
@@ -315,50 +315,50 @@ pub fn traffic_movement_system(
     game_mode: Res<GameMode>,
 ) {
     if game_mode.paused { return; }
-    
+
     let delta = time.delta_secs();
-    
+
     for (entity, mut transform, mut vehicle, mut flow, mut velocity, emergency) in traffic_query.iter_mut() {
         let current_pos = transform.translation.truncate();
-        
+
         // Update flow field path if needed
         if flow.path.is_empty() || flow.path_index >= flow.path.len() {
             update_vehicle_path(&mut flow, current_pos, &traffic_system);
         }
-        
+
         // Calculate desired velocity
         let mut desired_velocity = Vec2::ZERO;
         let mut target_speed = vehicle.max_speed;
-        
+
         if let Some(target) = get_current_target(&flow) {
             let to_target = target - current_pos;
             let distance = to_target.length();
-            
+
             if distance > 5.0 {
                 desired_velocity = to_target.normalize() * target_speed;
             } else {
                 flow.path_index += 1;
             }
         }
-        
+
         // Obstacle avoidance
         let mut brake_factor = 1.0;
         let mut should_brake = false;
-        
+
         for obstacle_transform in obstacle_query.iter() {
             let obstacle_pos = obstacle_transform.translation.truncate();
             let to_obstacle = obstacle_pos - current_pos;
             let distance = to_obstacle.length();
-            
+
             // Check if obstacle is in our path
             if distance < 50.0 {
                 let velocity_dir = velocity.linvel.normalize_or_zero();
                 let obstacle_dir = to_obstacle.normalize_or_zero();
-                
+
                 if velocity_dir.dot(obstacle_dir) > 0.7 { // Obstacle ahead
                     brake_factor = (distance / 50.0).clamp(0.1, 1.0);
                     should_brake = true;
-                    
+
                     // Panic if too close
                     if distance < 20.0 {
                         vehicle.panic_level = (vehicle.panic_level + delta * 2.0).min(1.0);
@@ -366,7 +366,7 @@ pub fn traffic_movement_system(
                 }
             }
         }
-        
+
         // Emergency vehicle behavior
         if let Some(emergency) = emergency {
             if emergency.siren_active {
@@ -375,26 +375,26 @@ pub fn traffic_movement_system(
                 brake_factor = brake_factor.max(0.8);
             }
         }
-        
+
         // Apply movement
         let target_velocity = desired_velocity * brake_factor;
         vehicle.current_speed = target_velocity.length();
-        
+
         // Smooth acceleration/deceleration
         let current_vel = velocity.linvel;
         let vel_diff = target_velocity - current_vel;
-        let max_change = if should_brake { 
-            vehicle.brake_force * delta 
-        } else { 
-            vehicle.acceleration * delta 
+        let max_change = if should_brake {
+            vehicle.brake_force * delta
+        } else {
+            vehicle.acceleration * delta
         };
-        
+
         let vel_change = vel_diff.normalize_or_zero() * max_change.min(vel_diff.length());
         velocity.linvel += vel_change;
-        
+
         // Update brake lights
         vehicle.brake_lights = should_brake || vehicle.current_speed < 20.0;
-        
+
         // Reduce panic over time
         vehicle.panic_level = (vehicle.panic_level - delta * 0.5).max(0.0);
     }
@@ -403,18 +403,18 @@ pub fn traffic_movement_system(
 fn update_vehicle_path(flow: &mut TrafficFlow, current_pos: Vec2, traffic_system: &TrafficSystem) {
     // Simple pathfinding using road network
     flow.path.clear();
-    
+
     // Find nearest road
     if let Some(road) = find_nearest_road(current_pos, &traffic_system.road_network.roads) {
         // Follow road direction
         let road_direction = (road.end - road.start).normalize_or_zero();
         let ahead_distance = 200.0;
-        
+
         for i in 1..=4 {
             let waypoint = current_pos + road_direction * (i as f32 * ahead_distance * 0.25);
             flow.path.push(waypoint);
         }
-        
+
         flow.path_index = 0;
     }
 }
@@ -434,9 +434,9 @@ pub fn emergency_response_system(
     for alert in alert_events.read() {
         if alert.alert_level >= 3 { // High alert
             traffic_system.emergency_response_timer = 5.0; // Delay before response
-            
+
             // Spawn emergency vehicles
-            if let Some(&spawn_pos) = traffic_system.road_network.spawn_points.get(rand::random::<usize>() % traffic_system.road_network.spawn_points.len()) {                
+            if let Some(&spawn_pos) = traffic_system.road_network.spawn_points.get(rand::random::<usize>() % traffic_system.road_network.spawn_points.len()) {
                 match rand::random::<f32>() {
                     x if x < 0.6 => {
                         spawn_emergency_vehicle(&mut commands, spawn_pos, TrafficVehicleType::PoliceCar, alert.position, &sprites);
@@ -458,7 +458,7 @@ fn spawn_emergency_vehicle(
     sprites: &GameSprites,
 ) {
     spawn_traffic_vehicle(commands, spawn_pos, vehicle_type, sprites);
-    
+
     // Would need to get the entity ID to set response target, but this is simplified
     info!("Emergency vehicle dispatched to {:?}", target);
 }
@@ -478,7 +478,7 @@ pub fn traffic_visual_effects_system(
                 sprite.color.to_srgba().blue * red_tint.to_srgba().blue
             );
         }
-        
+
         // Panic effects
         if vehicle.panic_level > 0.5 {
             let flicker = (std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs_f32() * 8.0).sin() * 0.1;
@@ -510,7 +510,7 @@ pub fn traffic_collision_system(
             } else if let (Ok(agent_entity), Ok(vehicle)) = (agent_query.get(*e1), traffic_query.get(*e2)) {
                 handle_vehicle_agent_collision(*e2, agent_entity, vehicle, &mut combat_events);
             }
-            
+
             // Vehicle-vehicle collisions create skid marks
             if traffic_query.get(*e1).is_ok() && traffic_query.get(*e2).is_ok() {
                 // Spawn skid mark decals at collision point
@@ -539,7 +539,7 @@ fn handle_vehicle_agent_collision(
         TrafficVehicleType::MotorCycle => 25.0,
         _ => 40.0,
     } * (vehicle.current_speed / vehicle.max_speed).clamp(0.3, 1.0);
-    
+
     combat_events.write(CombatEvent {
         attacker: vehicle_entity,
         target: agent_entity,
@@ -563,7 +563,7 @@ pub fn military_convoy_system(
         for (convoy_entity, mut convoy, transform, _) in convoy_query.iter_mut() {
             if combat_event.target == convoy_entity {
                 convoy.alert_status = ConvoyAlertStatus::UnderAttack;
-                
+
                 // Deploy troops
                 if convoy.troops_inside > 0 && matches!(convoy.alert_status, ConvoyAlertStatus::UnderAttack) {
                     let deploy_pos = transform.translation.truncate() + Vec2::new(30.0, 0.0);
@@ -580,7 +580,7 @@ fn deploy_convoy_troops(commands: &mut Commands, position: Vec2, sprites: &GameS
     // Spawn 2 military enemies
     for i in 0..2 {
         let spawn_pos = position + Vec2::new(i as f32 * 20.0, (i % 2) as f32 * 15.0);
-        
+
         let (sprite, _) = crate::core::sprites::create_enemy_sprite(sprites);
 
         let convoy_troop = commands.spawn_empty()
@@ -611,7 +611,7 @@ fn deploy_convoy_troops(commands: &mut Commands, position: Vec2, sprites: &GameS
                 GravityScale(0.0),
             ));
     }
-    
+
     info!("Military convoy deployed troops at {:?}", position);
 }
 
@@ -624,10 +624,10 @@ pub fn traffic_cleanup_system(
 ) {
     let Ok(camera_transform) = camera_query.single() else { return; };
     let camera_pos = camera_transform.translation.truncate();
-    
+
     for (entity, transform, health) in traffic_query.iter() {
         let distance = camera_pos.distance(transform.translation.truncate());
-        
+
         // Remove vehicles that are too far or destroyed
         if distance > 800.0 || health.0 <= 0.0 {
             commands.entity(entity).insert(MarkedForDespawn);
@@ -639,7 +639,7 @@ pub fn traffic_cleanup_system(
 
 pub fn setup_traffic_system(mut commands: Commands) {
     commands.insert_resource(TrafficSystem::default());
-    info!("Traffic system initialized with {} road segments", 
+    info!("Traffic system initialized with {} road segments",
           TrafficSystem::default().road_network.roads.len());
 }
 

@@ -57,7 +57,7 @@ pub fn setup_isometric_camera(mut commands: Commands) {
         // Enable smooth movement
         bevy_rapier2d::prelude::Velocity::default(),
     ));
-    
+
     info!("Isometric camera initialized");
 }
 
@@ -72,12 +72,12 @@ pub fn isometric_camera_movement(
     game_mode: Res<GameMode>,
 ) {
     if game_mode.paused { return; }
-    
+
     let Ok((mut camera_transform, mut iso_camera)) = camera_query.single_mut() else { return; };
-    
+
     let mut movement = Vec2::ZERO;
     let camera_speed = 400.0 / iso_camera.zoom; // Faster when zoomed out
-    
+
     // WASD movement
     if keyboard.pressed(KeyCode::KeyW) || keyboard.pressed(KeyCode::ArrowUp) {
         movement.y += 1.0;
@@ -91,36 +91,36 @@ pub fn isometric_camera_movement(
     if keyboard.pressed(KeyCode::KeyD) || keyboard.pressed(KeyCode::ArrowRight) {
         movement.x += 1.0;
     }
-    
+
     // Apply movement
     if movement.length() > 0.0 {
         movement = movement.normalize() * camera_speed * time.delta_secs();
         camera_transform.translation += movement.extend(0.0);
-        
+
         // Clear follow target when manually moving
         iso_camera.follow_target = None;
     }
-    
+
     // Mouse wheel zoom
     for wheel_event in mouse_wheel.read() {
         let zoom_delta = wheel_event.y * 0.1;
         iso_camera.zoom = (iso_camera.zoom + zoom_delta).clamp(iso_camera.min_zoom, iso_camera.max_zoom);
     }
-    
+
     // Follow selected agent
     if keyboard.just_pressed(KeyCode::KeyC) {
         if let Some(&selected_entity) = selection.selected.first() {
             iso_camera.follow_target = Some(selected_entity);
         }
     }
-    
+
     // Handle follow target
     if let Some(target_entity) = iso_camera.follow_target {
         if let Ok(target_transform) = agent_query.get(target_entity) {
             let target_pos = target_transform.translation.truncate();
             let current_pos = camera_transform.translation.truncate();
             let lerp_factor = iso_camera.follow_smoothing * time.delta_secs();
-            
+
             let new_pos = current_pos.lerp(target_pos, lerp_factor);
             camera_transform.translation = new_pos.extend(camera_transform.translation.z);
         } else {
@@ -128,13 +128,13 @@ pub fn isometric_camera_movement(
             iso_camera.follow_target = None;
         }
     }
-    
+
     // Apply camera bounds
     if let Some(bounds) = &iso_camera.bounds {
         camera_transform.translation.x = camera_transform.translation.x.clamp(bounds.min_x, bounds.max_x);
         camera_transform.translation.y = camera_transform.translation.y.clamp(bounds.min_y, bounds.max_y);
     }
-    
+
     // Apply zoom to camera scale (for 2D camera)
     camera_transform.scale = Vec3::splat(1.0 / iso_camera.zoom);
 }
@@ -147,7 +147,7 @@ pub fn get_isometric_mouse_position(
     let window = windows.single().ok()?;
     let (camera, camera_transform, _) = cameras.single().ok()?;
     let cursor_pos = window.cursor_position()?;
-    
+
     // Convert cursor position to world coordinates
     camera.viewport_to_world_2d(camera_transform, cursor_pos).ok()
 }
@@ -163,7 +163,7 @@ pub fn update_camera_bounds(
                 // Update bounds based on tilemap size
                 let world_width = settings.map_width as f32 * settings.tile_width * 0.5;
                 let world_height = settings.map_height as f32 * settings.tile_height * 0.5;
-                
+
                 iso_camera.bounds = Some(CameraBounds {
                     min_x: -world_width,
                     max_x: world_width,
@@ -185,7 +185,7 @@ pub fn camera_follow_selected_agent(
     // Auto-follow first selected agent
     if selection.is_changed() && !selection.selected.is_empty() {
         let selected_entity = selection.selected[0];
-        
+
         // Verify it's still a valid agent
         if agent_query.get(selected_entity).is_ok() {
             for mut iso_camera in camera_query.iter_mut() {
@@ -193,7 +193,7 @@ pub fn camera_follow_selected_agent(
             }
         }
     }
-    
+
     // Stop following with ESC
     if keyboard.just_pressed(KeyCode::Escape) {
         for mut iso_camera in camera_query.iter_mut() {
@@ -219,19 +219,19 @@ pub fn camera_shake_system(
         if shake.duration <= 0.0 {
             continue;
         }
-        
+
         // Apply random offset
         let offset = Vec2::new(
             (fastrand::f32() - 0.5) * shake.intensity,
             (fastrand::f32() - 0.5) * shake.intensity,
         );
-        
+
         transform.translation += offset.extend(0.0);
-        
+
         // Decay shake
         shake.duration -= time.delta_secs();
         shake.intensity *= shake.decay;
-        
+
         // Remove shake component when done
         if shake.duration <= 0.0 {
             commands.entity(entity).remove::<CameraShake>();
@@ -295,7 +295,7 @@ pub fn camera_zoom_presets(
     } else {
         None
     };
-    
+
     if let Some(zoom) = target_zoom {
         for mut iso_camera in camera_query.iter_mut() {
             iso_camera.zoom = zoom;
@@ -311,35 +311,35 @@ pub fn camera_edge_scrolling(
     game_mode: Res<GameMode>,
 ) {
     if game_mode.paused { return; }
-    
+
     let Ok(window) = windows.single() else { return; };
     let Some(cursor_pos) = window.cursor_position() else { return; };
-    
+
     let edge_threshold = 50.0; // Pixels from edge
     let scroll_speed = 300.0;
-    
+
     let mut scroll_direction = Vec2::ZERO;
-    
+
     // Check edges
     if cursor_pos.x < edge_threshold {
         scroll_direction.x -= 1.0;
     } else if cursor_pos.x > window.width() - edge_threshold {
         scroll_direction.x += 1.0;
     }
-    
+
     if cursor_pos.y < edge_threshold {
         scroll_direction.y += 1.0; // Y is flipped in screen coordinates
     } else if cursor_pos.y > window.height() - edge_threshold {
         scroll_direction.y -= 1.0;
     }
-    
+
     if scroll_direction.length() > 0.0 {
         scroll_direction = scroll_direction.normalize();
-        
+
         for (mut transform, iso_camera) in camera_query.iter_mut() {
             let movement = scroll_direction * scroll_speed * time.delta_secs() / iso_camera.zoom;
             transform.translation += movement.extend(0.0);
-            
+
             // Apply bounds if they exist
             if let Some(bounds) = &iso_camera.bounds {
                 transform.translation.x = transform.translation.x.clamp(bounds.min_x, bounds.max_x);

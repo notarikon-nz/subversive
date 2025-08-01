@@ -73,13 +73,13 @@ impl Default for UrbanAreas {
                 UrbanZone { center: Vec2::new(300.0, -150.0), radius: 70.0, capacity: 18, current_occupancy: 0 },
             ],
             transit_routes: vec![
-                TransitRoute { 
-                    points: vec![Vec2::new(-200.0, 0.0), Vec2::new(0.0, 0.0), Vec2::new(200.0, 0.0)], 
-                    foot_traffic_density: 0.8 
+                TransitRoute {
+                    points: vec![Vec2::new(-200.0, 0.0), Vec2::new(0.0, 0.0), Vec2::new(200.0, 0.0)],
+                    foot_traffic_density: 0.8
                 },
-                TransitRoute { 
-                    points: vec![Vec2::new(0.0, -200.0), Vec2::new(0.0, 0.0), Vec2::new(0.0, 200.0)], 
-                    foot_traffic_density: 0.6 
+                TransitRoute {
+                    points: vec![Vec2::new(0.0, -200.0), Vec2::new(0.0, 0.0), Vec2::new(0.0, 200.0)],
+                    foot_traffic_density: 0.6
                 },
             ],
         }
@@ -123,7 +123,7 @@ fn find_realistic_spawn_position(urban_areas: &UrbanAreas) -> Option<Vec2> {
             return Some(point + offset);
         }
     }
-    
+
     // Fallback to residential areas
     if !urban_areas.residential_zones.is_empty() {
         let zone = &urban_areas.residential_zones[rand::random::<usize>() % urban_areas.residential_zones.len()];
@@ -132,7 +132,7 @@ fn find_realistic_spawn_position(urban_areas: &UrbanAreas) -> Option<Vec2> {
         let offset = Vec2::new(angle.cos(), angle.sin()) * distance;
         return Some(zone.center + offset);
     }
-    
+
     None
 }
 
@@ -150,11 +150,11 @@ pub fn pick_destination_for_state(state: DailyState, urban_areas: &UrbanAreas) -
 fn pick_random_zone_center(zones: &[UrbanZone]) -> Option<Vec2> {
     if zones.is_empty() { return None; }
     let zone = &zones[rand::random::<usize>() % zones.len()];
-    
+
     let angle = rand::random::<f32>() * std::f32::consts::TAU;
     let distance = rand::random::<f32>() * zone.radius * 0.8;
     let offset = Vec2::new(angle.cos(), angle.sin()) * distance;
-    
+
     Some(zone.center + offset)
 }
 
@@ -172,16 +172,16 @@ pub fn crowd_dynamics_system(
     // Create dynamic crowd nodes from civilian clusters
     let mut crowd_nodes = Vec::new();
     create_dynamic_crowd_nodes(&civilian_query, &mut crowd_nodes);
-    
+
     // Apply crowd influence to each civilian
     for (entity, transform, mut urban_civ, mut movement_speed, morale) in civilian_query.iter_mut() {
         let pos = transform.translation.truncate();
-        
+
         // Find nearby crowd influence
         let mut crowd_effect = 0.0;
         let mut crowd_direction = Vec2::ZERO;
         let mut panic_influence = 0.0;
-        
+
         for crowd_node in &crowd_nodes {
             let distance = pos.distance(crowd_node.position);
             if distance <= crowd_node.influence_radius {
@@ -191,7 +191,7 @@ pub fn crowd_dynamics_system(
                 panic_influence += crowd_node.panic_level * influence_strength;
             }
         }
-        
+
         // Update civilian state based on crowd and panic
         if panic_influence > urban_civ.panic_threshold || morale.is_panicked() {
             if !matches!(urban_civ.daily_state, DailyState::Panicked) {
@@ -203,15 +203,15 @@ pub fn crowd_dynamics_system(
             // Follow the crowd
             urban_civ.daily_state = DailyState::Following;
             urban_civ.movement_urgency = 0.3 + crowd_effect * 0.4;
-            
+
             if crowd_direction.length() > 0.1 {
                 urban_civ.next_destination = Some(pos + crowd_direction.normalize() * 150.0);
             }
         }
-        
+
         // Apply movement urgency to speed
         movement_speed.0 = (80.0 + rand::random::<f32>() * 40.0) * (1.0 + urban_civ.movement_urgency);
-        
+
         // Send movement command if we have a destination
         if let Some(destination) = urban_civ.next_destination {
             if pos.distance(destination) > 20.0 {
@@ -250,23 +250,23 @@ fn create_dynamic_crowd_nodes(
             (transform.translation.truncate(), panic_level, movement_dir)
         })
         .collect();
-    
+
     // Simple clustering: find groups of 3+ civilians within 50 units
     let cluster_radius = 50.0;
     let mut processed = vec![false; positions.len()];
-    
+
     for i in 0..positions.len() {
         if processed[i] { continue; }
-        
+
         let mut cluster = vec![i];
         let mut avg_pos = positions[i].0;
         let mut avg_panic = positions[i].1;
         let mut avg_movement = positions[i].2;
-        
+
         // Find nearby civilians
         for j in (i + 1)..positions.len() {
             if processed[j] { continue; }
-            
+
             if positions[i].0.distance(positions[j].0) <= cluster_radius {
                 cluster.push(j);
                 avg_pos += positions[j].0;
@@ -275,13 +275,13 @@ fn create_dynamic_crowd_nodes(
                 processed[j] = true;
             }
         }
-        
+
         // Create crowd node if cluster is big enough
         if cluster.len() >= 3 {
             avg_pos /= cluster.len() as f32;
             avg_panic /= cluster.len() as f32;
             avg_movement = avg_movement.normalize_or_zero();
-            
+
             crowd_nodes.push(DynamicCrowdNode {
                 position: avg_pos,
                 crowd_size: cluster.len(),
@@ -290,7 +290,7 @@ fn create_dynamic_crowd_nodes(
                 influence_radius: 40.0 + (cluster.len() as f32 * 10.0).min(80.0),
             });
         }
-        
+
         processed[i] = true;
     }
 }
@@ -309,9 +309,9 @@ pub fn daily_routine_system(
         if matches!(urban_civ.daily_state, DailyState::Panicked | DailyState::Following) {
             continue;
         }
-        
+
         urban_civ.state_timer -= time.delta_secs();
-        
+
         if urban_civ.state_timer <= 0.0 {
             transition_daily_state(&mut urban_civ);
             urban_civ.next_destination = pick_destination_for_state(urban_civ.daily_state, &urban_areas);
@@ -334,7 +334,7 @@ fn transition_daily_state(urban_civ: &mut UrbanCivilian) {
         DailyState::Panicked => DailyState::Idle, // Calm down eventually
         DailyState::Following => DailyState::Idle, // Stop following crowd
     };
-    
+
     // Reset urgency when transitioning out of panic/following
     if matches!(urban_civ.daily_state, DailyState::Idle | DailyState::GoingToWork | DailyState::Shopping) {
         urban_civ.movement_urgency = 0.0;
@@ -348,7 +348,7 @@ fn find_escape_destination(current_pos: Vec2) -> Vec2 {
     } else {
         Vec2::new(0.0, current_pos.y.signum())
     };
-    
+
     current_pos + to_edge * 400.0
 }
 
@@ -360,17 +360,17 @@ pub fn urban_cleanup_system(
 ) {
     // Remove civilians that are too far from action
     if agent_query.is_empty() { return; }
-    
+
     let agent_positions: Vec<Vec2> = agent_query.iter()
         .map(|t| t.translation.truncate())
         .collect();
-    
+
     for (entity, transform, urban_civ) in civilian_query.iter() {
         let pos = transform.translation.truncate();
         let min_distance = agent_positions.iter()
             .map(|&agent_pos| pos.distance(agent_pos))
             .fold(f32::INFINITY, f32::min);
-        
+
         // Despawn if too far and not in an interesting state
         if min_distance > 800.0 && matches!(urban_civ.daily_state, DailyState::Idle | DailyState::GoingHome) {
             commands.entity(entity).insert(MarkedForDespawn);
@@ -390,9 +390,9 @@ pub fn urban_debug_system(
         *show_urban_debug = !*show_urban_debug;
         info!("Urban debug: {}", if *show_urban_debug { "ON" } else { "OFF" });
     }
-    
+
     if !*show_urban_debug { return; }
-    
+
     // Draw urban zones
     for zone in &urban_areas.work_zones {
         gizmos.circle_2d(zone.center, zone.radius, Color::srgba(0.8, 0.8, 0.2, 0.3));
@@ -403,14 +403,14 @@ pub fn urban_debug_system(
     for zone in &urban_areas.residential_zones {
         gizmos.circle_2d(zone.center, zone.radius, Color::srgba(0.2, 0.8, 0.2, 0.3));
     }
-    
+
     // Draw transit routes
     for route in &urban_areas.transit_routes {
         for i in 0..route.points.len().saturating_sub(1) {
             gizmos.line_2d(route.points[i], route.points[i + 1], Color::srgb(0.6, 0.6, 0.6));
         }
     }
-    
+
     // Draw civilian state indicators
     for (transform, urban_civ) in civilian_query.iter() {
         let pos = transform.translation.truncate();
@@ -423,9 +423,9 @@ pub fn urban_debug_system(
             DailyState::Panicked => Color::srgb(0.8, 0.2, 0.2),
             DailyState::Following => Color::srgb(0.8, 0.2, 0.8),
         };
-        
+
         gizmos.circle_2d(pos + Vec2::new(0.0, 15.0), 4.0, state_color);
-        
+
         // Draw destination line
         if let Some(dest) = urban_civ.next_destination {
             gizmos.line_2d(pos, dest, Color::srgba(1.0, 1.0, 1.0, 0.3));

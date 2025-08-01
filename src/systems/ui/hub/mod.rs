@@ -4,6 +4,10 @@ use bevy_egui::{egui, EguiContexts};
 use crate::core::*;
 use serde::{Deserialize, Serialize};
 
+// 0.2.17
+pub mod territory;
+pub use territory::*;
+
 pub mod agents;
 pub mod research;
 pub mod manufacture;
@@ -18,12 +22,13 @@ pub struct HubState {
 
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub enum HubTab {
-    #[default] 
-    GlobalMap, 
-    Research, 
-    Agents, 
-    Manufacture, 
+    #[default]
+    GlobalMap,
+    Research,
+    Agents,
+    Manufacture,
     Missions,
+    Territory,
 }
 
 // All the databases in one place for easy access
@@ -68,21 +73,23 @@ pub fn hub_input_system(
     if input.just_pressed(KeyCode::KeyQ) {
         hub_state.active_tab = match hub_state.active_tab {
             HubTab::GlobalMap => HubTab::Missions,
-            HubTab::Research => HubTab::GlobalMap,
+            HubTab::Territory => HubTab::GlobalMap,
+            HubTab::Research => HubTab::Territory,
             HubTab::Agents => HubTab::Research,
             HubTab::Manufacture => HubTab::Agents,
             HubTab::Missions => HubTab::Manufacture,
         };
     }
-    
-    if input.just_pressed(KeyCode::KeyE) { 
+
+    if input.just_pressed(KeyCode::KeyE) {
         hub_state.active_tab = match hub_state.active_tab {
-            HubTab::GlobalMap => HubTab::Research,
+            HubTab::GlobalMap => HubTab::Territory,
+            HubTab::Territory => HubTab::Research,
             HubTab::Research => HubTab::Agents,
             HubTab::Agents => HubTab::Manufacture,
             HubTab::Manufacture => HubTab::Missions,
             HubTab::Missions => HubTab::GlobalMap,
-        };        
+        };
     }
 
     if input.just_pressed(KeyCode::Escape) { std::process::exit(0); }
@@ -99,10 +106,10 @@ pub fn hub_ui_system(
     input: Res<ButtonInput<KeyCode>>,
 ) {
     if let Ok(ctx) = contexts.ctx_mut() {
-    
+
         // Apply cyberpunk theme
         setup_cyberpunk_theme(ctx);
-        
+
         // Top bar with navigation and info
         egui::TopBottomPanel::top("top_bar")
             .exact_height(50.0)
@@ -112,9 +119,9 @@ pub fn hub_ui_system(
                 let accessible_cities = hub_databases.cities_db.get_accessible_cities(&global_data).len();
                 let total_cities = hub_databases.cities_db.get_all_cities().len();
                 ui.colored_label(egui::Color32::YELLOW, format!("Cities: {}/{}", accessible_cities, total_cities));
-                
+
                 ui.separator();
-                
+
                 // Center section - 60% width
                 ui.allocate_ui_with_layout(
                     egui::vec2(ui.available_width() * 0.75, ui.available_height()), // 0.75 because 20% is already used
@@ -122,16 +129,17 @@ pub fn hub_ui_system(
                     |ui| {
                         ui.horizontal_centered(|ui| {
                             ui.label("Q");
-                            for tab in [HubTab::GlobalMap, HubTab::Research, HubTab::Agents, HubTab::Manufacture, HubTab::Missions] {
+                            for tab in [HubTab::GlobalMap, HubTab::Territory, HubTab::Research, HubTab::Agents, HubTab::Manufacture, HubTab::Missions] {
                                 let is_active = hub_state.active_tab == tab;
                                 let text = match tab {
                                     HubTab::GlobalMap => "Map",
-                                    HubTab::Research => "Research", 
+                                    HubTab::Territory => "Territory",
+                                    HubTab::Research => "Research",
                                     HubTab::Agents => "Agents",
                                     HubTab::Manufacture => "Gear",
                                     HubTab::Missions => "Mission",
                                 };
-                                
+
                                 if ui.selectable_label(is_active, text).clicked() {
                                     hub_state.active_tab = tab;
                                 }
@@ -140,14 +148,14 @@ pub fn hub_ui_system(
                         });
                     }
                 );
-                
+
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     ui.colored_label(egui::Color32::YELLOW, format!("${}", global_data.credits));
                     ui.label(format!("Day {}", global_data.current_day));
                 });
             });
         });
-        
+
         // Bottom bar with controls
         egui::TopBottomPanel::bottom("bottom_bar")
             .exact_height(30.0)
@@ -155,6 +163,7 @@ pub fn hub_ui_system(
             ui.horizontal_centered(|ui| {
                 let controls = match hub_state.active_tab {
                     HubTab::GlobalMap => "Click Cities | W: Wait Day | ENTER: Mission | Q/E: Tabs",
+                    HubTab::Territory => "PLACEHOLDER",
                     HubTab::Research => "↑↓: Navigate | ENTER: Purchase | Q/E: Tabs",
                     HubTab::Agents => "←→: Agent | 1-3: View | ↑↓: Navigate | ENTER: Install | Q/E: Tabs",
                     HubTab::Manufacture => "1-3: Agent | ↑↓: Slots | ←→: Attachments | ENTER: Modify | Q/E: Tabs",
@@ -179,26 +188,41 @@ pub fn hub_interaction_system(
     mouse: Res<ButtonInput<MouseButton>>,
     city_query: Query<(Entity, &Transform, &global_map::InteractiveCity)>,
     mut agent_query: Query<&mut Inventory, With<Agent>>,
-    hub_databases: Res<HubDatabases>,
     input: Res<ButtonInput<KeyCode>>,
     mut unlocked_attachments: ResMut<UnlockedAttachments>,
-    scientist_query: Query<(Entity, &Scientist)>,    
+    scientist_query: Query<(Entity, &Scientist)>,
+
+    mut resources: ParamSet<(
+        (Res<HubDatabases>, Res<ProgressionTracker>, Res<ExtendedCampaignDatabase>, ResMut<TerritoryManager>),
+    )>,
 ) {
     if let Ok(ctx) = contexts.ctx_mut() {
-     
+
+
+        let (hub_databases, progression_tracker, campaign_db, mut territory_manager) = resources.p0();
+        
+
         // Main content area
         egui::CentralPanel::default().show(ctx, |ui| {
 
             match hub_state.active_tab {
                 HubTab::GlobalMap => global_map::show_global_map(
-                    ui, 
-                    &mut global_data, 
+                    ui,
+                    &mut global_data,
                     &hub_databases.cities_db,
                     &input,
                     &windows,
                     &cameras,
                     &mouse,
                     &city_query,
+                ),
+                HubTab::Territory => territory::show_territory_control(
+                    ui,
+                    &mut territory_manager,
+                    &progression_tracker,
+                    &hub_databases.cities_db,
+                    &campaign_db,
+                    &global_data
                 ),
                 HubTab::Research => research::show_research(
                     ui,
@@ -238,27 +262,27 @@ pub fn hub_interaction_system(
 
 pub fn setup_cyberpunk_theme(ctx: &egui::Context) {
     let mut style = (*ctx.style()).clone();
-    
+
     // Dark cyberpunk colors
     style.visuals.window_fill = egui::Color32::from_rgba_premultiplied(10, 10, 20, 240);
     style.visuals.panel_fill = egui::Color32::from_rgba_premultiplied(15, 15, 25, 200);
     style.visuals.faint_bg_color = egui::Color32::from_rgba_premultiplied(20, 20, 40, 100);
-    
+
     // Text colors - these are methods, not fields
     style.visuals.override_text_color = Some(egui::Color32::WHITE);
-    
+
     // Selection colors
     style.visuals.selection.bg_fill = egui::Color32::from_rgb(50, 150, 50);
     style.visuals.widgets.hovered.bg_fill = egui::Color32::from_rgb(30, 30, 50);
     style.visuals.widgets.active.bg_fill = egui::Color32::from_rgb(50, 50, 80);
-    
+
     // Borders
     style.visuals.widgets.noninteractive.bg_stroke = egui::Stroke::new(1.0, egui::Color32::from_rgb(60, 60, 80));
-    
+
     // Spacing - use proper margin constructor
     style.spacing.item_spacing = egui::vec2(8.0, 6.0);
     style.spacing.window_margin = egui::Margin::symmetric(12, 12);
-    
+
     ctx.set_style(style);
 }
 

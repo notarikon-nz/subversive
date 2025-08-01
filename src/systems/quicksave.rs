@@ -3,7 +3,6 @@ use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use crate::core::*;
-use crate::systems::scenes::*;
 
 const QUICKSAVE_FILE: &str = "quicksave.json";
 
@@ -38,7 +37,7 @@ pub fn quicksave_system(
             kills: mission_data.enemies_killed,
             terminals: mission_data.terminals_accessed,
         };
-        
+
         if let Ok(json) = serde_json::to_string(&save) {
             if fs::write(QUICKSAVE_FILE, json).is_ok() {
                 info!("Mission quicksaved");
@@ -54,7 +53,7 @@ pub fn quicksave_system(
                 for entity in entities.iter() {
                     commands.entity(entity).insert(MarkedForDespawn);
                 }
-                
+
                 // Restart with saved progress
                 match crate::systems::scenes::load_scene("mission1") {
                     Some(scene) => {
@@ -65,13 +64,13 @@ pub fn quicksave_system(
                         // spawn_fallback_mission(&mut commands, &*global_data, &sprites);
                     }
                 }
-                
+
                 // Restore progress
                 mission_data.timer = save.timer;
                 mission_data.objectives_completed = save.objectives;
                 mission_data.enemies_killed = save.kills;
                 mission_data.terminals_accessed = save.terminals;
-                
+
                 info!("Mission quickloaded");
             }
         }

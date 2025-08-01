@@ -7,7 +7,7 @@ use crate::core::{WeaponType, WeaponBehavior};
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum AttachmentSlot {
     Barrel,
-    Sight, 
+    Sight,
     Magazine,
     Grip,
     Stock,
@@ -55,15 +55,15 @@ impl WeaponConfig {
             attachments: HashMap::new(),
         }
     }
-    
+
     pub fn attach(&mut self, attachment: WeaponAttachment) -> Option<WeaponAttachment> {
         self.attachments.insert(attachment.slot.clone(), attachment)
     }
-    
+
     pub fn detach(&mut self, slot: &AttachmentSlot) -> Option<WeaponAttachment> {
         self.attachments.remove(slot)
     }
-    
+
     pub fn stats(&self) -> AttachmentStats {
         let mut total = AttachmentStats::default();
         for attachment in self.attachments.values() {
@@ -71,25 +71,25 @@ impl WeaponConfig {
         }
         total
     }
-    
+
     // Legacy compatibility methods
     pub fn calculate_total_stats(&self) -> AttachmentStats {
         self.stats()
     }
-    
+
     pub fn get_effective_range(&self) -> f32 {
         let base_range = self.behavior.preferred_range;
         let stats = self.stats();
         base_range * (1.0 + stats.range as f32 * 0.1)
     }
-    
+
     pub fn supported_slots(&self) -> Vec<AttachmentSlot> {
         match self.base_weapon {
             WeaponType::Pistol => vec![AttachmentSlot::Sight, AttachmentSlot::Barrel],
             WeaponType::Shotgun => vec![AttachmentSlot::Stock, AttachmentSlot::Barrel],
             WeaponType::Rifle => vec![
-                AttachmentSlot::Sight, 
-                AttachmentSlot::Barrel, 
+                AttachmentSlot::Sight,
+                AttachmentSlot::Barrel,
                 AttachmentSlot::Magazine,
                 AttachmentSlot::Stock,
             ],
@@ -117,7 +117,7 @@ impl AttachmentDatabase {
     pub fn load() -> Self {
         let paths = ["data/attachments/tier1.json", "data/attachments/tier2.json", "data/attachments/tier3.json"];
         let mut db = Self::default();
-        
+
         for path in paths {
             if let Ok(content) = std::fs::read_to_string(path) {
                 if let Ok(attachments) = serde_json::from_str::<HashMap<String, WeaponAttachment>>(&content) {
@@ -128,14 +128,14 @@ impl AttachmentDatabase {
                 }
             }
         }
-        
+
         db
     }
-    
+
     pub fn get(&self, id: &str) -> Option<&WeaponAttachment> {
         self.attachments.get(id)
     }
-    
+
     pub fn get_by_slot(&self, slot: &AttachmentSlot) -> Vec<&WeaponAttachment> {
         self.attachments.values()
             .filter(|att| att.slot == *slot)

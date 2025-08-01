@@ -18,6 +18,19 @@ pub struct City {
     pub connections: Vec<String>, // IDs of adjacent cities
 }
 
+impl City {
+    pub fn get_chapter_theme(&self) -> ChapterTheme {
+        match self.traits.first() {
+            Some(CityTrait::FinancialHub) => ChapterTheme::Corporate,
+            Some(CityTrait::DrugCartels) => ChapterTheme::Underground,
+            Some(CityTrait::HighTechSurveillance) => ChapterTheme::Surveillance,
+            Some(CityTrait::CivilianUnrest) => ChapterTheme::Revolution,
+            Some(CityTrait::TechCenter) => ChapterTheme::Technology,
+            _ => ChapterTheme::Corporate,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CityCoordinates {
     pub latitude: f32,
@@ -37,7 +50,7 @@ pub enum Corporation {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum CityTrait {
     DrugCartels,
-    HighTechSurveillance, 
+    HighTechSurveillance,
     CorporateHeadquarters,
     BlackMarket,
     PoliceBrutality,
@@ -110,7 +123,7 @@ impl CitiesDatabase {
             }
         }
     }
-    
+
     pub fn save(&self) {
         if let Ok(json) = serde_json::to_string_pretty(self) {
             if std::fs::write("data/cities.json", json).is_ok() {
@@ -118,17 +131,17 @@ impl CitiesDatabase {
             }
         }
     }
-    
+
     pub fn get_city(&self, id: &str) -> Option<&City> {
         self.cities.iter().find(|c| c.id == id)
     }
-    
+
     pub fn get_all_cities(&self) -> Vec<&City> {
         self.cities.iter().collect()
     }
 
     pub fn get_accessible_cities(&self, global_data: &GlobalData) -> Vec<&City> {
-        
+
         self.cities.iter()
             .filter(|city| {
                 let is_starting = city.id == self.starting_city;
@@ -138,10 +151,10 @@ impl CitiesDatabase {
             })
             .collect()
     }
-    
+
     pub fn unlock_connected_cities(&self, completed_city_id: &str, cities_progress: &mut CitiesProgress) -> Vec<String> {
         let mut newly_unlocked = Vec::new();
-        
+
         if let Some(completed_city) = self.get_city(completed_city_id) {
             for connection_id in &completed_city.connections {
                 if !cities_progress.unlocked_cities.contains(connection_id) {
@@ -151,7 +164,7 @@ impl CitiesDatabase {
                 }
             }
         }
-        
+
         newly_unlocked
     }
 
@@ -167,7 +180,7 @@ impl CitiesProgress {
     pub fn new(starting_city: String) -> Self {
         let mut unlocked_cities = std::collections::HashSet::new();
         unlocked_cities.insert(starting_city.clone()); // Starting city is always unlocked
-        
+
         Self {
             current_city: starting_city,
             city_states: std::collections::HashMap::new(),
@@ -180,7 +193,7 @@ impl CitiesProgress {
             .cloned()
             .unwrap_or_default()
     }
-    
+
     pub fn get_city_state_mut(&mut self, city_id: &str) -> &mut CityState {
         self.city_states.entry(city_id.to_string()).or_insert_with(CityState::default)
     }
@@ -191,7 +204,7 @@ impl CitiesProgress {
         state.last_mission_day = current_day;
         state.times_visited += 1;
     }
-    
+
     pub fn raise_alert(&mut self, city_id: &str, current_day: u32) {
         let state = self.get_city_state_mut(city_id);
         state.alert_level = match state.alert_level {
@@ -222,7 +235,7 @@ impl MapProjection {
             center_y: map_height / 2.0,
         }
     }
-    
+
     pub fn lat_lon_to_pixel(&self, coords: &CityCoordinates) -> Vec2 {
         // Simple equirectangular projection
         let x = self.center_x + ((coords.longitude - 30.0) / 160.0) * (self.map_width / 2.0);
@@ -235,15 +248,15 @@ impl MapProjection {
 fn create_default_cities() -> Vec<City> {
     vec![
         // Americas
-        create_city("new_york", "New York", "USA", 40.7128, -74.0060, 8, 4, Corporation::Nexus, 
-                   vec![CityTrait::FinancialHub, CityTrait::HighTechSurveillance], 
+        create_city("new_york", "New York", "USA", 40.7128, -74.0060, 8, 4, Corporation::Nexus,
+                   vec![CityTrait::FinancialHub, CityTrait::HighTechSurveillance],
                    vec!["chicago", "miami", "toronto"]),
     ]
 }
 
 fn create_city(
     id: &str,
-    name: &str, 
+    name: &str,
     country: &str,
     lat: f32,
     lon: f32,

@@ -41,7 +41,7 @@ impl Default for MinimapSettings {
 // === SETUP MINIMAP UI ===
 pub fn setup_minimap(mut commands: Commands) {
     let settings = MinimapSettings::default();
-    
+
     // Main minimap container
     commands
         .spawn((
@@ -78,7 +78,7 @@ pub fn old_update_minimap_system(
     settings: Res<MinimapSettings>,
     minimap_canvas: Query<Entity, With<MinimapCanvas>>,
     existing_dots: Query<Entity, (With<MinimapDot>, Without<MarkedForDespawn>)>,
-    
+
     // Entity queries
     agents: Query<(Entity, &Transform), (With<Agent>, Without<Dead>)>,
     enemies: Query<(Entity, &Transform, &Faction), (With<Enemy>, Without<Dead>)>,
@@ -96,18 +96,18 @@ pub fn old_update_minimap_system(
     } else {
         Vec2::ZERO // Fallback if no camera found
     };
-    
+
     // Clear existing dots
     for dot_entity in existing_dots.iter() {
         commands.entity(dot_entity).insert(MarkedForDespawn);
     }
-    
+
     let Ok(canvas_entity) = minimap_canvas.single() else { return; };
-    
+
     // Get main agent position for range calculation (use first agent if multiple)
     let main_agent_pos = agents.iter().next().map(|(_, t)| t.translation.truncate())
         .unwrap_or(camera_pos);
-    
+
     // Update range based on agent upgrades
     let current_range = calculate_minimap_range(&global_data, &settings);
 
@@ -170,7 +170,7 @@ if settings.show_terminals {
             }
         }
     }
-    
+
     // Add Billboards (purple)
     for (entity, transform) in billboards.iter() {
         let world_pos = transform.translation.truncate();
@@ -209,17 +209,17 @@ pub fn update_minimap_system(
     settings: Res<MinimapSettings>,
     minimap_canvas: Query<Entity, With<MinimapCanvas>>,
     existing_dots: Query<Entity, (With<MinimapDot>, Without<MarkedForDespawn>)>,
-    
+
     // Entity queries
     agents: Query<(Entity, &Transform), (With<Agent>, Without<Dead>)>,
     enemies: Query<(Entity, &Transform, &Faction), (With<Enemy>, Without<Dead>)>,
     civilians: Query<(Entity, &Transform), (With<Civilian>, Without<Dead>)>,
     terminals: Query<(Entity, &Transform), With<Terminal>>,
-    
+
     // Updated camera query to work with both regular and isometric cameras
     regular_cameras: Query<&Transform, (With<Camera2d>, Without<Agent>, Without<Enemy>, Without<Civilian>, Without<crate::systems::isometric_camera::IsometricCamera>)>,
     isometric_cameras: Query<&Transform, (With<Camera2d>, With<crate::systems::isometric_camera::IsometricCamera>, Without<Agent>, Without<Enemy>, Without<Civilian>)>,
-    
+
     atms: Query<(Entity, &Transform), With<ATM>>,
     billboards: Query<(Entity, &Transform), With<Billboard>>,
     global_data: Res<GlobalData>,
@@ -233,18 +233,18 @@ pub fn update_minimap_system(
     } else {
         Vec2::ZERO // Fallback if no camera found
     };
-    
+
     // Clear existing dots
     for dot_entity in existing_dots.iter() {
         commands.entity(dot_entity).insert(MarkedForDespawn);
     }
-    
+
     let Ok(canvas_entity) = minimap_canvas.single() else { return; };
-    
+
     // Get main agent position for range calculation (use first agent if multiple)
     let main_agent_pos = agents.iter().next().map(|(_, t)| t.translation.truncate())
         .unwrap_or(camera_pos);
-    
+
     // Update range based on agent upgrades
     let current_range = calculate_minimap_range(&global_data, &settings);
 
@@ -299,7 +299,7 @@ pub fn update_minimap_system(
                 }
             }
         }
-        
+
         for (entity, transform) in atms.iter() {
             let world_pos = transform.translation.truncate();
             if world_pos.distance(main_agent_pos) <= current_range {
@@ -308,7 +308,7 @@ pub fn update_minimap_system(
                 }
             }
         }
-        
+
         // Add Billboards (purple)
         for (entity, transform) in billboards.iter() {
             let world_pos = transform.translation.truncate();
@@ -344,15 +344,15 @@ pub fn update_minimap_system(
 fn world_to_minimap_pos(world_pos: Vec2, center_pos: Vec2, range: f32, minimap_size: f32) -> Option<Vec2> {
     let relative_pos = world_pos - center_pos;
     let distance = relative_pos.length();
-    
+
     if distance > range {
         return None; // Outside minimap range
     }
-    
+
     // Convert to minimap coordinates (0,0 = center of minimap)
     let normalized = relative_pos / range; // -1 to 1
     let minimap_pos = normalized * (minimap_size * 0.4); // Use 80% of minimap size for entities
-    
+
     Some(minimap_pos)
 }
 
@@ -376,26 +376,26 @@ fn spawn_minimap_dot(parent: &mut Commands, entity_ref: Entity, pos: Vec2, color
 fn calculate_minimap_range(global_data: &GlobalData, base_settings: &MinimapSettings) -> f32 {
     // Base range
     let mut range = base_settings.range;
-    
+
     // Check if any agent has sensor upgrades
     // PLACEHOLDER
     let has_enhanced_sensors = global_data.agent_loadouts.iter().any(|agent_loadout| {
         agent_loadout.tools.contains(&ToolType::EnhancedSensors)
     });
-    
+
     let has_satellite_uplink = global_data.agent_loadouts.iter().any(|agent_loadout| {
         agent_loadout.tools.contains(&ToolType::SatelliteUplink)
     });
-    
+
     // Apply range boosts
     if has_enhanced_sensors {
         range *= 1.5;
     }
-    
+
     if has_satellite_uplink {
         range *= 2.0;
     }
-    
+
     range
 }
 
@@ -429,7 +429,7 @@ pub fn apply_minimap_research_benefits(
         settings.show_colors = global_data.agent_loadouts.iter().any(|agent_loadout| {
             agent_loadout.tools.contains(&ToolType::TacticalScanner)
         });
-        
+
         // Check if any agent has network scanner for terminal display
         settings.show_terminals = global_data.agent_loadouts.iter().any(|agent_loadout| {
             agent_loadout.tools.contains(&ToolType::NetworkScanner)

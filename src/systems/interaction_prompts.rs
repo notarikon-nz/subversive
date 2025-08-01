@@ -14,8 +14,6 @@ pub struct InteractionSprites {
     pub key_f: Handle<Image>,
     pub key_r: Handle<Image>,
     pub key_question: Handle<Image>,
-    pub security_bar: Handle<Image>,
-    pub security_bar_filled: Handle<Image>,
 }
 
 #[derive(Component)]
@@ -47,8 +45,6 @@ pub fn load_interaction_sprites(
         key_f: asset_server.load("sprites/ui/key_f.png"),
         key_r: asset_server.load("sprites/ui/key_r.png"),
         key_question: asset_server.load("sprites/ui/key_question.png"),
-        security_bar: asset_server.load("sprites/ui/security_bar.png"),
-        security_bar_filled: asset_server.load("sprites/ui/security_bar_filled.png"),
     };
     
     commands.insert_resource(interaction_sprites);

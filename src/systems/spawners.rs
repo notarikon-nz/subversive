@@ -1,6 +1,5 @@
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
-use serde::{Deserialize, Serialize};
 
 use crate::core::*;
 use crate::core::factions::Faction;
@@ -54,17 +53,17 @@ pub fn spawn_agent(commands: &mut Commands, pos: Vec2, level: u8, idx: usize, gl
 pub fn spawn_enemy(commands: &mut Commands, pos: Vec2, patrol: Vec<Vec2>, global_data: &GlobalData, sprites: &GameSprites) {
     let (sprite, _) = create_enemy_sprite(sprites);
     let difficulty = global_data.regions[global_data.selected_region].mission_difficulty_modifier();
-    
+
     let faction = random_enemy_faction();
     let weapon = select_weapon_for_faction(&faction);
-    
+
     // Create inventory with weapon
     let mut inventory = Inventory::default();
     inventory.equipped_weapon = Some(WeaponConfig::new(weapon.clone()));
 
     // Create weapon state with proper ammo - THIS WAS THE ISSUE
     let mut weapon_state = WeaponState::new_from_type(&weapon);
-    weapon_state.complete_reload(); // Ensure enemies start with full ammo    
+    weapon_state.complete_reload(); // Ensure enemies start with full ammo
 
     commands.spawn((
         sprite,
@@ -106,9 +105,9 @@ pub fn spawn_police_unit(
     let level_config = unit_type.get_config(config);
     let (mut sprite, _) = crate::core::sprites::create_police_sprite(sprites);
     sprite.color = Color::srgba(level_config.color.0, level_config.color.1, level_config.color.2, level_config.color.3);
-    
+
     let patrol_points = generate_patrol_pattern(position, unit_type, config);
-    
+
     let weapon_type = match level_config.weapon.as_str() {
         "Pistol" => WeaponType::Pistol,
         "Rifle" => WeaponType::Rifle,
@@ -116,13 +115,13 @@ pub fn spawn_police_unit(
         "Flamethrower" => WeaponType::Flamethrower,
         _ => WeaponType::Pistol,
     };
-    
+
     let mut inventory = Inventory::default();
     inventory.equipped_weapon = Some(WeaponConfig::new(weapon_type.clone()));
-    
+
     let mut ai_state = AIState::default();
     ai_state.use_goap = true;
-    
+
     commands.spawn_empty()
         .insert((
             sprite,
@@ -159,14 +158,14 @@ pub fn spawn_police_unit(
 // 0.2.5.3 - added Pathfinding Obstacle component
 pub fn spawn_terminal(commands: &mut Commands, pos: Vec2, terminal_type: &str, sprites: &GameSprites) {
     let (sprite, _) = create_terminal_sprite(sprites, &parse_terminal_type(terminal_type));
-    
+
     commands.spawn((
         sprite,
         Transform::from_translation(pos.extend(1.0)),
-        Terminal { 
-            terminal_type: parse_terminal_type(terminal_type), 
-            range: 30.0, 
-            accessed: false 
+        Terminal {
+            terminal_type: parse_terminal_type(terminal_type),
+            range: 30.0,
+            accessed: false
         },
         Selectable { radius: 15.0 },
         RigidBody::Fixed,
@@ -176,7 +175,7 @@ pub fn spawn_terminal(commands: &mut Commands, pos: Vec2, terminal_type: &str, s
         PathfindingObstacle {
             radius: 12.0,
             blocks_movement: true, // Terminals block movement
-        },        
+        },
     ));
 }
 
@@ -204,7 +203,7 @@ fn spawn_agent_with_index(commands: &mut Commands, pos: Vec2, level: u8, idx: us
         inventory,
         weapon_state,
         create_physics_bundle(16.0, AGENT_GROUP),
-        // Add scanner to support agents 
+        // Add scanner to support agents
         WorldScanner {
             scan_level,
             range: 150.0 + (scan_level as f32 * 50.0), // Higher level = longer range
@@ -217,13 +216,13 @@ fn spawn_agent_with_index(commands: &mut Commands, pos: Vec2, level: u8, idx: us
     ));
     if level >= 5 { // high-level agent
         // add_scanner_to_agent(commands, agent_entity, level.min(3));
-    }       
+    }
 }
 
 pub fn spawn_civilian(commands: &mut Commands, position: Vec2, sprites: &GameSprites) {
     let (sprite, mut transform) = crate::core::sprites::create_civilian_sprite(sprites);
     transform.translation = position.extend(1.0);
-    
+
     commands.spawn((
         sprite,
         transform,
@@ -245,7 +244,7 @@ pub fn spawn_civilian(commands: &mut Commands, position: Vec2, sprites: &GameSpr
 pub fn spawn_civilian_with_config(commands: &mut Commands, pos: Vec2, sprites: &GameSprites, config: &GameConfig) {
     info!("spawn_civilian_with_config");
     let (sprite, _) = create_civilian_sprite(sprites);
-    
+
     commands.spawn((
         sprite,
         Transform::from_translation(pos.extend(1.0)),
@@ -272,7 +271,7 @@ pub fn spawn_vehicle(
 ) {
     let vehicle = Vehicle::new(vehicle_type.clone());
     let max_health = vehicle.max_health();
-    
+
     let (color, size) = match vehicle_type {
         VehicleType::CivilianCar => (Color::srgb(0.6, 0.6, 0.8), Vec2::new(40.0, 20.0)),
         VehicleType::PoliceCar => (Color::srgb(0.2, 0.2, 0.8), Vec2::new(40.0, 20.0)),
@@ -283,7 +282,7 @@ pub fn spawn_vehicle(
         VehicleType::Truck => (Color::srgb(0.4, 0.6, 0.4), Vec2::new(50.0, 30.0)), // change
         VehicleType::FuelTruck => (Color::srgb(0.4, 0.6, 0.4), Vec2::new(50.0, 30.0)), // change
     };
-    
+
     commands.spawn((
         Sprite {
             color,
@@ -300,17 +299,17 @@ pub fn spawn_vehicle(
 }
 
 pub fn spawn_urban_civilian(
-    commands: &mut Commands, 
-    position: Vec2, 
+    commands: &mut Commands,
+    position: Vec2,
     sprites: &GameSprites,
     urban_areas: &UrbanAreas,
 ) {
     let (sprite, _) = crate::core::sprites::create_civilian_sprite(sprites);
-    
+
     // Randomize civilian personality
     let crowd_influence = 0.3 + rand::random::<f32>() * 0.4; // 0.3-0.7
     let panic_threshold = 20.0 + rand::random::<f32>() * 40.0; // 20-60
-    
+
     // Pick initial daily state based on "time of day" simulation
     let daily_state = match rand::random::<f32>() {
         x if x < 0.4 => DailyState::GoingToWork,
@@ -318,9 +317,9 @@ pub fn spawn_urban_civilian(
         x if x < 0.8 => DailyState::GoingHome,
         _ => DailyState::Idle,
     };
-    
+
     let next_destination = pick_destination_for_state(daily_state, urban_areas);
-    
+
     commands.spawn((
         sprite,
         Transform::from_translation(position.extend(1.0)),
@@ -357,7 +356,7 @@ pub fn spawn_original_urban_civilian(commands: &mut Commands, pos: Vec2, sprites
         sprite,
         Transform::from_translation(pos.extend(1.0)),
         Civilian,
-        
+
         create_base_unit_bundle(50.0, 80.0 + rand::random::<f32>() * 40.0),
         Morale::new(80.0, panic_threshold),
         Controllable,
@@ -390,7 +389,7 @@ pub fn spawn_traffic_vehicle(
         TrafficVehicleType::MilitaryConvoy => (110.0, Vec2::new(44.0, 20.0), Color::srgb(0.3, 0.5, 0.3), 200.0),
         TrafficVehicleType::MotorCycle => (160.0, Vec2::new(12.0, 8.0), Color::srgb(0.8, 0.2, 0.2), 40.0),
     };
-    
+
     let mut entity_commands = commands.spawn((
         Sprite {
             color,
@@ -434,7 +433,7 @@ pub fn spawn_traffic_vehicle(
         GravityScale(0.0),
         Scannable,
     ));
-    
+
     // Add special components
     match vehicle_type {
         TrafficVehicleType::EmergencyAmbulance | TrafficVehicleType::PoliceCar => {
@@ -468,23 +467,23 @@ pub fn spawn_scientists_in_mission(
     if existing_count >= 3 {
         return;
     }
-    
+
     // Spawn 1-2 scientists per mission randomly
     let spawn_count = if rand::random::<f32>() < 0.6 { 1 } else { 2 };
-    
+
     for _ in 0..spawn_count {
         let position = Vec2::new(
             (rand::random::<f32>() - 0.5) * 400.0,
             (rand::random::<f32>() - 0.5) * 400.0,
         );
-        
+
         let specialization = match rand::random::<f32>() {
             x if x < 0.25 => ResearchCategory::Weapons,
             x if x < 0.5 => ResearchCategory::Equipment,
             x if x < 0.75 => ResearchCategory::Cybernetics,
             _ => ResearchCategory::Intelligence,
         };
-        
+
         spawn_scientist_npc(&mut commands, position, specialization, &sprites);
     }
 }
@@ -615,20 +614,20 @@ pub fn spawn_power_station(
             ..default()
         },
         Transform::from_translation(position.extend(1.0)),
-        PowerStation { 
+        PowerStation {
             network_id: network_id.clone(),
             max_capacity: 100,
             current_load: 0,
         },
     )).id();
-    
+
     make_hackable_networked(commands, entity, DeviceType::PowerStation, network_id.clone(), power_grid);
-    
+
     // Register as power source
     let network = power_grid.networks.entry(network_id.clone())
         .or_insert_with(|| PowerNetwork::new(network_id));
     network.power_sources.insert(entity);
-    
+
     entity
 }
 
@@ -647,7 +646,7 @@ pub fn spawn_street_light(
         Transform::from_translation(position.extend(1.0)),
         StreetLight { brightness: 1.0 },
     )).id();
-    
+
     make_hackable_networked(commands, entity, DeviceType::StreetLight, network_id, power_grid);
     entity
 }
@@ -665,12 +664,12 @@ pub fn spawn_traffic_light(
             ..default()
         },
         Transform::from_translation(position.extend(1.0)),
-        TrafficLight { 
+        TrafficLight {
             state: TrafficState::Green,
             timer: 10.0,
         },
     )).id();
-    
+
     make_hackable_networked(commands, entity, DeviceType::TrafficLight, network_id, power_grid);
     entity
 }
@@ -696,13 +695,13 @@ pub fn spawn_security_camera(
         },
         Vision::new(120.0, 60.0),
     )).id();
-    
+
     if let (Some(network_id), Some(power_grid)) = (network_id, power_grid) {
         make_hackable_networked(commands, entity, DeviceType::Camera, network_id, power_grid);
     } else {
         make_hackable(commands, entity, DeviceType::Camera);
     }
-    
+
     entity
 }
 
@@ -729,13 +728,13 @@ pub fn spawn_automated_turret(
         Vision::new(150.0, 90.0),
         WeaponState::new_from_type(&WeaponType::Rifle),
     )).id();
-    
+
     if let (Some(network_id), Some(power_grid)) = (network_id, power_grid) {
         make_hackable_networked(commands, entity, DeviceType::Turret, network_id, power_grid);
     } else {
         setup_hackable_turret(commands, entity);
     }
-    
+
     entity
 }
 
@@ -759,13 +758,13 @@ pub fn spawn_security_door(
         bevy_rapier2d::prelude::RigidBody::Fixed,
         bevy_rapier2d::prelude::Collider::cuboid(4.0, 16.0),
     )).id();
-    
+
     if let (Some(network_id), Some(power_grid)) = (network_id, power_grid) {
         make_hackable_networked(commands, entity, DeviceType::Door, network_id, power_grid);
     } else {
         setup_hackable_door(commands, entity);
     }
-    
+
     entity
 }
 
@@ -781,19 +780,19 @@ pub fn spawn_random_research_content(
             200.0 + i as f32 * 300.0,
             (rand::random::<f32>() - 0.5) * 200.0,
         );
-        
+
         let faction = match rand::random::<f32>() {
             x if x < 0.4 => Faction::Corporate,
             x if x < 0.8 => Faction::Syndicate,
             _ => Faction::Police,
         };
-        
+
         let available_projects = vec![
             "advanced_magazines".to_string(),
             "tech_interface".to_string(),
             "combat_enhancers".to_string(),
         ];
-        
+
         spawn_research_facility(
             commands,
             position,
@@ -802,7 +801,7 @@ pub fn spawn_random_research_content(
             available_projects,
         );
     }
-    
+
     // Spawn scientists (handled by spawn_scientists_in_mission)
 }
 
@@ -823,7 +822,7 @@ pub fn spawn_research_content_in_scene(
                 4, // High security
                 vec!["tech_interface".to_string(), "quantum_encryption".to_string()],
             );
-            
+
             // Spawn 2-3 scientists
             for i in 0..3 {
                 let pos = Vec2::new(250.0 + i as f32 * 30.0, 100.0);
@@ -839,7 +838,7 @@ pub fn spawn_research_content_in_scene(
                 3,
                 vec!["heavy_weapons".to_string(), "plasma_weapons".to_string()],
             );
-            
+
             spawn_scientist_npc(commands, Vec2::new(-150.0, -80.0), ResearchCategory::Weapons, sprites);
             spawn_scientist_npc(commands, Vec2::new(-180.0, -120.0), ResearchCategory::Cybernetics, sprites);
         },
@@ -852,7 +851,7 @@ pub fn spawn_research_content_in_scene(
                 2,
                 vec!["infiltration_kit".to_string(), "neural_interface".to_string()],
             );
-            
+
             spawn_scientist_npc(commands, Vec2::new(120.0, -180.0), ResearchCategory::Equipment, sprites);
         },
         _ => {

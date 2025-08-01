@@ -39,7 +39,7 @@ pub enum ItemType {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ItemRarity {
     Common,    // White
-    Uncommon,  // Green  
+    Uncommon,  // Green
     Rare,      // Blue
     Epic,      // Purple
     Legendary, // Orange
@@ -156,16 +156,16 @@ pub fn enhanced_inventory_system(
 ) {
     // Toggle inventory with debouncing
     let toggle_pressed = input.just_pressed(KeyCode::KeyI);
-    
+
     if toggle_pressed && !*local_last_toggle {
         inventory_state.ui_open = !inventory_state.ui_open;
         *local_last_toggle = true;
-        
+
         // FIXED: Update selected agent when opening inventory
         if inventory_state.ui_open {
             inventory_state.selected_agent = selection.selected.first().copied();
-            
-            audio_events.send(AudioEvent {
+
+            audio_events.write(AudioEvent {
                 sound: AudioType::CursorInteract,
                 volume: 0.3,
             });
@@ -193,7 +193,7 @@ pub fn enhanced_inventory_system(
     }
 
     if let Ok(ctx) = contexts.ctx_mut() {
-    
+
         // FIXED: Force inventory window to be on top with proper size constraints
         egui::Window::new("AGENT INVENTORY")
             .resizable(true) // Allow resizing so users can adjust if needed
@@ -206,7 +206,7 @@ pub fn enhanced_inventory_system(
                 // Add padding around the content
                 ui.spacing_mut().item_spacing = egui::vec2(8.0, 6.0);
                 ui.spacing_mut().button_padding = egui::vec2(8.0, 4.0);
-                
+
                 render_inventory_ui(
                     ui,
                     &mut inventory_grid,
@@ -235,7 +235,7 @@ fn render_inventory_ui(
 ) {
     // FIXED: Use available_rect to constrain layout to window size
     let available_size = ui.available_rect_before_wrap().size();
-    
+
     ui.allocate_ui_with_layout(
         available_size,
         egui::Layout::top_down(egui::Align::Min),
@@ -255,7 +255,7 @@ fn render_inventory_ui(
 
             // Main content area - use remaining space
             let remaining_height = available_size.y - 120.0; // Reserve space for bottom panel
-            
+
             ui.allocate_ui_with_layout(
                 egui::vec2(available_size.x, remaining_height),
                 egui::Layout::left_to_right(egui::Align::TOP),
@@ -274,7 +274,7 @@ fn render_inventory_ui(
 
                     ui.separator();
 
-                    // Right panel - Stats and loadouts (40% of width)  
+                    // Right panel - Stats and loadouts (40% of width)
                     let stats_width = available_size.x * 0.35;
                     ui.allocate_ui_with_layout(
                         egui::vec2(stats_width, remaining_height),
@@ -326,13 +326,13 @@ fn render_filter_bar(ui: &mut egui::Ui, inventory_grid: &mut InventoryGrid) {
         // Search section
         ui.label("SEARCH:");
         ui.add_sized([120.0, 20.0], egui::TextEdit::singleline(&mut inventory_grid.filter.text));
-        
+
         if ui.button("⭐").clicked() {
             inventory_grid.filter.show_favorites_only = !inventory_grid.filter.show_favorites_only;
         }
 
         ui.separator();
-        
+
         // Sort section - more compact
         ui.label("SORT:");
         egui::ComboBox::from_id_salt("sort_combo")
@@ -344,7 +344,7 @@ fn render_filter_bar(ui: &mut egui::Ui, inventory_grid: &mut InventoryGrid) {
                 ui.selectable_value(&mut inventory_grid.sort_mode, SortMode::Rarity, "Rarity");
                 ui.selectable_value(&mut inventory_grid.sort_mode, SortMode::Value, "Value");
             });
-                
+
         if ui.button("SORT").clicked() {
             sort_inventory(inventory_grid);
         }
@@ -358,30 +358,30 @@ fn render_inventory_grid_constrained(
 ) {
     let available_rect = ui.available_rect_before_wrap();
     let available_size = available_rect.size();
-    
+
     // Calculate slot size based on available space
     let padding = 10.0;
     let spacing = 2.0;
     let max_width = available_size.x - padding * 2.0;
     let max_height = available_size.y - padding * 2.0;
-    
+
     // Calculate optimal slot size to fit the grid
     let total_h_spacing = (inventory_grid.width - 1) as f32 * spacing;
     let total_v_spacing = (inventory_grid.height - 1) as f32 * spacing;
-    
+
     let slot_width = (max_width - total_h_spacing) / inventory_grid.width as f32;
     let slot_height = (max_height - total_v_spacing) / inventory_grid.height as f32;
-    
+
     // Use smaller dimension to keep slots square
     let slot_size = slot_width.min(slot_height).max(32.0).min(64.0); // Clamp between 32-64px
-    
+
     // Center the grid within available space
     let grid_width = inventory_grid.width as f32 * slot_size + total_h_spacing;
     let grid_height = inventory_grid.height as f32 * slot_size + total_v_spacing;
-    
+
     let start_x = (available_size.x - grid_width) * 0.5;
     let start_y = padding;
-    
+
     // Use a scroll area if grid is still too large
     egui::ScrollArea::vertical()
         .max_height(max_height)
@@ -398,7 +398,7 @@ fn render_inventory_grid_constrained(
                                 x as f32 * (slot_size + spacing),
                                 y as f32 * (slot_size + spacing)
                             );
-                            
+
                             let slot_rect = egui::Rect::from_min_size(
                                 slot_pos,
                                 egui::vec2(slot_size, slot_size)
@@ -421,30 +421,30 @@ fn render_inventory_slot(
 ) {
     let (x, y) = position;
     let slot = &inventory_grid.slots[y][x];
-    
+
     // Background color based on content
     let bg_color = if slot.is_some() {
         egui::Color32::from_gray(40)
     } else {
         egui::Color32::from_gray(20)
     };
-    
+
     // Border color for selection
     let border_color = if inventory_grid.selected_slot == Some(position) {
         egui::Color32::YELLOW
     } else {
         egui::Color32::from_gray(60)
     };
-    
+
     ui.painter().rect(rect, 2.0, bg_color, egui::Stroke::new(1.0, border_color), egui::StrokeKind::Outside);
-    
+
     // Render item if present
     if let Some(slot_item) = slot {
         render_item_in_slot(ui, &slot_item.item, rect);
-        
+
         // Handle interaction
         let response = ui.allocate_rect(rect, egui::Sense::click_and_drag());
-        
+
         if response.clicked() {
             inventory_grid.selected_slot = Some(position);
             audio_events.write(AudioEvent {
@@ -452,7 +452,7 @@ fn render_inventory_slot(
                 volume: 0.2,
             });
         }
-        
+
         if response.drag_started() {
             inventory_grid.dragging_item = Some(DraggedItem {
                 item: slot_item.item.clone(),
@@ -460,7 +460,7 @@ fn render_inventory_slot(
                 cursor_offset: response.interact_pointer_pos().unwrap() - rect.min,
             });
         }
-        
+
         // Tooltip on hover
         if response.hovered() {
             render_item_tooltip(ui, &slot_item.item);
@@ -468,12 +468,12 @@ fn render_inventory_slot(
     } else {
         // Empty slot - handle drop
         let response = ui.allocate_rect(rect, egui::Sense::click());
-        
+
         if response.clicked() {
             inventory_grid.selected_slot = Some(position);
         }
     }
-    
+
     // Handle drop
     handle_slot_drop(ui, inventory_grid, position, rect);
 }
@@ -488,13 +488,13 @@ fn render_item_in_slot(ui: &mut egui::Ui, item: &InventoryItem, rect: egui::Rect
         ItemRarity::Legendary => egui::Color32::from_rgb(255, 165, 0),
         ItemRarity::Unique => egui::Color32::RED,
     };
-    
+
     ui.painter().rect_stroke(rect, 2.0, egui::Stroke::new(2.0, rarity_color), egui::StrokeKind::Outside);
-    
+
     // Item icon (placeholder)
     let icon_rect = rect.shrink(4.0);
     ui.painter().rect_filled(icon_rect, 1.0, egui::Color32::from_gray(100));
-    
+
     // Item quantity if stackable
     if item.quantity > 1 {
         let text_pos = egui::pos2(rect.max.x - 12.0, rect.max.y - 12.0);
@@ -506,7 +506,7 @@ fn render_item_in_slot(ui: &mut egui::Ui, item: &InventoryItem, rect: egui::Rect
             egui::Color32::WHITE,
         );
     }
-    
+
     // Favorite star
     if item.is_favorited {
         let star_pos = egui::pos2(rect.min.x + 2.0, rect.min.y + 2.0);
@@ -518,7 +518,7 @@ fn render_item_in_slot(ui: &mut egui::Ui, item: &InventoryItem, rect: egui::Rect
             egui::Color32::YELLOW,
         );
     }
-    
+
     // Lock icon
     if item.is_locked {
         let lock_pos = egui::pos2(rect.max.x - 8.0, rect.min.y + 2.0);
@@ -568,15 +568,15 @@ fn render_agent_stats_panel(
     weapon_state: &WeaponState,
 ) {
     ui.heading("AGENT STATUS");
-    
+
     ui.label(format!("Credits: {}", inventory.currency));
-    
+
     if let Some(weapon) = &inventory.equipped_weapon {
         ui.separator();
         ui.label("EQUIPPED WEAPON:");
         ui.label(format!("{:?}", weapon.base_weapon));
         ui.label(format!("Ammo: {}/{}", weapon_state.current_ammo, weapon_state.max_ammo));
-        
+
         let stats = weapon.stats();
         if stats.accuracy != 0 || stats.range != 0 {
             ui.label(format!("Mods: Acc{:+} Rng{:+}", stats.accuracy, stats.range));
@@ -590,17 +590,17 @@ fn render_loadout_panel(
     inventory: &Inventory,
 ) {
     ui.heading("LOADOUTS");
-    
+
     ui.horizontal(|ui| {
         if ui.button("SAVE CURRENT").clicked() {
             save_current_loadout(loadout_manager, inventory);
         }
-        
+
         if ui.button("QUICK EQUIP").clicked() {
             // Implement quick equip logic
         }
     });
-    
+
     // Show saved presets
     for (name, _preset) in &loadout_manager.presets {
         ui.horizontal(|ui| {
@@ -625,17 +625,17 @@ fn render_action_bar(
                 volume: 0.3,
             });
         }
-        
+
         if ui.button("CLEAR FILTERS").clicked() {
             inventory_grid.filter = InventoryFilter::default();
         }
-        
+
         ui.separator();
-        
+
         ui.label("Weight: 45.2/100.0 kg");
-        
+
         ui.separator();
-        
+
         if let Some(selected) = inventory_grid.selected_slot {
             ui.label(format!("Selected: ({}, {})", selected.0, selected.1));
         }
@@ -655,7 +655,7 @@ fn handle_slot_drop(
         let dragged_item_data = inventory_grid.dragging_item.as_ref().map(|dragged| {
             (dragged.item.clone(), dragged.origin)
         });
-        
+
         if let Some((item, origin)) = dragged_item_data {
             if rect.contains(ui.input(|i| i.pointer.interact_pos().unwrap_or_default())) {
                 // Attempt to place item
@@ -702,7 +702,7 @@ fn sort_inventory(inventory_grid: &mut InventoryGrid) {
             }
         }
     }
-    
+
     // Sort based on current mode
     match inventory_grid.sort_mode {
         SortMode::Name => items.sort_by(|a, b| a.name.cmp(&b.name)),
@@ -712,7 +712,7 @@ fn sort_inventory(inventory_grid: &mut InventoryGrid) {
         SortMode::Weight => items.sort_by(|a, b| a.weight.partial_cmp(&b.weight).unwrap()),
         SortMode::RecentlyAcquired => {}, // TODO: Implement timestamp tracking
     }
-    
+
     // Place items back in grid
     let mut item_index = 0;
     for y in 0..inventory_grid.height {
@@ -737,7 +737,7 @@ fn save_current_loadout(loadout_manager: &mut LoadoutManager, inventory: &Invent
         cybernetics: inventory.cybernetics.clone(),
         consumables: HashMap::new(), // TODO: Add consumables to inventory
     };
-    
+
     loadout_manager.presets.insert(preset.name.clone(), preset);
 }
 
@@ -754,7 +754,7 @@ pub fn setup_enhanced_inventory(mut commands: Commands) {
         sort_mode: SortMode::Type,
         tab: InventoryTab::All,
     };
-    
+
     commands.insert_resource(inventory_grid);
     commands.insert_resource(LoadoutManager::default());
 }

@@ -31,15 +31,15 @@ impl Morale {
             recovery_rate: max * 0.05,
         }
     }
-    
+
     pub fn is_panicked(&self) -> bool {
         self.current <= self.panic_threshold
     }
-    
+
     pub fn reduce(&mut self, amount: f32) {
         self.current = (self.current - amount).max(0.0);
     }
-    
+
     pub fn recover(&mut self, delta_time: f32) {
         if !self.is_panicked() {
             self.current = (self.current + self.recovery_rate * delta_time).min(self.max);
@@ -83,11 +83,11 @@ impl PoliceResponse {
         self.last_incident_pos = Some(pos);
         self.next_spawn_timer = (10.0 - self.heat_level.min(8.0)).max(2.0);
     }
-    
+
     pub fn should_spawn_police(&self) -> bool {
         self.heat_level >= 25.0 && self.civilian_casualties > 0
     }
-    
+
     pub fn get_spawn_count(&self) -> u8 {
         match self.heat_level as u32 {
             0..=49 => 1,
@@ -126,12 +126,12 @@ impl Formation {
             spacing: 40.0,
         }
     }
-    
+
     pub fn calculate_positions(&mut self, leader_pos: Vec2) {
         self.positions.clear();
         self.positions.push(leader_pos);
         let count = self.members.len();
-        
+
         match self.formation_type {
             FormationType::Line => {
                 for i in 1..count {
@@ -194,7 +194,7 @@ pub enum VehicleType {
     Tank,
     Truck,
     FuelTruck,
-    ElectricCar,    
+    ElectricCar,
 }
 
 impl Vehicle {
@@ -209,14 +209,14 @@ impl Vehicle {
             VehicleType::Truck => (120.0, 60.0),
             VehicleType::FuelTruck => (200.0, 80.0),
         };
-        
+
         Self {
             vehicle_type,
             health,
             cover_value,
         }
     }
-    
+
     pub fn max_health(&self) -> f32 {
         match self.vehicle_type {
             VehicleType::CivilianCar => 100.0,
@@ -229,7 +229,7 @@ impl Vehicle {
             VehicleType::Tank => 600.0,
         }
     }
-    
+
     pub fn explosion_radius(&self) -> f32 {
         match self.vehicle_type {
             VehicleType::CivilianCar => 60.0,
@@ -242,7 +242,7 @@ impl Vehicle {
             VehicleType::Tank => 150.0,
         }
     }
-    
+
     pub fn explosion_damage(&self) -> f32 {
         match self.vehicle_type {
             VehicleType::CivilianCar => 40.0,

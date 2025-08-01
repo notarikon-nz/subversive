@@ -48,7 +48,7 @@ pub fn dynamic_civilian_spawn_system_with_config(
     if spawner.spawn_timer <= 0.0 && civilian_query.iter().count() < spawner.max_civilians as usize {
         if let Some(spawn_pos) = find_spawn_position(&spawner.spawn_zones) {
             spawn_civilian_with_config(&mut commands, spawn_pos, &sprites, &config);
-            let interval = config.civilians.spawn_interval_min + 
+            let interval = config.civilians.spawn_interval_min +
                          rand::random::<f32>() * (config.civilians.spawn_interval_max - config.civilians.spawn_interval_min);
             spawner.spawn_timer = interval;
         }
@@ -111,18 +111,18 @@ pub fn civilian_wander_system(
 
     for (entity, _transform, mut wander) in civilian_query.iter_mut() {
         wander.wander_timer -= delta;
-        
+
         if wander.wander_timer <= 0.0 {
             let angle = rand::random::<f32>() * std::f32::consts::TAU;
             let distance = rand::random::<f32>() * 120.0;
             let offset = Vec2::new(angle.cos(), angle.sin()) * distance;
             let target = wander.home_position + offset;
-            
+
             if target.is_finite() {
                 // Use commands instead of events to avoid despawned entity issues
                 commands.entity(entity).try_insert(MoveTarget { position: target });
             }
-            
+
             wander.wander_timer = 5.0 + rand::random::<f32>() * 10.0;
         }
     }
@@ -136,15 +136,15 @@ pub fn civilian_cleanup_system(
     let agent_positions: Vec<Vec2> = agent_query.iter()
         .map(|t| t.translation.truncate())
         .collect();
-    
+
     if agent_positions.is_empty() { return; }
-    
+
     for (entity, civilian_transform) in civilian_query.iter() {
         let civilian_pos = civilian_transform.translation.truncate();
         let min_distance = agent_positions.iter()
             .map(|&agent_pos| civilian_pos.distance(agent_pos))
             .fold(f32::INFINITY, f32::min);
-        
+
         if min_distance > 600.0 && civilian_query.get(entity).is_ok() {
             commands.entity(entity).insert(MarkedForDespawn);
         }
@@ -171,11 +171,11 @@ impl CivilianBehavior {
     pub fn new() -> Self {
         let behavior_types = [
             CivilianType::Pedestrian,
-            CivilianType::Shopper, 
+            CivilianType::Shopper,
             CivilianType::Worker,
             CivilianType::Tourist,
         ];
-        
+
         Self {
             behavior_type: behavior_types[rand::random::<usize>() % behavior_types.len()].clone(),
             wander_timer: 0.0,

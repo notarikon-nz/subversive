@@ -123,8 +123,8 @@ pub fn spawn_from_scene(commands: &mut Commands, scene: &SceneData, global_data:
     }
 
     spawn_cover_points(commands);
-    
-    info!("Mission spawned: {} agents, {} enemies, {} civilians", 
+
+    info!("Mission spawned: {} agents, {} enemies, {} civilians",
           scene.agents.len(), scene.enemies.len(), scene.civilians.len());
 }
 
@@ -287,10 +287,10 @@ fn spawn_enemy_isometric(
 ) {
     let (sprite, _) = create_enemy_sprite(sprites);
     let difficulty = global_data.regions[global_data.selected_region].mission_difficulty_modifier();
-    
+
     let faction = random_enemy_faction();
     let weapon = select_weapon_for_faction(&faction);
-    
+
     let mut inventory = Inventory::default();
     inventory.equipped_weapon = Some(WeaponConfig::new(weapon.clone()));
 
@@ -318,14 +318,14 @@ fn spawn_enemy_isometric(
 
 fn spawn_terminal_isometric(commands: &mut Commands, pos: Vec2, terminal_type: &str, sprites: &GameSprites) {
     let (sprite, _) = create_terminal_sprite(sprites, &parse_terminal_type(terminal_type));
-    
+
     commands.spawn((
         sprite,
         Transform::from_translation(pos.extend(2.0)), // Low Z for ground objects
-        Terminal { 
-            terminal_type: parse_terminal_type(terminal_type), 
-            range: 30.0, 
-            accessed: false 
+        Terminal {
+            terminal_type: parse_terminal_type(terminal_type),
+            range: 30.0,
+            accessed: false
         },
         Selectable { radius: 15.0 },
         RigidBody::Fixed,
@@ -349,7 +349,7 @@ fn spawn_vehicle_isometric(
 
     let vehicle = Vehicle::new(vehicle_type.clone());
     let max_health = vehicle.max_health();
-    
+
     let (color, size) = match vehicle_type {
         VehicleType::CivilianCar => (Color::srgb(0.6, 0.6, 0.8), Vec2::new(40.0, 20.0)),
         VehicleType::PoliceCar => (Color::srgb(0.2, 0.2, 0.8), Vec2::new(40.0, 20.0)),
@@ -360,7 +360,7 @@ fn spawn_vehicle_isometric(
         VehicleType::Truck => (Color::srgb(0.4, 0.6, 0.4), Vec2::new(50.0, 30.0)), // change
         VehicleType::FuelTruck => (Color::srgb(0.4, 0.6, 0.4), Vec2::new(50.0, 30.0)), // change
     };
-    
+
     let entity = commands.spawn((
         Sprite {
             color,
@@ -385,7 +385,7 @@ fn setup_urban_areas_isometric(commands: &mut Commands, scene: &SceneData, regio
     } else {
         create_default_urban_areas(region_idx)
     };
-    
+
     commands.insert_resource(urban_areas);
 }
 
@@ -396,19 +396,19 @@ pub fn spawn_fallback_isometric_mission(
     tilemap_settings: &Option<Res<IsometricSettings>>,
 ) {
     commands.insert_resource(UrbanAreas::default());
-    
+
     let positions = [Vec2::new(-200.0, 0.0), Vec2::new(-170.0, 0.0), Vec2::new(-140.0, 0.0)];
     for (i, &pos) in positions.iter().enumerate() {
         let adjusted_pos = adjust_position_for_isometric(pos, tilemap_settings);
         spawn_agent_isometric(commands, adjusted_pos, global_data.agent_levels[i], i, global_data, sprites);
     }
-    
+
     let civilian_positions = [Vec2::new(100.0, 100.0), Vec2::new(150.0, 80.0), Vec2::new(80.0, 150.0)];
     for &pos in &civilian_positions {
         let adjusted_pos = adjust_position_for_isometric(pos, tilemap_settings);
         spawn_urban_civilian_isometric(commands, adjusted_pos, sprites);
     }
-    
+
     let terminal_pos = adjust_position_for_isometric(Vec2::new(200.0, 0.0), tilemap_settings);
     spawn_terminal_isometric(commands, terminal_pos, "objective", sprites);
 }
@@ -433,17 +433,17 @@ fn parse_vehicle_type(type_str: &str) -> VehicleType {
 /*
 pub fn spawn_fallback_mission(commands: &mut Commands, global_data: &GlobalData, sprites: &GameSprites) {
     commands.insert_resource(UrbanAreas::default());
-    
+
     let positions = [Vec2::new(-200.0, 0.0), Vec2::new(-170.0, 0.0), Vec2::new(-140.0, 0.0)];
     for (i, &pos) in positions.iter().enumerate() {
         spawn_agent_with_index(commands, pos, global_data.agent_levels[i], i, global_data, sprites);
     }
-    
+
     let civilian_positions = [Vec2::new(100.0, 100.0), Vec2::new(150.0, 80.0), Vec2::new(80.0, 150.0)];
     for &pos in &civilian_positions {
         spawn_urban_civilian(commands, pos, sprites);
     }
-    
+
     spawn_terminal(commands, Vec2::new(200.0, 0.0), "objective", sprites);
     spawn_cover_points(commands);
 }
@@ -463,7 +463,7 @@ pub fn spawn_cover_points(commands: &mut Commands) {
         Vec2::new(50.0, -50.0), Vec2::new(250.0, -150.0), Vec2::new(-50.0, 100.0),
         Vec2::new(300.0, 50.0), Vec2::new(150.0, 150.0),
     ];
-    
+
     for &pos in &positions {
         commands.spawn((
             Sprite {
@@ -495,7 +495,7 @@ pub fn spawn_cover_points(commands: &mut Commands) {
 pub fn random_daily_state() -> DailyState {
     match rand::random::<f32>() {
         x if x < 0.3 => DailyState::Working,
-        x if x < 0.5 => DailyState::Shopping,  
+        x if x < 0.5 => DailyState::Shopping,
         x if x < 0.7 => DailyState::GoingHome,
         _ => DailyState::Idle,
     }
@@ -560,7 +560,7 @@ pub fn setup_urban_areas(commands: &mut Commands, scene: &SceneData, region_idx:
     } else {
         create_default_urban_areas(region_idx)
     };
-    
+
     commands.insert_resource(urban_areas);
 }
 
@@ -613,17 +613,17 @@ pub fn create_urban_district_areas() -> UrbanAreas {
             UrbanZone { center: Vec2::new(80.0, 200.0), radius: 70.0, capacity: 12, current_occupancy: 0 },
         ],
         transit_routes: vec![
-            TransitRoute { 
-                points: vec![Vec2::new(-100.0, 0.0), Vec2::new(100.0, 0.0), Vec2::new(300.0, 0.0)], 
-                foot_traffic_density: 0.8 
+            TransitRoute {
+                points: vec![Vec2::new(-100.0, 0.0), Vec2::new(100.0, 0.0), Vec2::new(300.0, 0.0)],
+                foot_traffic_density: 0.8
             },
-            TransitRoute { 
-                points: vec![Vec2::new(150.0, -50.0), Vec2::new(200.0, 50.0), Vec2::new(250.0, 150.0)], 
-                foot_traffic_density: 0.6 
+            TransitRoute {
+                points: vec![Vec2::new(150.0, -50.0), Vec2::new(200.0, 50.0), Vec2::new(250.0, 150.0)],
+                foot_traffic_density: 0.6
             },
-            TransitRoute { 
-                points: vec![Vec2::new(100.0, 100.0), Vec2::new(200.0, 120.0), Vec2::new(300.0, 180.0)], 
-                foot_traffic_density: 0.4 
+            TransitRoute {
+                points: vec![Vec2::new(100.0, 100.0), Vec2::new(200.0, 120.0), Vec2::new(300.0, 180.0)],
+                foot_traffic_density: 0.4
             },
         ],
     }
@@ -643,17 +643,17 @@ fn create_corporate_district_areas() -> UrbanAreas {
             UrbanZone { center: Vec2::new(150.0, 50.0), radius: 70.0, capacity: 12, current_occupancy: 0 },
         ],
         transit_routes: vec![
-            TransitRoute { 
-                points: vec![Vec2::new(0.0, -150.0), Vec2::new(200.0, -100.0), Vec2::new(400.0, -20.0)], 
-                foot_traffic_density: 0.9 
+            TransitRoute {
+                points: vec![Vec2::new(0.0, -150.0), Vec2::new(200.0, -100.0), Vec2::new(400.0, -20.0)],
+                foot_traffic_density: 0.9
             },
-            TransitRoute { 
-                points: vec![Vec2::new(50.0, 100.0), Vec2::new(150.0, 50.0), Vec2::new(300.0, 0.0)], 
-                foot_traffic_density: 0.7 
+            TransitRoute {
+                points: vec![Vec2::new(50.0, 100.0), Vec2::new(150.0, 50.0), Vec2::new(300.0, 0.0)],
+                foot_traffic_density: 0.7
             },
-            TransitRoute { 
-                points: vec![Vec2::new(150.0, 150.0), Vec2::new(200.0, 200.0), Vec2::new(250.0, 180.0)], 
-                foot_traffic_density: 0.5 
+            TransitRoute {
+                points: vec![Vec2::new(150.0, 150.0), Vec2::new(200.0, 200.0), Vec2::new(250.0, 180.0)],
+                foot_traffic_density: 0.5
             },
         ],
     }
@@ -672,13 +672,13 @@ fn create_industrial_areas() -> UrbanAreas {
             UrbanZone { center: Vec2::new(-150.0, 200.0), radius: 70.0, capacity: 10, current_occupancy: 0 },
         ],
         transit_routes: vec![
-            TransitRoute { 
-                points: vec![Vec2::new(-200.0, 0.0), Vec2::new(0.0, -50.0), Vec2::new(200.0, -100.0), Vec2::new(400.0, -50.0)], 
+            TransitRoute {
+                points: vec![Vec2::new(-200.0, 0.0), Vec2::new(0.0, -50.0), Vec2::new(200.0, -100.0), Vec2::new(400.0, -50.0)],
                 foot_traffic_density: 0.3
             },
-            TransitRoute { 
-                points: vec![Vec2::new(-150.0, 200.0), Vec2::new(0.0, 100.0), Vec2::new(150.0, 0.0)], 
-                foot_traffic_density: 0.4 
+            TransitRoute {
+                points: vec![Vec2::new(-150.0, 200.0), Vec2::new(0.0, 100.0), Vec2::new(150.0, 0.0)],
+                foot_traffic_density: 0.4
             },
         ],
     }

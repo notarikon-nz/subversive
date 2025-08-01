@@ -2,7 +2,7 @@
   "projects": [
     {
       "id": "suppression_tech",
-      "name": "Suppression Technology", 
+      "name": "Suppression Technology",
       "description": "Develop sound dampening for covert operations",
       "cost": 1500,
       "base_time_days": 3.5,
@@ -19,7 +19,7 @@
     {
       "id": "advanced_magazines",
       "name": "Advanced Magazines",
-      "description": "Improve ammunition feeding systems for sustained combat", 
+      "description": "Improve ammunition feeding systems for sustained combat",
       "cost": 2000,
       "base_time_days": 4.0,
       "category": "Weapons",
@@ -38,7 +38,7 @@
       "description": "Develop support weapons for high-threat missions",
       "cost": 3000,
       "base_time_days": 6.0,
-      "category": "Weapons", 
+      "category": "Weapons",
       "prerequisites": ["advanced_magazines"],
       "difficulty": "Expert",
       "prototype_available": true,
@@ -80,7 +80,7 @@
       ]
     },
     {
-      "id": "combat_enhancers", 
+      "id": "combat_enhancers",
       "name": "Combat Enhancers",
       "description": "Improve agent reflexes and combat effectiveness",
       "cost": 3500,
@@ -113,7 +113,7 @@
     },
     {
       "id": "surveillance_gear",
-      "name": "Surveillance Gear", 
+      "name": "Surveillance Gear",
       "description": "Advanced reconnaissance and hacking tools",
       "cost": 1200,
       "base_time_days": 2.5,
@@ -133,7 +133,7 @@
       "description": "Tools for covert entry and stealth operations",
       "cost": 1800,
       "base_time_days": 3.0,
-      "category": "Equipment", 
+      "category": "Equipment",
       "prerequisites": ["surveillance_gear"],
       "difficulty": "Advanced",
       "prototype_available": true,
@@ -159,7 +159,7 @@
       ]
     },
     {
-      "id": "enhanced_sensors", 
+      "id": "enhanced_sensors",
       "name": "Enhanced Sensors",
       "description": "Increases minimap detection range by 50%",
       "cost": 2500,
@@ -221,7 +221,7 @@
       ]
     },
     {
-      "id": "tech_interface", 
+      "id": "tech_interface",
       "name": "Tech Interface",
       "description": "Advanced hacking and electronic warfare capabilities",
       "cost": 4000,
@@ -238,7 +238,7 @@
     },
     {
       "id": "satellite_uplink",
-      "name": "Satellite Uplink", 
+      "name": "Satellite Uplink",
       "description": "Provides maximum minimap coverage via orbital relay",
       "cost": 4500,
       "base_time_days": 7.0,
