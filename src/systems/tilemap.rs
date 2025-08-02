@@ -15,35 +15,7 @@ pub struct TilePosition {
     pub y: i32,
 }
 
-// === TILE TYPES ===
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum TileType {
-    // Basic terrain
-    Grass,
-    Concrete,
-    Asphalt,
-    Water,
-
-    // Buildings and structures
-    Wall,
-    Building,
-    Window,
-    Door,
-
-    // Urban zones
-    Residential,
-    Commercial,
-    Industrial,
-
-    // Infrastructure
-    Road,
-    Sidewalk,
-    Parking,
-
-    // Special
-    Cover,
-    Restricted,
-}
+use crate::systems::tile_properties::{TileType};
 
 // === ISOMETRIC CONVERSION ===
 #[derive(Resource)]

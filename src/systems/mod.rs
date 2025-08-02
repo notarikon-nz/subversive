@@ -81,6 +81,11 @@ pub mod isometric_camera;
 pub use spawners::*;
 pub use tilemap::*;
 pub use isometric_camera::*;
+// phase 2
+pub mod tile_properties;
+pub mod enhanced_pathfinding;
+pub use tile_properties::*;
+pub use enhanced_pathfinding::*;
 
 // 0.2.17
 pub mod territory_events;

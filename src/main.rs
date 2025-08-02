@@ -43,6 +43,8 @@ use systems::ui::{main_menu, settings, credits};
 use systems::ui::{MainMenuState};
 use systems::ui::screens::InventoryUIState;
 use systems::ui::post_mission::{PostMissionUIState};
+use systems::tile_properties::{texture_index_to_tile_type, tile_type_to_texture_index};
+use systems::enhanced_pathfinding::{EnhancedPathfindingGrid};
 
 fn main() {
 
@@ -153,6 +155,9 @@ fn main() {
         // 0.2.16
         .init_resource::<IsometricSettings>()
         .init_resource::<CameraZoomLevels>()
+        // phase 2
+        .init_resource::<EnhancedPathfindingGrid>()
+
 
         // 0.2.17
         .init_resource::<TerritoryManager>()
@@ -182,6 +187,10 @@ fn main() {
         .add_event::<ResearchCompletedEvent>()
         .add_event::<ResearchSabotageEvent>()
 
+        // 0.2.16
+        .add_event::<TileDamageEvent>()
+
+
         // 0.2.17
         .add_event::<TerritoryControlEvent>()
 
@@ -202,16 +211,15 @@ fn main() {
             setup_police_system,
             sprites::load_sprites,
             pathfinding::setup_pathfinding_grid, // 0.2.5.3
+            setup_enhanced_pathfinding_grid, // 0.2.16 P2
+        ))
+        .add_systems(Startup, (
 
             setup_cyberpunk2077_theme, // 0.2.5.4
-
             setup_traffic_system, // 0.2.9
             setup_banking_network, // 0.2.10
             setup_enhanced_inventory,   // 0.2.15
 
-        ))
-
-        .add_systems(Startup, (
             // Cursor and interaction systems
             cursor::load_cursor_sprites,
             interaction_prompts::load_interaction_sprites,
@@ -224,7 +232,9 @@ fn main() {
         .add_systems(PostStartup, (
             preload_common_scenes,
             main_menu::setup_main_menu_egui,
+            
             // 0.2.16
+            apply_initial_tile_properties,            
         ))
 
         .add_systems(Update, loading_system::loading_system.run_if(in_state(GameState::Loading)))
@@ -310,6 +320,10 @@ fn main() {
                     // 0.2.13
                     weather::setup_weather_system,
                     weather::spawn_weather_overlay,
+                    // 0.2.16 P2
+                    assign_tile_properties_system,
+                    update_enhanced_pathfinding_system,
+
                 ).after(setup_isometric_mission_scene),
             ).after(setup_mission_tilemap),
         ))
@@ -400,11 +414,34 @@ fn main() {
 
         // MOVEMENT SYSTEMS 0.2.5.3
         // Replaces original movement::system
+        /*
         .add_systems(Update, (
             // movement::system,
             pathfinding::update_pathfinding_grid,
             pathfinding::add_pathfinding_to_agents,
-            pathfinding::pathfinding_movement_system,
+             pathfinding::pathfinding_movement_system,
+        ).run_if(in_state(GameState::Mission)))
+        */
+
+        // 0.2.16
+        .add_systems(Update, (
+            // === CORE TILE SYSTEMS ===
+            assign_tile_properties_system,
+            tile_destruction_system,
+            // tile_interaction_system, // DAMN THING CRASHES
+            tile_cover_system,
+            
+            // === ENHANCED PATHFINDING ===
+            update_enhanced_pathfinding_system,
+            add_enhanced_pathfinding_to_agents,
+            
+            // REPLACE: pathfinding::pathfinding_movement_system,
+            enhanced_movement_system, // USE THIS INSTEAD
+            
+            // === VISION AND COVER ===
+            enhanced_vision_system,
+            enhanced_cover_system,
+            
         ).run_if(in_state(GameState::Mission)))
 
         // 0.2.15
@@ -638,12 +675,14 @@ fn main() {
 
         // TESTING & DEBUG
         .add_systems(Update, (
-            debug_pathfinding_grid,
+            // debug_pathfinding_grid,
             interactive_decals_demo_system,
             // 0.2.12
             research_debug_system,
             // 0.2.13
             weather::weather_debug_system,
+            // 0.2.16
+            debug_enhanced_pathfinding_system,
         ).run_if(in_state(GameState::Mission)))
 
         .add_systems(OnExit(GameState::Mission), (
@@ -762,6 +801,7 @@ pub fn setup_isometric_mission_scene(
     spawn_oil_spill(&mut commands, Vec2::new(100.0, 100.0), 50.0);
     spawn_gasoline_spill(&mut commands, Vec2::new(200.0, 100.0), 40.0);
     spawn_explodable(&mut commands, Vec2::new(250.0, 100.0), ExplodableType::FuelBarrel);
+
 }
 
 // REPLACED BY ABOVE
@@ -1413,4 +1453,66 @@ pub fn research_debug_system(
         global_data.credits += 10000;
         info!("DEBUG: Added $10,000 credits");
     }
+}
+
+
+
+fn setup_enhanced_pathfinding_grid(mut commands: Commands) {
+    let world_size = Vec2::new(2000.0, 2000.0); // Match your world size
+    let tile_size = 32.0; // Average of isometric tile dimensions
+    
+    let grid = EnhancedPathfindingGrid::new(world_size, tile_size);
+    commands.insert_resource(grid);
+}
+
+fn apply_initial_tile_properties(
+    mut commands: Commands,
+    tilemap_query: Query<&TileStorage, With<IsometricMap>>,
+    tile_query: Query<(Entity, &TileTextureIndex), Without<TileProperties>>,
+) {
+    let Ok(tile_storage) = tilemap_query.single() else { return; };
+    
+    // Apply properties to all existing tiles
+    for (entity, texture_index) in tile_query.iter() {
+        let tile_type = texture_index_to_tile_type(texture_index.0);
+        let properties = TileProperties::for_tile_type(tile_type);
+        commands.entity(entity).insert(properties);
+    }
+    
+    info!("Applied initial tile properties to {} tiles", tile_query.iter().count());
+}
+
+use crate::systems::tile_properties::{TileType};
+
+pub fn setup_tile_test_scenario(
+    commands: &mut Commands,
+    tilemap_entity: Entity,
+    tile_storage: &TileStorage,
+    isometric_settings: &IsometricSettings,
+) {
+    // Create a small test area with different tile types
+    let test_tiles = [
+        (15, 15, TileType::Wall),
+        (16, 15, TileType::Door),
+        (17, 15, TileType::Window),
+        (15, 16, TileType::LowCover),
+        (16, 16, TileType::Water),
+        (17, 16, TileType::Hazardous),
+        (15, 17, TileType::Rubble),
+        (16, 17, TileType::Mud),
+    ];
+    
+    for (x, y, tile_type) in test_tiles {
+        let tile_pos = TilePos { x, y };
+        if let Some(tile_entity) = tile_storage.get(&tile_pos) {
+            let texture_index = tile_type_to_texture_index(tile_type);
+            let properties = TileProperties::for_tile_type(tile_type);
+            
+            commands.entity(tile_entity)
+                .insert(TileTextureIndex(texture_index))
+                .insert(properties);
+        }
+    }
+    
+    info!("Created tile test scenario at (15,15) to (17,17)");
 }

@@ -1,27 +1,27 @@
 {
-  "credits": 14685,
-  "current_day": 57,
+  "credits": 17855,
+  "current_day": 64,
   "agent_levels": [
     2,
     2,
     2
   ],
   "agent_experience": [
-    220,
-    220,
-    220
+    280,
+    280,
+    280
   ],
   "agent_recovery": [
-    51,
-    51,
-    51
+    62,
+    62,
+    62
   ],
   "regions": [
     {
       "name": "Neo-Tokyo Central",
       "threat_level": 1,
       "alert_level": 3,
-      "alert_decay_timer": 64
+      "alert_decay_timer": 75
     },
     {
       "name": "Corporate District",
@@ -120,15 +120,15 @@
       "new_york": {
         "completed": true,
         "alert_level": "Green",
-        "last_mission_day": 50,
-        "times_visited": 13
+        "last_mission_day": 61,
+        "times_visited": 15
       }
     },
     "unlocked_cities": [
-      "chicago",
-      "new_york",
+      "miami",
       "toronto",
-      "miami"
+      "new_york",
+      "chicago"
     ]
   },
   "recruited_scientists": [],
@@ -139,15 +139,15 @@
       "new_york": {
         "city_id": "new_york",
         "control_level": "Established",
-        "control_strength": 0.36999995,
+        "control_strength": 0.32999998,
         "tax_rate": 0.05,
-        "last_tax_collection": 56,
-        "resistance_level": 0.03396733,
-        "days_controlled": 7,
-        "total_tax_collected": 948
+        "last_tax_collection": 63,
+        "resistance_level": 0.009950001,
+        "days_controlled": 3,
+        "total_tax_collected": 260
       }
     },
-    "total_territory_income": 948,
+    "total_territory_income": 260,
     "territory_count": 1
   },
   "progression_tracker": {
@@ -155,8 +155,8 @@
       "current_chapter": 1,
       "total_chapters": 10,
       "cities_liberated": 1,
-      "total_income_generated": 948,
-      "days_elapsed": 56
+      "total_income_generated": 260,
+      "days_elapsed": 63
     },
     "win_conditions": {
       "min_cities_controlled": 5,

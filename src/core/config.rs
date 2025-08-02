@@ -2,6 +2,29 @@
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 
+#[derive(Serialize, Deserialize, Clone)]
+pub struct TileConfig {
+    pub wall_health: f32,
+    pub reinforced_wall_health: f32,
+    pub window_health: f32,
+    pub door_health: f32,
+    pub cover_damage_reduction: f32,
+    pub hazard_movement_penalty: f32,
+}
+
+impl Default for TileConfig {
+    fn default() -> Self {
+        Self {
+            wall_health: 100.0,
+            reinforced_wall_health: 250.0,
+            window_health: 25.0,
+            door_health: 75.0,
+            cover_damage_reduction: 0.8,
+            hazard_movement_penalty: 2.0,
+        }
+    }
+}
+
 #[derive(Resource, Serialize, Deserialize, Clone)]
 pub struct GameConfig {
     pub gameplay: GameplayConfig,
