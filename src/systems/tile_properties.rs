@@ -515,8 +515,6 @@ pub enum DamageType {
     Fire,
 }
 
-// === TILE INTERACTION SYSTEM ===
-/*
 pub fn tile_interaction_system(
     mut action_events: EventReader<ActionEvent>,
     mut tile_query: Query<(Entity, &mut TileProperties, &TilePos)>,
@@ -524,36 +522,7 @@ pub fn tile_interaction_system(
     isometric_settings: Res<crate::systems::tilemap::IsometricSettings>,
     agent_query: Query<&Transform, With<Agent>>,
 ) {
-    let Ok(tile_storage) = tilemap_query.single() else { return; };
-    
-    for event in action_events.read() {
-        if let Action::InteractWith(target) = event.action {
-            // Check if we're interacting with a tile
-            if let Ok(agent_transform) = agent_query.get(event.entity) {
-                let agent_pos = agent_transform.translation.truncate();
-                let tile_pos = isometric_settings.world_to_tile(agent_pos);
-                
-                if let Some(tile_entity) = tile_storage.get(&TilePos { 
-                    x: tile_pos.x as u32, 
-                    y: tile_pos.y as u32 
-                }) {
-                    if let Ok((_, mut properties, _)) = tile_query.get_mut(tile_entity) {
-                        handle_tile_interaction(&mut properties, event.entity);
-                    }
-                }
-            }
-        }
-    }
-}
-*/
-pub fn tile_interaction_system(
-    mut action_events: EventReader<ActionEvent>,
-    mut tile_query: Query<(Entity, &mut TileProperties, &TilePos)>,
-    tilemap_query: Query<&TileStorage, With<crate::systems::tilemap::IsometricMap>>,
-    isometric_settings: Res<crate::systems::tilemap::IsometricSettings>,
-    agent_query: Query<&Transform, With<Agent>>,
-) {
-    let Ok(tile_storage) = tilemap_query.get_single() else {
+    let Ok(tile_storage) = tilemap_query.single() else {
         warn!("tile_interaction_system: Expected one IsometricMap, found zero or more.");
         return;
     };

@@ -41,7 +41,7 @@ pub enum AudioType {
     Neurovector,
     Reload,
     ReloadComplete,    
-    
+    Explosion,
     CursorTarget,
     CursorInteract,
     CursorHack,
@@ -54,6 +54,15 @@ pub enum AudioType {
     AccessDenied,
     CardSwipe,    
     MoneyDispense,
+    // 0.2.16
+    FootstepSnow,
+    FootstepWet,
+    LightBuzz,     // For flickering lights
+    PowerDown,     // When lights go out
+    PowerUp,       // When lights come back 
+    GlassBreak,      // Street light destruction
+    ElectricalBuzz,  // Flickering lights
+
 }
 
 impl Default for AudioEvent {

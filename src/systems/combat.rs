@@ -76,7 +76,7 @@ pub fn system(
             if !target_found {
                 info!("Combat: No targets found, sending movement commands to {:?}", world_pos);
                 for &agent in &selection.selected {
-                    action_events.send(ActionEvent {
+                    action_events.write(ActionEvent {
                         entity: agent,
                         action: Action::MoveTo(world_pos),
                     });

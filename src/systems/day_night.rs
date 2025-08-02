@@ -16,13 +16,13 @@ pub fn day_night_system(
 }
 
 pub fn lighting_system(
-    commands: Commands,
+    mut commands: Commands,
     day_night: Res<DayNightCycle>,
     overlay_query: Query<Entity, With<DayNightOverlay>>,
-    overlay_sprite_query: Query<&mut Sprite, With<DayNightOverlay>>,
+    mut overlay_sprite_query: Query<&mut Sprite, With<DayNightOverlay>>,
 ) {
     // DISABLED FOR NOW - DO NOT REMOVE
-    /*
+    
     if day_night.is_changed() {
         // Create overlay if it doesn't exist
         if overlay_query.is_empty() {
@@ -42,7 +42,7 @@ pub fn lighting_system(
             }
         }
     }
-    */
+    
 }
 
 pub fn time_ui_system(

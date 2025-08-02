@@ -160,7 +160,7 @@ pub fn hack_progress_visualization(
 
 pub fn hack_status_indicator_system(
     mut commands: Commands,
-    mut indicator_query: Query<(Entity, &HackStatusIndicator, &mut Transform)>,
+    mut indicator_query: Query<(Entity, &HackStatusIndicator, &mut Transform), Without<MarkedForDespawn>>,
     hackable_query: Query<(&Hackable, &DeviceState), With<Hackable>>,
     time: Res<Time>,
 ) {
@@ -218,9 +218,9 @@ pub fn device_visual_feedback_system(
 // === HACK INTERRUPTION SYSTEM ===
 pub fn hack_interruption_system(
     mut commands: Commands,
-    progress_query: Query<(Entity, &HackingProgress)>,
+    progress_query: Query<(Entity, &HackingProgress), Without<MarkedForDespawn>>,
     agent_query: Query<&Transform, With<Agent>>,
-    hackable_query: Query<&Transform, With<Hackable>>,
+    hackable_query: Query<&Transform, (With<Hackable>, Without<MarkedForDespawn>)>,
 ) {
     for (progress_entity, progress) in progress_query.iter() {
         // Check if hacker moved away from target
