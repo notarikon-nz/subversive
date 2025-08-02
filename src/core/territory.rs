@@ -357,26 +357,3 @@ pub fn territory_daily_update_system(
         }
     }
 }
-
-pub fn establish_territory_on_mission_success(
-    mut territory_manager: ResMut<TerritoryManager>,
-    mut progression_tracker: ResMut<ProgressionTracker>,
-    launch_data: Option<Res<MissionLaunchData>>,
-    post_mission: Res<PostMissionResults>,
-    campaign_db: Res<CampaignDatabase>,
-    global_data: Res<GlobalData>,
-) {
-    if !post_mission.success { return; }
-
-    if let Some(launch_data) = launch_data {
-        // Establish territory control if not already controlled
-        if !territory_manager.is_controlled(&launch_data.city_id) {
-            territory_manager.establish_control(launch_data.city_id.clone(), global_data.current_day);
-
-            // Check if this completes a campaign chapter
-            if let Some(chapter) = campaign_db.get_chapter_by_city(&launch_data.city_id) {
-                progression_tracker.advance_chapter(chapter.city_id.clone());
-            }
-        }
-    }
-}

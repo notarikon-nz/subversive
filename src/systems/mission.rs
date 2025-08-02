@@ -180,6 +180,8 @@ pub fn process_mission_results(
         region.update_alert(current_day);
     }
 
+
+    
     processed.0 = true;
 }
 

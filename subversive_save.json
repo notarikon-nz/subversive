@@ -1,27 +1,27 @@
 {
-  "credits": 3000,
-  "current_day": 10,
+  "credits": 14685,
+  "current_day": 57,
   "agent_levels": [
-    1,
-    1,
-    1
+    2,
+    2,
+    2
   ],
   "agent_experience": [
-    50,
-    50,
-    50
+    220,
+    220,
+    220
   ],
   "agent_recovery": [
-    8,
-    8,
-    8
+    51,
+    51,
+    51
   ],
   "regions": [
     {
       "name": "Neo-Tokyo Central",
       "threat_level": 1,
-      "alert_level": 2,
-      "alert_decay_timer": 14
+      "alert_level": 3,
+      "alert_decay_timer": 64
     },
     {
       "name": "Corporate District",
@@ -120,38 +120,51 @@
       "new_york": {
         "completed": true,
         "alert_level": "Green",
-        "last_mission_day": 7,
-        "times_visited": 2
+        "last_mission_day": 50,
+        "times_visited": 13
       }
     },
     "unlocked_cities": [
+      "chicago",
       "new_york",
-      "miami",
       "toronto",
-      "chicago"
+      "miami"
     ]
   },
   "recruited_scientists": [],
   "research_facilities_discovered": [],
   "alert_level": 1,
   "territory_manager": {
-    "controlled_cities": {},
-    "total_territory_income": 0,
-    "territory_count": 0
+    "controlled_cities": {
+      "new_york": {
+        "city_id": "new_york",
+        "control_level": "Established",
+        "control_strength": 0.36999995,
+        "tax_rate": 0.05,
+        "last_tax_collection": 56,
+        "resistance_level": 0.03396733,
+        "days_controlled": 7,
+        "total_tax_collected": 948
+      }
+    },
+    "total_territory_income": 948,
+    "territory_count": 1
   },
   "progression_tracker": {
     "campaign_progress": {
-      "current_chapter": 0,
+      "current_chapter": 1,
       "total_chapters": 10,
-      "cities_liberated": 0,
-      "total_income_generated": 0,
-      "days_elapsed": 0
+      "cities_liberated": 1,
+      "total_income_generated": 948,
+      "days_elapsed": 56
     },
     "win_conditions": {
       "min_cities_controlled": 5,
       "min_daily_income": 10000,
       "campaign_complete": false
     },
-    "chapter_completion": {}
+    "chapter_completion": {
+      "new_york": true
+    }
   }
 }

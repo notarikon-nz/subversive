@@ -11,7 +11,8 @@ pub fn get_isometric_world_mouse_position(
     let window = windows.single().ok()?;
     let (camera, camera_transform, _) = cameras.single().ok()?;
     let cursor_pos = window.cursor_position()?;
-
+    
+    // Convert cursor position to world coordinates for isometric camera
     camera.viewport_to_world_2d(camera_transform, cursor_pos).ok()
 }
 
@@ -43,15 +44,6 @@ pub fn handle_input(
         game_mode.paused = !game_mode.paused;
     }
 
-    /*
-    if keyboard.just_pressed(KeyCode::KeyI) {
-        inventory_state.ui_open = !inventory_state.ui_open;
-        if inventory_state.ui_open {
-            inventory_state.selected_agent = selection.selected.first().copied();
-        }
-    }
-        */
-
     // Mode toggles - always return to combat mode when exiting
     if keyboard.just_pressed(KeyCode::KeyN) {
         if let Some(&agent) = selection.selected.first() {
@@ -74,6 +66,7 @@ pub fn handle_input(
 
     // Other controls...
     if keyboard.just_pressed(KeyCode::KeyE) {
+        info!("Interaction Requested");
         if let Some(&agent) = selection.selected.first() {
             action_events.write(ActionEvent {
                 entity: agent,
@@ -97,116 +90,6 @@ pub fn handle_input(
     }
 
     if game_mode.paused { return; }
-
-    // Continuous attack system handles all combat/movement
-    handle_continuous_attack(
-        &mut continuous_attack,
-        &mouse,
-        &windows,
-        &cameras,
-        &mut action_events,
-        &selection,
-        &game_mode,
-        &target_query,
-        &agent_query,
-        &time,
-    );
-}
-
-/*
-    // FIXED: Direct mouse detection for movement (only when not in combat mode or not attacking)
-    if mouse.just_pressed(MouseButton::Right) {
-        if let Some(world_pos) = get_world_mouse_position(&windows, &cameras) {
-            // Send movement commands for all selected agents
-            for &entity in &selection.selected {
-                action_events.write(ActionEvent {
-                    entity,
-                    action: Action::MoveTo(world_pos),
-                });
-            }
-        }
-    }
-*/
-
-fn handle_continuous_attack(
-    continuous_attack: &mut ContinuousAttackState,
-    mouse: &ButtonInput<MouseButton>,
-    windows: &Query<&Window>,
-    cameras: &Query<(&Camera, &GlobalTransform)>,
-    action_events: &mut EventWriter<ActionEvent>,
-    selection: &SelectionState,
-    game_mode: &GameMode,
-    target_query: &Query<(Entity, &Transform, &Health), Or<(With<Enemy>, With<Vehicle>)>>,
-    agent_query: &Query<(&Transform, &Inventory), With<Agent>>,
-    time: &Time,
-) {
-    let current_time = time.elapsed_secs();
-
-    // Combat mode is default - check if we're NOT in other modes
-    let combat_enabled = match &game_mode.targeting {
-        Some(TargetingMode::Neurovector { .. }) => false,
-        Some(TargetingMode::Scanning { .. }) => false, // Add this variant to your TargetingMode enum
-        _ => true, // Combat is default
-    };
-
-    if !combat_enabled {
-        continuous_attack.attacking = false;
-        continuous_attack.current_target = None;
-        return;
-    }
-
-    // Right mouse button for continuous attack
-    if mouse.just_pressed(MouseButton::Right) {
-        if let Some(target) = find_target_under_mouse(windows, cameras, target_query, agent_query, selection) {
-            continuous_attack.attacking = true;
-            continuous_attack.current_target = Some(target);
-            continuous_attack.record_attack(current_time);
-
-            // Initial attack
-            for &agent in &selection.selected {
-                action_events.write(ActionEvent {
-                    entity: agent,
-                    action: Action::Attack(target),
-                });
-            }
-        } else if let Some(world_pos) = get_world_mouse_position(windows, cameras) {
-            // No target - move command
-            for &entity in &selection.selected {
-                action_events.write(ActionEvent {
-                    entity,
-                    action: Action::MoveTo(world_pos),
-                });
-            }
-        }
-    }
-
-    // Continue attacking while held
-    if mouse.pressed(MouseButton::Right) && continuous_attack.attacking {
-        if let Some(target) = continuous_attack.current_target {
-            if continuous_attack.can_attack(current_time) {
-                if let Ok((_, _, health)) = target_query.get(target) {
-                    if health.0 > 0.0 {
-                        continuous_attack.record_attack(current_time);
-                        for &agent in &selection.selected {
-                            action_events.write(ActionEvent {
-                                entity: agent,
-                                action: Action::Attack(target),
-                            });
-                        }
-                    } else {
-                        continuous_attack.attacking = false;
-                        continuous_attack.current_target = None;
-                    }
-                }
-            }
-        }
-    }
-
-    // Stop on release
-    if mouse.just_released(MouseButton::Right) {
-        continuous_attack.attacking = false;
-        continuous_attack.current_target = None;
-    }
 }
 
 // Add agent selection handler

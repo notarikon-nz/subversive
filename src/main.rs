@@ -17,6 +17,8 @@ use systems::ui::inventory_compatibility::*;
 
 use systems::scenes::{spawn_fallback_isometric_mission};
 
+use systems::input::*;
+
 // 0.2.17
 use crate::core::territory::*;
 use crate::systems::territory_events::{TerritoryControlEvent};
@@ -278,6 +280,9 @@ fn main() {
 
         .add_systems(Update,(
             despawn::despawn_marked_entities,
+            // 0.2.17
+            territory_event_system,
+            territory_daily_update_system,
         ).run_if(in_state(GameState::GlobalMap)))
 
         .add_systems(OnExit(GameState::GlobalMap),
@@ -345,8 +350,8 @@ fn main() {
             update_camera_bounds,
 
             selection::system,
-            // REPLACE: systems::input::handle_input,
-            handle_isometric_mouse_input, // USE THIS INSTEAD
+            handle_input,
+            // handle_isometric_mouse_input, // removed, event system does it all
 
             // ADD: Isometric depth sorting
             isometric_depth_sorting,
@@ -364,15 +369,6 @@ fn main() {
             morale::morale_system,
             morale::civilian_morale_system,
             morale::flee_system,
-        ).run_if(in_state(GameState::Mission)))
-
-        // MOVEMENT SYSTEMS 0.2.5.3
-        // Replaces original movement::system
-        .add_systems(Update, (
-            // movement::system,
-            pathfinding::update_pathfinding_grid,
-            pathfinding::add_pathfinding_to_agents,
-            pathfinding::pathfinding_movement_system,
         ).run_if(in_state(GameState::Mission)))
 
         // Combat and interaction systems
@@ -400,6 +396,15 @@ fn main() {
 
             ui::pause_system,
 
+        ).run_if(in_state(GameState::Mission)))
+
+        // MOVEMENT SYSTEMS 0.2.5.3
+        // Replaces original movement::system
+        .add_systems(Update, (
+            // movement::system,
+            pathfinding::update_pathfinding_grid,
+            pathfinding::add_pathfinding_to_agents,
+            pathfinding::pathfinding_movement_system,
         ).run_if(in_state(GameState::Mission)))
 
         // 0.2.15
@@ -629,9 +634,6 @@ fn main() {
             world_scan::scanner_energy_system,
             world_scan::scan_overlay_fade_system,
 
-            // 0.2.17
-            territory_daily_update_system,
-            territory_event_system,
         ).run_if(in_state(GameState::Mission)))
 
         // TESTING & DEBUG
@@ -660,11 +662,9 @@ fn main() {
         ))
 
         .add_systems(Update, (
+            // Amended for 0.2.17
             mission::process_mission_results,
             ui::post_mission_ui_system,
-            // 0.2.17
-            establish_territory_on_mission_success,
-
         ).run_if(in_state(GameState::PostMission)))
 
         .run();

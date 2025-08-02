@@ -25,7 +25,6 @@ pub fn process_attack_events(
 // Main combat system - only handles direct input, no ActionEvent reading
 pub fn system(
     mut commands: Commands,
-    mut gizmos: Gizmos,
     input: Query<&ActionState<PlayerAction>>,
     mut audio_events: EventWriter<AudioEvent>,
     agent_query: Query<(&Transform, &Inventory), With<Agent>>,
@@ -36,54 +35,56 @@ pub fn system(
     windows: Query<&Window>,
     cameras: Query<(&Camera, &GlobalTransform)>,
     selection: Res<SelectionState>,
+    isometric_settings: Option<Res<crate::systems::tilemap::IsometricSettings>>,
+    mut action_events: EventWriter<ActionEvent>,
 ) {
     if game_mode.paused { return; }
 
-    // Handle combat targeting mode - show UI for primary agent
-    if let Some(TargetingMode::Combat { agent }) = &game_mode.targeting {
-        handle_combat_targeting(*agent, &mut commands, &input, &agent_query, &mut agent_weapon_query,
-                               &target_query, &mut audio_events, &weapon_db, &mut gizmos, &windows, &cameras, &selection);
-    }
-}
-
-// Update handle_combat_targeting to not use ActionEvents
-fn handle_combat_targeting(
-    primary_agent: Entity,
-    commands: &mut Commands,
-    input: &Query<&ActionState<PlayerAction>>,
-    agent_query: &Query<(&Transform, &Inventory), With<Agent>>,
-    agent_weapon_query: &mut Query<&mut WeaponState, With<Agent>>,
-    target_query: &Query<(Entity, &Transform, &Health), Or<(With<Enemy>, With<Vehicle>, With<Civilian>)>>,
-    audio_events: &mut EventWriter<AudioEvent>,
-    weapon_db: &WeaponDatabase,
-    gizmos: &mut Gizmos,
-    windows: &Query<&Window>,
-    cameras: &Query<(&Camera, &GlobalTransform)>,
-    selection: &SelectionState,
-) {
     let Ok(action_state) = input.single() else { return; };
-    let Ok((primary_transform, primary_inventory)) = agent_query.get(primary_agent) else { return; };
 
-    let primary_pos = primary_transform.translation.truncate();
-    let range = get_weapon_range(primary_inventory, agent_weapon_query.get(primary_agent).ok());
+    // Handle right-click: Attack if clicking on enemy, otherwise move
+    if action_state.just_pressed(&PlayerAction::Move) && !selection.selected.is_empty() {
 
-    // Draw targeting UI for primary agent
-    gizmos.circle_2d(primary_pos, range, Color::srgba(0.8, 0.2, 0.2, 0.3));
-    draw_targets_in_range(gizmos, target_query, primary_pos, range);
+       // Get mouse world position first
+        if let Some(world_pos) = get_world_mouse_position(&windows, &cameras) {
 
-    // Handle mouse click for target selection - directly execute attacks
-    if action_state.just_pressed(&PlayerAction::Move) {
-        if let Some(target) = find_target_at_mouse(target_query, primary_pos, range, windows, cameras) {
-            // Directly execute attacks for all selected agents
+        // Check if we're clicking on an enemy for any selected agent
+        let mut target_found = false;
+        
             for &agent in &selection.selected {
-                if agent_query.get(agent).is_ok() {
-                    execute_attack(agent, target, commands, agent_query, agent_weapon_query, target_query, audio_events, weapon_db);
+                if let Ok((agent_transform, agent_inventory)) = agent_query.get(agent) {
+                    let agent_pos = agent_transform.translation.truncate();
+                    let range = get_weapon_range(agent_inventory, agent_weapon_query.get(agent).ok());
+                    
+                    if let Some(target) = find_target_at_mouse_isometric(
+                        &target_query, 
+                        agent_pos, 
+                        range, 
+                        &windows, 
+                        &cameras, 
+                        isometric_settings.as_deref()
+                    ) {
+                        info!("Combat: Agent {:?} attacking target {:?}", agent, target);
+                        execute_attack(agent, target, &mut commands, &agent_query, &mut agent_weapon_query, &target_query, &mut audio_events, &weapon_db);
+                        target_found = true;
+                        break; // Found a target, stop checking other agents
+                    }
+                }
+            }
+        
+            // If no combat targets found, send movement commands via Action events
+            if !target_found {
+                info!("Combat: No targets found, sending movement commands to {:?}", world_pos);
+                for &agent in &selection.selected {
+                    action_events.send(ActionEvent {
+                        entity: agent,
+                        action: Action::MoveTo(world_pos),
+                    });
                 }
             }
         }
     }
 }
-
 
 // Alternative simpler fix - just don't auto-move when out of range
 fn execute_attack(
@@ -229,21 +230,6 @@ fn get_attack_stats(
     (35.0, 0.8, 1.0) // Default values
 }
 
-fn draw_targets_in_range(
-    gizmos: &mut Gizmos,
-    target_query: &Query<(Entity, &Transform, &Health), Or<(With<Enemy>, With<Vehicle>, With<Civilian>)>>,
-    agent_pos: Vec2,
-    range: f32,
-) {
-    for (_, transform, health) in target_query.iter() {
-        if health.0 > 0.0 && agent_pos.distance(transform.translation.truncate()) <= range {
-            let pos = transform.translation.truncate();
-            gizmos.circle_2d(pos, 25.0, Color::srgb(1.0, 0.5, 0.5));
-            draw_crosshair(gizmos, pos, 15.0, Color::srgb(0.8, 0.2, 0.2));
-        }
-    }
-}
-
 fn find_target_at_mouse(
     target_query: &Query<(Entity, &Transform, &Health), Or<(With<Enemy>, With<Vehicle>, With<Civilian>)>>,
     agent_pos: Vec2,
@@ -251,24 +237,79 @@ fn find_target_at_mouse(
     windows: &Query<&Window>,
     cameras: &Query<(&Camera, &GlobalTransform)>,
 ) -> Option<Entity> {
+    // Get mouse position in world coordinates
     let mouse_pos = get_world_mouse_position(windows, cameras)?;
+    
+    // Debug output
+    info!("Mouse world pos: {:?}, Agent pos: {:?}", mouse_pos, agent_pos);
+    
+    // Find closest target near mouse cursor
+    let mut closest_target = None;
+    let mut closest_distance = f32::INFINITY;
+    
+    for (entity, transform, health) in target_query.iter() {
+        if health.0 <= 0.0 { continue; } // Skip dead entities
+        
+        let target_pos = transform.translation.truncate();
+        let agent_to_target = agent_pos.distance(target_pos);
+        let mouse_to_target = mouse_pos.distance(target_pos);
+        
+        // Target must be in range of agent and near mouse cursor
+        if agent_to_target <= range && mouse_to_target < 35.0 {
+            if mouse_to_target < closest_distance {
+                closest_distance = mouse_to_target;
+                closest_target = Some(entity);
+            }
+        }
+    }
+    
+    if let Some(target) = closest_target {
+        info!("Found target: {:?} at distance {:.1} from mouse", target, closest_distance);
+    } else {
+        info!("No target found near mouse cursor");
+    }
+    
+    closest_target
+}
 
-    target_query.iter()
+fn find_target_at_mouse_isometric(
+    target_query: &Query<(Entity, &Transform, &Health), Or<(With<Enemy>, With<Vehicle>, With<Civilian>)>>,
+    agent_pos: Vec2,
+    range: f32,
+    windows: &Query<&Window>,
+    cameras: &Query<(&Camera, &GlobalTransform)>,
+    isometric_settings: Option<&crate::systems::tilemap::IsometricSettings>,
+) -> Option<Entity> {
+    // Just use the regular mouse position function - it works for both camera types
+    let mouse_pos = get_world_mouse_position(windows, cameras)?;
+    
+    info!("Isometric mouse world pos: {:?}, Agent pos: {:?}", mouse_pos, agent_pos);
+    
+    // Find targets in range
+    let valid_targets: Vec<_> = target_query.iter()
         .filter(|(_, _, health)| health.0 > 0.0)
-        .filter(|(_, transform, _)| agent_pos.distance(transform.translation.truncate()) <= range)
-        .filter(|(_, transform, _)| mouse_pos.distance(transform.translation.truncate()) < 35.0)
+        .filter(|(_, transform, _)| {
+            let target_pos = transform.translation.truncate();
+            agent_pos.distance(target_pos) <= range
+        })
+        .collect();
+    
+    info!("Found {} valid targets in range", valid_targets.len());
+    
+    // Find closest to mouse
+    valid_targets.into_iter()
+        .filter(|(_, transform, _)| {
+            let target_pos = transform.translation.truncate();
+            let distance = mouse_pos.distance(target_pos);
+            info!("Target distance from mouse: {:.1}", distance);
+            distance < 50.0 // Increased tolerance for isometric
+        })
         .min_by(|(_, a_transform, _), (_, b_transform, _)| {
             let a_dist = mouse_pos.distance(a_transform.translation.truncate());
             let b_dist = mouse_pos.distance(b_transform.translation.truncate());
             a_dist.partial_cmp(&b_dist).unwrap_or(std::cmp::Ordering::Equal)
         })
         .map(|(entity, _, _)| entity)
-}
-
-fn draw_crosshair(gizmos: &mut Gizmos, position: Vec2, size: f32, color: Color) {
-    let h = size / 2.0;
-    gizmos.line_2d(position + Vec2::new(-h, 0.0), position + Vec2::new(h, 0.0), color);
-    gizmos.line_2d(position + Vec2::new(0.0, -h), position + Vec2::new(0.0, h), color);
 }
 
 // ENEMY SYSTEM

@@ -95,6 +95,28 @@ impl ExtendedCampaignDatabase {
         }
     }
 
+    // Add missing compatibility methods
+    pub fn get_chapter(&self, chapter_id: usize) -> Option<&CampaignChapter> {
+        self.campaign.acts.iter()
+            .flat_map(|act| &act.chapters)
+            .find(|chapter| chapter.id == chapter_id)
+    }
+    
+    pub fn get_chapter_by_city(&self, city_id: &str) -> Option<&CampaignChapter> {
+        self.campaign.acts.iter()
+            .flat_map(|act| &act.chapters)
+            .find(|chapter| chapter.city_id == city_id)
+    }
+    
+    pub fn is_chapter_available(&self, chapter_id: usize, completed_cities: &std::collections::HashSet<String>) -> bool {
+        if let Some(chapter) = self.get_chapter(chapter_id) {
+            chapter.prerequisites.iter().all(|prereq| completed_cities.contains(prereq))
+        } else {
+            false
+        }
+    }
+ 
+
     pub fn get_available_targets(&self, controlled_cities: &std::collections::HashSet<String>) -> Vec<String> {
         let mut targets = Vec::new();
 
@@ -139,6 +161,7 @@ impl ExtendedCampaignDatabase {
         }
         None
     }
+  
 }
 
 // === CAMPAIGN CREATION FUNCTIONS ===
