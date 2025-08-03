@@ -7,18 +7,15 @@ use crate::core::*;
 use crate::core::factions::Faction;
 use crate::systems::scenes::*;
 use crate::systems::pathfinding::{PathfindingObstacle};
-use crate::systems::urban_simulation::*;
 use crate::systems::traffic::*;
 use crate::systems::scanner::{Scannable};
 use crate::systems::ai::*;
-use crate::systems::police::*;
+use crate::systems::urban_security::*;
 use crate::systems::selection::*;
 use crate::systems::power_grid::*;
 use crate::systems::hacking_financial::*;
 use crate::systems::explosions::*;
-use crate::systems::civilian_spawn::*;
 use crate::systems::world_scan::{WorldScanner};
-use crate::systems::panic_spread::{PanicSpreader};
 
 // === SHARED BUILDERS ===
 
@@ -159,7 +156,7 @@ pub fn spawn_police_unit_simple(
     unit_type: EscalationLevel,
     sprites: &GameSprites,
 ) -> Entity {
-    let config = crate::systems::police::load_police_config();
+    let config = crate::systems::urban_security::load_urban_config();
     spawn_police_unit(commands, position, unit_type, sprites, &config)
 }
 
@@ -168,18 +165,18 @@ pub fn spawn_police_unit(
     position: Vec2,
     unit_type: EscalationLevel,
     sprites: &GameSprites,
-    config: &crate::systems::police::PoliceConfig,
+    config: &crate::systems::urban_security::UrbanConfig,
 ) -> Entity {
     let level_config = unit_type.get_config(config);
     let (mut sprite, _) = crate::core::sprites::create_police_sprite(sprites);
     sprite.color = Color::srgba(level_config.color.0, level_config.color.1, level_config.color.2, level_config.color.3);
 
-    let patrol_points = generate_patrol_pattern(position, unit_type, config);
+    let patrol_points = crate::systems::urban_security::generate_patrol_pattern(position, unit_type, config);
     let weapon_type = match level_config.weapon.as_str() {
-        "Pistol" => WeaponType::Pistol,
-        "Rifle" => WeaponType::Rifle,
-        "Minigun" => WeaponType::Minigun,
-        "Flamethrower" => WeaponType::Flamethrower,
+        "pistol" => WeaponType::Pistol,  // Note: lowercase to match config
+        "rifle" => WeaponType::Rifle,
+        "minigun" => WeaponType::Minigun,
+        "flamethrower" => WeaponType::Flamethrower,
         _ => WeaponType::Pistol,
     };
 
@@ -226,7 +223,6 @@ fn spawn_civilian_base<'a>(
         Faction::Civilian,
         Health(health),
         Morale::new(morale_base, panic_threshold),
-        PanicSpreader::default(),
         MovementSpeed(speed),
         Controllable,
         NeurovectorTarget,
@@ -236,8 +232,28 @@ fn spawn_civilian_base<'a>(
 }
 
 pub fn spawn_civilian(commands: &mut Commands, position: Vec2, sprites: &GameSprites) {
+
+    let crowd_influence = 0.3 + rand::random::<f32>() * 0.4;
+    let panic_threshold = 20.0 + rand::random::<f32>() * 40.0;
+    let daily_state = match rand::random::<f32>() {
+        x if x < 0.4 => DailyState::GoingToWork,
+        x if x < 0.6 => DailyState::Shopping,
+        x if x < 0.8 => DailyState::GoingHome,
+        _ => DailyState::Idle,
+    };
+
     spawn_civilian_base(commands, position, sprites, 50.0, 80.0, 40.0, 140.0)
-        .insert(CivilianWander::new(position));
+        .insert(
+            UrbanCivilian {
+                daily_state,
+                state_timer: rand::random::<f32>() * 10.0,
+                next_destination: None,
+                crowd_influence,
+                panic_threshold,
+                movement_urgency: 0.0,
+                home_position: position,
+            },
+        );
 }
 
 pub fn spawn_civilian_with_config(commands: &mut Commands, pos: Vec2, sprites: &GameSprites, config: &GameConfig) {
@@ -249,7 +265,7 @@ pub fn spawn_urban_civilian(
     commands: &mut Commands,
     position: Vec2,
     sprites: &GameSprites,
-    urban_areas: &UrbanAreas,
+    urban_areas: &UrbanSecurity,
 ) {
     let crowd_influence = 0.3 + rand::random::<f32>() * 0.4;
     let panic_threshold = 20.0 + rand::random::<f32>() * 40.0;
@@ -268,6 +284,7 @@ pub fn spawn_urban_civilian(
             crowd_influence,
             panic_threshold,
             movement_urgency: 0.0,
+            home_position: position,
         });
 }
 
@@ -284,6 +301,7 @@ pub fn spawn_original_urban_civilian(commands: &mut Commands, pos: Vec2, sprites
             crowd_influence,
             panic_threshold,
             movement_urgency: 0.0,
+            home_position: pos,
         });
 }
 

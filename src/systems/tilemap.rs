@@ -2,7 +2,7 @@
 use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
 use crate::core::*;
-use crate::systems::urban_simulation::{UrbanAreas, UrbanZone};
+use crate::systems::urban_security::{UrbanSecurity, UrbanZone};
 use crate::systems::scenes::{SceneData};
 
 // === TILEMAP COMPONENTS ===
@@ -143,7 +143,7 @@ pub fn setup_isometric_tilemap(
 pub fn generate_tilemap_from_scene(
     mut commands: Commands,
     scene_data: Res<SceneData>,
-    urban_areas: Res<UrbanAreas>,
+    urban_areas: Res<UrbanSecurity>,
     settings: Res<IsometricSettings>,
     tilemap_query: Query<(Entity, &TileStorage), With<IsometricMap>>,
 ) {
@@ -190,7 +190,7 @@ fn generate_base_terrain(
 
 fn apply_urban_zones(
     commands: &mut Commands,
-    urban_areas: &UrbanAreas,
+    urban_areas: &UrbanSecurity,
     settings: &IsometricSettings,
     tilemap_entity: Entity,
     tile_storage: &TileStorage,

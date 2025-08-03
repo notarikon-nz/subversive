@@ -14,7 +14,7 @@ use std::sync::Arc; // fonts
 
 use systems::interactive_decals::*;
 use systems::explosion_decal_integration::*;
-use systems::police::{load_police_config, PoliceResponse, PoliceEscalation};
+// use systems::police::{load_police_config, PoliceResponse, PoliceEscalation};
 
 use systems::ui::enhanced_inventory::*;
 use systems::ui::inventory_integration::*;
@@ -93,7 +93,11 @@ fn main() {
         .init_resource::<PostMissionResults>()
         .init_resource::<MissionState>()
         .init_resource::<DayNightCycle>()
-        .init_resource::<PoliceEscalation>()
+        // .init_resource::<PoliceEscalation>()
+
+        .init_resource::<UrbanSecurity>()
+        .init_resource::<UrbanSecurity>()
+
         .init_resource::<CombatTextSettings>()
         .init_resource::<AgentManagementState>()
         .init_resource::<CitiesDatabase>()
@@ -133,7 +137,7 @@ fn main() {
         .init_resource::<ManufactureState>()
         .init_resource::<PoliceResponse>()
         .init_resource::<FormationState>()
-        .init_resource::<CivilianSpawner>()
+        // .init_resource::<CivilianSpawner>()
         .init_resource::<PowerGrid>()
         
         .insert_resource(AgentManagementState::default())
@@ -212,7 +216,6 @@ fn main() {
             load_egui_fonts,
 
             // 0.2.16
-            // setup_camera_and_input,
             isometric_camera::setup_camera_lighting_and_physics,
             setup_input_mapping,
 
@@ -220,13 +223,16 @@ fn main() {
             attachments::setup_attachments,
             research_gameplay::apply_loaded_research_benefits,
             fonts::check_fonts_loaded,
-            setup_urban_areas,
-            setup_police_system,
+            
+            setup_urban_security_system,
+            
             sprites::load_sprites,
             pathfinding::setup_pathfinding_grid, // 0.2.5.3
             enhanced_pathfinding::setup_enhanced_pathfinding_grid, // 0.2.16 P2
         ))
         .add_systems(Startup, (
+
+            // urban_security::load_urban_config,
 
 //            setup_weather_tile_system,
 
@@ -500,10 +506,6 @@ fn main() {
 
             reload::reload_system,
 
-            panic_spread::panic_spread_system,
-            panic_spread::panic_morale_reduction_system,
-
-
         ).run_if(in_state(GameState::Mission)))
 
         // Area control and formations
@@ -593,30 +595,25 @@ fn main() {
 
         // Urban simulation
         .add_systems(Update, (
+            /*
             urban_simulation::urban_civilian_spawn_system,
             urban_simulation::crowd_dynamics_system,
             urban_simulation::daily_routine_system,
             urban_simulation::urban_cleanup_system,
             urban_simulation::urban_debug_system,
-
+            */
             // civilian_spawn::civilian_wander_system,
 
             message_window::update_message_window,
             message_window::message_scroll_system,
-            civilian_spawn::civilian_cleanup_system,
+            // civilian_spawn::civilian_cleanup_system,
 
         ).run_if(in_state(GameState::Mission)))
 
         // Police escalation
         .add_systems(Update, (
             // CORE
-            police::police_tracking_system,
-            police::police_spawn_system,
-            // ESCALATION
-            police::police_incident_tracking_system,
-            police::police_spawn_system,
-            police::police_cleanup_system,
-            police::police_deescalation_system,
+            urban_security::unified_urban_security_system,
 
             weapons::enemy_weapon_update_system,
             
@@ -949,9 +946,6 @@ pub fn preload_common_scenes(mut scene_cache: ResMut<SceneCache>) {
     info!("Preloaded {} scenes at startup", common_scenes.len());
 }
 
-fn setup_urban_areas(mut commands: Commands) {
-    commands.insert_resource(UrbanAreas::default());
-}
 
 pub fn collision_feedback_system(
     mut collision_events: EventReader<CollisionEvent>,
@@ -975,6 +969,7 @@ pub fn collision_feedback_system(
     }
 }
 
+/*
 fn setup_police_system(mut commands: Commands) {
     // Load configuration from file
     let config = load_police_config();
@@ -984,6 +979,7 @@ fn setup_police_system(mut commands: Commands) {
     commands.insert_resource(PoliceResponse::default());
     commands.insert_resource(PoliceEscalation::default());
 }
+ */
 
 fn setup_cyberpunk2077_theme(mut contexts: EguiContexts) {
     if let Ok(ctx) = contexts.ctx_mut() {

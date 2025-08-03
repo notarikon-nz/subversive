@@ -11,16 +11,15 @@ pub mod save;
 pub mod reload;
 pub mod morale;
 pub mod weapon_swap;
-pub mod panic_spread;
-pub mod police;
+// pub mod police;
 pub mod area_control;
 pub mod vehicles;
 pub mod day_night;
 pub mod formations;
 pub mod enhanced_neurovector;
-pub mod civilian_spawn;
+// pub mod civilian_spawn;
 pub mod health_bars;
-pub mod urban_simulation;
+// pub mod urban_simulation;
 pub mod explosions;
 pub mod npc_barks;
 pub mod power_grid;
@@ -34,6 +33,8 @@ pub mod interactive_decals;
 pub mod explosion_decal_integration;
 pub mod interactive_decals_demo;
 pub mod pathfinding;
+
+pub mod urban_security;
 
 // 0.2.5.4
 pub mod minimap;
@@ -94,11 +95,13 @@ pub use colored_lighting::*;
 pub mod territory_events;
 pub use territory_events::*;
 
+pub use urban_security::*;
+
 pub use minimap::*;
 pub use message_window::*;
-pub use urban_simulation::*;
+// pub use urban_simulation::*;
 pub use enhanced_neurovector::*;
-pub use civilian_spawn::*;
+// pub use civilian_spawn::*;
 pub use npc_barks::*;
 pub use power_grid::*;
 pub use scanner::*;

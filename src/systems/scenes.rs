@@ -8,7 +8,7 @@ use crate::systems::ai::*;
 use crate::systems::spawners::{spawn_agent};
 use crate::core::factions::Faction;
 use crate::systems::*;
-use crate::systems::police::*;
+use crate::systems::urban_security::*;
 use crate::systems::selection::*;
 
 // === Z-SORTING COMPONENT ===
@@ -271,6 +271,7 @@ fn spawn_urban_civilian_isometric(commands: &mut Commands, pos: Vec2, sprites: &
             crowd_influence,
             panic_threshold,
             movement_urgency: 0.0,
+            home_position: pos,
         },
         create_physics_bundle(7.5, CIVILIAN_GROUP),
         Scannable,
@@ -381,12 +382,12 @@ fn spawn_vehicle_isometric(
 fn setup_urban_areas_isometric(commands: &mut Commands, scene: &SceneData, region_idx: usize) {
     // Same as original but could be enhanced to better fit isometric tiles
     let urban_areas = if let Some(scene_urban) = &scene.urban_areas {
-        convert_scene_urban_data(scene_urban)
+        // convert_scene_urban_data(scene_urban)
     } else {
-        create_default_urban_areas(region_idx)
+        // create_default_urban_areas(region_idx)
     };
 
-    commands.insert_resource(urban_areas);
+    // commands.insert_resource(urban_areas);
 }
 
 pub fn spawn_fallback_isometric_mission(
@@ -395,7 +396,6 @@ pub fn spawn_fallback_isometric_mission(
     sprites: &GameSprites,
     tilemap_settings: &Option<Res<IsometricSettings>>,
 ) {
-    commands.insert_resource(UrbanAreas::default());
 
     let positions = [Vec2::new(-200.0, 0.0), Vec2::new(-170.0, 0.0), Vec2::new(-140.0, 0.0)];
     for (i, &pos) in positions.iter().enumerate() {
@@ -432,7 +432,7 @@ fn parse_vehicle_type(type_str: &str) -> VehicleType {
 
 /*
 pub fn spawn_fallback_mission(commands: &mut Commands, global_data: &GlobalData, sprites: &GameSprites) {
-    commands.insert_resource(UrbanAreas::default());
+    commands.insert_resource(UrbanSecurity::default());
 
     let positions = [Vec2::new(-200.0, 0.0), Vec2::new(-170.0, 0.0), Vec2::new(-140.0, 0.0)];
     for (i, &pos) in positions.iter().enumerate() {
@@ -534,22 +534,14 @@ pub fn parse_terminal_type(type_str: &str) -> TerminalType {
 // === URBAN AREAS SETUP ===
 pub fn setup_urban_areas(commands: &mut Commands, scene: &SceneData, region_idx: usize) {
     let urban_areas = if let Some(scene_urban) = &scene.urban_areas {
-        convert_scene_urban_data(scene_urban)
+        // convert_scene_urban_data(scene_urban)
     } else {
-        create_default_urban_areas(region_idx)
+        // create_default_urban_areas(region_idx)
     };
 
-    commands.insert_resource(urban_areas);
+    // commands.insert_resource(urban_areas);
 }
 
-pub fn convert_scene_urban_data(scene_urban: &UrbanAreasData) -> UrbanAreas {
-    UrbanAreas {
-        work_zones: scene_urban.work_zones.iter().map(convert_zone_data).collect(),
-        shopping_zones: scene_urban.shopping_zones.iter().map(convert_zone_data).collect(),
-        residential_zones: scene_urban.residential_zones.iter().map(convert_zone_data).collect(),
-        transit_routes: scene_urban.transit_routes.iter().map(convert_route_data).collect(),
-    }
-}
 
 pub fn convert_zone_data(z: &UrbanZoneData) -> UrbanZone {
     UrbanZone {
@@ -567,17 +559,29 @@ pub fn convert_route_data(r: &TransitRouteData) -> TransitRoute {
     }
 }
 
-pub fn create_default_urban_areas(region_idx: usize) -> UrbanAreas {
+/*
+pub fn create_default_urban_areas(region_idx: usize) -> UrbanSecurity {
     match region_idx {
         0 => create_urban_district_areas(),
         1 => create_corporate_district_areas(),
         2 => create_industrial_areas(),
-        _ => UrbanAreas::default(),
+        _ => UrbanSecurity::default(),
+    }
+}
+ */
+/*
+pub fn convert_scene_urban_data(scene_urban: &UrbanAreasData) -> UrbanSecurity {
+    UrbanSecurity {
+        work_zones: scene_urban.work_zones.iter().map(convert_zone_data).collect(),
+        shopping_zones: scene_urban.shopping_zones.iter().map(convert_zone_data).collect(),
+        residential_zones: scene_urban.residential_zones.iter().map(convert_zone_data).collect(),
+        transit_routes: scene_urban.transit_routes.iter().map(convert_route_data).collect(),
     }
 }
 
-pub fn create_urban_district_areas() -> UrbanAreas {
-    UrbanAreas {
+
+pub fn create_urban_district_areas() -> UrbanSecurity {
+    UrbanSecurity {
         work_zones: vec![
             UrbanZone { center: Vec2::new(150.0, -80.0), radius: 70.0, capacity: 12, current_occupancy: 0 },
             UrbanZone { center: Vec2::new(50.0, 120.0), radius: 60.0, capacity: 8, current_occupancy: 0 },
@@ -607,8 +611,8 @@ pub fn create_urban_district_areas() -> UrbanAreas {
     }
 }
 
-fn create_corporate_district_areas() -> UrbanAreas {
-    UrbanAreas {
+fn create_corporate_district_areas() -> UrbanSecurity {
+    UrbanSecurity {
         work_zones: vec![
             UrbanZone { center: Vec2::new(400.0, -20.0), radius: 100.0, capacity: 25, current_occupancy: 0 },
             UrbanZone { center: Vec2::new(100.0, -150.0), radius: 80.0, capacity: 15, current_occupancy: 0 },
@@ -637,8 +641,8 @@ fn create_corporate_district_areas() -> UrbanAreas {
     }
 }
 
-fn create_industrial_areas() -> UrbanAreas {
-    UrbanAreas {
+fn create_industrial_areas() -> UrbanSecurity {
+    UrbanSecurity {
         work_zones: vec![
             UrbanZone { center: Vec2::new(200.0, -100.0), radius: 60.0, capacity: 8, current_occupancy: 0 },
             UrbanZone { center: Vec2::new(350.0, -50.0), radius: 50.0, capacity: 6, current_occupancy: 0 },
@@ -663,3 +667,4 @@ fn create_industrial_areas() -> UrbanAreas {
 }
 
 
+ */
