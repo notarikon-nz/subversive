@@ -2,7 +2,6 @@
 use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
 use crate::core::*;
-use crate::systems::pathfinding::*;
 use crate::systems::tile_properties::*;
 use std::collections::{BinaryHeap, HashMap, HashSet};
 

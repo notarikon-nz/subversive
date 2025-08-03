@@ -1,15 +1,14 @@
-// src/core/campaign_extended.rs - Extended campaign for 46 cities
+// src/core/neosingapore_campaign.rs - Neo-Singapore focused campaign
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use crate::core::*;
 
-// === EXTENDED CAMPAIGN STRUCTURE ===
+// === NEO-SINGAPORE CAMPAIGN STRUCTURE ===
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ExtendedCampaign {
+pub struct NeoSingaporeCampaign {
     pub acts: Vec<CampaignAct>,
-    pub total_chapters: usize,
-    pub victory_conditions: ExtendedVictoryConditions,
+    pub total_operations: usize,
+    pub victory_conditions: NeoSingaporeVictory,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -18,16 +17,316 @@ pub struct CampaignAct {
     pub title: String,
     pub theme: ActTheme,
     pub description: String,
-    pub chapters: Vec<CampaignChapter>,
+    pub operations: Vec<CampaignOperation>,
     pub act_requirements: ActRequirements,
+    pub corporate_response_level: u8, // 1-5, affects AI aggression
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ActTheme {
-    Foundation,     // Acts 1-2: Establishing operations (Americas)
-    Expansion,      // Acts 3-4: Global reach (Europe/Asia)
-    Confrontation,  // Acts 5-6: Corporate war (All regions)
-    Liberation,     // Act 7: Final push
+    Infiltration,    // Act 1: Establish base, learn the city
+    Expansion,       // Act 2: Spread influence, gain resources  
+    Confrontation,   // Act 3: Open corporate warfare
+    Liberation,      // Act 4: Final push for city control
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CampaignOperation {
+    pub id: usize,
+    pub district_id: String,
+    pub title: String,
+    pub operation_type: OperationType,
+    pub story_beat: String,
+    pub prerequisites: Vec<OperationPrereq>,
+    pub rewards: OperationRewards,
+    pub corporate_target: Corporation,
+    pub difficulty_tier: u8, // 1-3 within each act
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum OperationType {
+    Infiltration,    // Stealth-based missions
+    Sabotage,        // Infrastructure disruption
+    Heist,          // Resource acquisition
+    Liberation,      // Population freeing
+    Intelligence,    // Information gathering
+    Warfare,        // Direct confrontation
+}
+
+#[derive(Debug, Clone, Hash, Serialize, Deserialize)]
+pub enum OperationPrereq {
+    DistrictControl(String),        // Must control specific district
+    CorporateWeakness(Corporation), // Target corp must be weakened
+    ResourceLevel(u32),             // Minimum credits/equipment
+    ResearchUnlock(String),         // Specific tech required
+    PopulationSupport(u8),          // Community support level 1-10
+}
+
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+pub struct NeoSingaporeVictory {
+    pub min_district_control: usize,      // Must control X districts
+    pub corporate_hq_destroyed: Vec<Corporation>, // All corp HQs eliminated
+    pub population_liberation: f32,        // % of citizens freed from surveillance
+    pub key_infrastructure: Vec<String>,   // Critical systems under control
+}
+
+// === SINGAPORE DISTRICTS ===
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SingaporeDistrict {
+    pub id: String,
+    pub name: String,
+    pub district_type: DistrictType,
+    pub controlling_corp: Corporation,
+    pub population: u32,
+    pub corruption_level: u8, // 1-10
+    pub strategic_value: StrategyValue,
+    pub connections: Vec<String>, // Connected districts
+    pub landmarks: Vec<String>,   // Recognizable locations
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
+pub enum DistrictType {
+    Corporate,      // CBD, Marina Bay
+    Industrial,     // Jurong, Tuas
+    Residential,    // HDB estates, private housing
+    Commercial,     // Orchard, shopping districts  
+    Transport,      // Changi, port areas
+    Underground,    // Hidden/informal areas
+    Government,     // Administrative centers
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum StrategyValue {
+    Financial,      // Money laundering, banking
+    Intelligence,   // Data centers, surveillance hubs
+    Logistics,      // Transport, supply chains
+    Manufacturing,  // Production facilities
+    Population,     // Large civilian populations
+    Symbolic,       // Morale/propaganda value
+}
+
+// === CAMPAIGN CREATION ===
+pub fn create_neosingapore_campaign() -> NeoSingaporeCampaign {
+    NeoSingaporeCampaign {
+        acts: vec![
+            // ACT 1: INFILTRATION (Operations 1-8)
+            CampaignAct {
+                id: 1,
+                title: "Shadow Arrival".to_string(),
+                theme: ActTheme::Infiltration,
+                description: "Establish your presence in Neo-Singapore. Learn the corporate power structures and build your underground network.".to_string(),
+                corporate_response_level: 1,
+                operations: vec![
+                    CampaignOperation {
+                        id: 1,
+                        district_id: "geylang".to_string(),
+                        title: "Safe Harbor".to_string(),
+                        operation_type: OperationType::Infiltration,
+                        story_beat: "Arrive in Neo-Singapore's Geylang district. The corporate experiment has turned Singapore into a surveillance state, but the underground economy still thrives in the shadows.".to_string(),
+                        prerequisites: vec![], // Starting operation
+                        rewards: OperationRewards { credits: 2000, research_unlocks: vec!["urban_navigation".to_string()], equipment: vec!["basic_scanner".to_string()] },
+                        corporate_target: Corporation::Syndicate, // Local criminal networks
+                        difficulty_tier: 1,
+                    },
+                    CampaignOperation {
+                        id: 2,
+                        district_id: "chinatown".to_string(),
+                        title: "Ancient Networks".to_string(),
+                        operation_type: OperationType::Intelligence,
+                        story_beat: "Chinatown's shophouses hide traditional resistance networks that predate corporate control. Gain their trust and access to underground tunnels.".to_string(),
+                        prerequisites: vec![OperationPrereq::DistrictControl("geylang".to_string())],
+                        rewards: OperationRewards { credits: 2500, research_unlocks: vec!["tunnel_networks".to_string()], equipment: vec![] },
+                        corporate_target: Corporation::Helix, // Cultural preservation vs corporate homogenization
+                        difficulty_tier: 1,
+                    },
+                    CampaignOperation {
+                        id: 3,
+                        district_id: "clarke_quay".to_string(),
+                        title: "River Runners".to_string(),
+                        operation_type: OperationType::Sabotage,
+                        story_beat: "The Singapore River's entertainment district masks smuggling operations. Disrupt Nexus surveillance boats and establish water transport routes.".to_string(),
+                        prerequisites: vec![OperationPrereq::DistrictControl("chinatown".to_string())],
+                        rewards: OperationRewards { credits: 3000, research_unlocks: vec!["water_transport".to_string()], equipment: vec!["stealth_boat".to_string()] },
+                        corporate_target: Corporation::Nexus,
+                        difficulty_tier: 2,
+                    },
+                    CampaignOperation {
+                        id: 4,
+                        district_id: "little_india".to_string(),
+                        title: "Spice Routes".to_string(),
+                        operation_type: OperationType::Liberation,
+                        story_beat: "Little India's tight-knit community has resisted corporate gentrification. Help them organize against Omnicorp's 'urban renewal' projects.".to_string(),
+                        prerequisites: vec![OperationPrereq::PopulationSupport(3)],
+                        rewards: OperationRewards { credits: 3500, research_unlocks: vec!["community_organizing".to_string()], equipment: vec![] },
+                        corporate_target: Corporation::Omnicorp,
+                        difficulty_tier: 2,
+                    },
+                    CampaignOperation {
+                        id: 5,
+                        district_id: "kampong_glam".to_string(),
+                        title: "Cultural Resistance".to_string(),
+                        operation_type: OperationType::Intelligence,
+                        story_beat: "The historic Malay quarter maintains cultural traditions that corporate algorithms can't parse. Establish a secure communication hub.".to_string(),
+                        prerequisites: vec![OperationPrereq::DistrictControl("little_india".to_string())],
+                        rewards: OperationRewards { credits: 4000, research_unlocks: vec!["encrypted_comms".to_string()], equipment: vec!["comm_array".to_string()] },
+                        corporate_target: Corporation::Nexus,
+                        difficulty_tier: 2,
+                    },
+                    CampaignOperation {
+                        id: 6,
+                        district_id: "tanjong_pagar".to_string(),
+                        title: "Port Authority".to_string(),
+                        operation_type: OperationType::Heist,
+                        story_beat: "Tanjong Pagar's container port is now 'Helix Data Harbor.' Their shipping manifests hide the movement of surveillance equipment across Asia.".to_string(),
+                        prerequisites: vec![OperationPrereq::ResearchUnlock("water_transport".to_string())],
+                        rewards: OperationRewards { credits: 5000, research_unlocks: vec!["supply_interdiction".to_string()], equipment: vec!["cargo_scanner".to_string()] },
+                        corporate_target: Corporation::Helix,
+                        difficulty_tier: 3,
+                    },
+                    CampaignOperation {
+                        id: 7,
+                        district_id: "orchard".to_string(),
+                        title: "Shopping Surveillance".to_string(),
+                        operation_type: OperationType::Sabotage,
+                        story_beat: "Orchard Road is now 'Nexus Commercial Corridor.' Every purchase, every movement is tracked. Hack their consumer surveillance network.".to_string(),
+                        prerequisites: vec![OperationPrereq::ResearchUnlock("encrypted_comms".to_string())],
+                        rewards: OperationRewards { credits: 6000, research_unlocks: vec!["surveillance_hacking".to_string()], equipment: vec!["privacy_cloak".to_string()] },
+                        corporate_target: Corporation::Nexus,
+                        difficulty_tier: 3,
+                    },
+                    CampaignOperation {
+                        id: 8,
+                        district_id: "sentosa".to_string(),
+                        title: "Corporate Playground".to_string(),
+                        operation_type: OperationType::Intelligence,
+                        story_beat: "Sentosa Island is now an exclusive corporate resort where executives make deals that affect millions. Infiltrate their private meetings.".to_string(),
+                        prerequisites: vec![OperationPrereq::DistrictControl("orchard".to_string())],
+                        rewards: OperationRewards { credits: 7000, research_unlocks: vec!["corporate_intelligence".to_string()], equipment: vec!["executive_disguise".to_string()] },
+                        corporate_target: Corporation::Nexus,
+                        difficulty_tier: 3,
+                    },
+                ],
+                act_requirements: ActRequirements {
+                    min_territories: 0,
+                    min_daily_income: 0,
+                    required_research: vec![],
+                    previous_act_completion: false,
+                },
+            },
+
+            // ACT 2: EXPANSION (Operations 9-16)
+            CampaignAct {
+                id: 2,
+                title: "Network Growth".to_string(),
+                theme: ActTheme::Expansion,
+                description: "Expand your influence across Singapore's districts. Build the infrastructure needed for open resistance.".to_string(),
+                corporate_response_level: 2,
+                operations: vec![
+                    CampaignOperation {
+                        id: 9,
+                        district_id: "raffles_place".to_string(),
+                        title: "Financial Fortress".to_string(),
+                        operation_type: OperationType::Heist,
+                        story_beat: "Raffles Place, now 'Aegis Financial District,' processes corporate transactions for all of Southeast Asia. Hack their trading algorithms.".to_string(),
+                        prerequisites: vec![OperationPrereq::ResearchUnlock("corporate_intelligence".to_string())],
+                        rewards: OperationRewards { credits: 10000, research_unlocks: vec!["financial_warfare".to_string()], equipment: vec!["quantum_processor".to_string()] },
+                        corporate_target: Corporation::Aegis,
+                        difficulty_tier: 1,
+                    },
+                    CampaignOperation {
+                        id: 10,
+                        district_id: "jurong".to_string(),
+                        title: "Industrial Sabotage".to_string(),
+                        operation_type: OperationType::Sabotage,
+                        story_beat: "Jurong is now 'Omnicorp Industrial Complex.' Their automated factories produce surveillance drones for global export. Shut down production.".to_string(),
+                        prerequisites: vec![OperationPrereq::ResearchUnlock("supply_interdiction".to_string())],
+                        rewards: OperationRewards { credits: 8000, research_unlocks: vec!["industrial_hacking".to_string()], equipment: vec!["factory_virus".to_string()] },
+                        corporate_target: Corporation::Omnicorp,
+                        difficulty_tier: 2,
+                    },
+                    // ... continue with remaining operations for Act 2
+                ],
+                act_requirements: ActRequirements {
+                    min_territories: 4,
+                    min_daily_income: 15000,
+                    required_research: vec!["surveillance_hacking".to_string()],
+                    previous_act_completion: true,
+                },
+            },
+
+            // ACT 3: CONFRONTATION (Operations 17-24)
+            CampaignAct {
+                id: 3,
+                title: "Open War".to_string(),
+                theme: ActTheme::Confrontation,
+                description: "The corporations know you're here. Engage in direct warfare while protecting liberated populations.".to_string(),
+                corporate_response_level: 4,
+                operations: vec![
+                    CampaignOperation {
+                        id: 17,
+                        district_id: "marina_bay".to_string(),
+                        title: "Corporate Towers".to_string(),
+                        operation_type: OperationType::Warfare,
+                        story_beat: "Marina Bay's corporate towers coordinate the surveillance state. Time for a direct assault on the symbols of corporate power.".to_string(),
+                        prerequisites: vec![OperationPrereq::ResourceLevel(50000)],
+                        rewards: OperationRewards { credits: 15000, research_unlocks: vec!["tower_assault".to_string()], equipment: vec!["heavy_weapons".to_string()] },
+                        corporate_target: Corporation::Nexus,
+                        difficulty_tier: 3,
+                    },
+                    // ... continue with high-intensity operations
+                ],
+                act_requirements: ActRequirements {
+                    min_territories: 10,
+                    min_daily_income: 50000,
+                    required_research: vec!["financial_warfare".to_string(), "industrial_hacking".to_string()],
+                    previous_act_completion: true,
+                },
+            },
+
+            // ACT 4: LIBERATION (Operations 25-32)
+            CampaignAct {
+                id: 4,
+                title: "Digital Liberation".to_string(),
+                theme: ActTheme::Liberation,
+                description: "Coordinate the final push. Liberate Singapore's population and send a message to corporate powers worldwide.".to_string(),
+                corporate_response_level: 5,
+                operations: vec![
+                    CampaignOperation {
+                        id: 25,
+                        district_id: "changi".to_string(),
+                        title: "Wings of Freedom".to_string(),
+                        operation_type: OperationType::Liberation,
+                        story_beat: "Changi Airport connects Singapore to the world. Broadcast the liberation signal globally and coordinate with resistance cells worldwide.".to_string(),
+                        prerequisites: vec![OperationPrereq::CorporateWeakness(Corporation::Nexus)],
+                        rewards: OperationRewards { credits: 25000, research_unlocks: vec!["global_coordination".to_string()], equipment: vec!["satellite_array".to_string()] },
+                        corporate_target: Corporation::Nexus,
+                        difficulty_tier: 3,
+                    },
+                    // ... final liberation operations
+                ],
+                act_requirements: ActRequirements {
+                    min_territories: 16,
+                    min_daily_income: 100000,
+                    required_research: vec!["tower_assault".to_string()],
+                    previous_act_completion: true,
+                },
+            },
+        ],
+        total_operations: 32,
+        victory_conditions: NeoSingaporeVictory {
+            min_district_control: 20,
+            corporate_hq_destroyed: vec![Corporation::Nexus, Corporation::Omnicorp, Corporation::Helix, Corporation::Aegis],
+            population_liberation: 0.8, // 80% of population freed from surveillance
+            key_infrastructure: vec!["changi_airport".to_string(), "marina_bay_towers".to_string(), "jurong_industrial".to_string()],
+        },
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OperationRewards {
+    pub credits: u32,
+    pub research_unlocks: Vec<String>,
+    pub equipment: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -38,411 +337,31 @@ pub struct ActRequirements {
     pub previous_act_completion: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ExtendedVictoryConditions {
-    pub min_territories_per_region: HashMap<String, usize>,
-    pub total_liberation_threshold: f32, // Percentage of world population freed
-    pub final_corporate_targets: Vec<String>, // Must control these cities
-}
-
-// === CAMPAIGN DATABASE EXTENDED ===
-#[derive(Debug, Resource, Deserialize, Serialize)]
-pub struct ExtendedCampaignDatabase {
-    pub campaign: ExtendedCampaign,
-    pub regional_campaigns: HashMap<String, RegionalCampaign>,
-}
-
-impl ExtendedCampaignDatabase {
-    pub fn load() -> Self {
-        match std::fs::read_to_string("data/campaign.json") {
-            Ok(content) => serde_json::from_str(&content).unwrap_or_else(|_| Self::initialize()),
-            Err(_) => Self::initialize()
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct RegionalCampaign {
-    pub region_name: String,
-    pub corporate_focus: Corporation,
-    pub narrative_theme: String,
-    pub key_cities: Vec<String>,
-    pub regional_objectives: Vec<RegionalObjective>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct RegionalObjective {
-    pub objective_type: ObjectiveType,
-    pub target_cities: Vec<String>,
-    pub description: String,
-    pub rewards: ChapterRewards,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum ObjectiveType {
-    EstablishBeachhead,     // First city in region
-    SecureSupplyLines,      // Connect to adjacent controlled cities
-    CorporateHeadquarters,  // Target specific corp HQs
-    RegionalDomination,     // Control majority of region
-    LibratePopulation,      // Free high-population centers
-}
-
-impl ExtendedCampaignDatabase {
-    pub fn initialize() -> Self {
-        Self {
-            campaign: create_extended_campaign(),
-            regional_campaigns: create_regional_campaigns(),
-        }
-    }
-
-    // Add missing compatibility methods
-    pub fn get_chapter(&self, chapter_id: usize) -> Option<&CampaignChapter> {
-        self.campaign.acts.iter()
-            .flat_map(|act| &act.chapters)
-            .find(|chapter| chapter.id == chapter_id)
-    }
-    
-    pub fn get_chapter_by_city(&self, city_id: &str) -> Option<&CampaignChapter> {
-        self.campaign.acts.iter()
-            .flat_map(|act| &act.chapters)
-            .find(|chapter| chapter.city_id == city_id)
-    }
-    
-    pub fn is_chapter_available(&self, chapter_id: usize, completed_cities: &std::collections::HashSet<String>) -> bool {
-        if let Some(chapter) = self.get_chapter(chapter_id) {
-            chapter.prerequisites.iter().all(|prereq| completed_cities.contains(prereq))
-        } else {
-            false
-        }
-    }
- 
-
-    pub fn get_available_targets(&self, controlled_cities: &std::collections::HashSet<String>) -> Vec<String> {
-        let mut targets = Vec::new();
-
-        // Always include connected cities (cities adjacent to controlled ones)
-        for city_id in controlled_cities {
-            if let Some(connections) = get_city_connections(city_id) {
-                for connection in connections {
-                    if !controlled_cities.contains(&connection) {
-                        targets.push(connection);
-                    }
-                }
-            }
-        }
-
-        // Add regional objectives based on current progress
-        for (_, regional_campaign) in &self.regional_campaigns {
-            let regional_control = controlled_cities.iter()
-                .filter(|city| regional_campaign.key_cities.contains(city))
-                .count();
-      
-            if regional_control > 0 && regional_control < regional_campaign.key_cities.len() {
-                for city in &regional_campaign.key_cities {
-                    if !controlled_cities.contains(city) {
-                        targets.push(city.clone());
-                    }
-                }
-            }
-        }
-
-        targets.sort();
-        targets.dedup();
-        targets
-    }
-
-    pub fn get_current_act(&self, chapter_progress: usize) -> Option<&CampaignAct> {
-        for act in &self.campaign.acts {
-            let act_start = act.chapters.first()?.id;
-            let act_end = act.chapters.last()?.id;
-            if chapter_progress >= act_start && chapter_progress <= act_end {
-                return Some(act);
-            }
-        }
-        None
-    }
-  
-}
-
-// === CAMPAIGN CREATION FUNCTIONS ===
-fn create_extended_campaign() -> ExtendedCampaign {
-    ExtendedCampaign {
-        acts: vec![
-            // ACT 1: AMERICAN FOUNDATION (Chapters 1-8)
-            CampaignAct {
-                id: 1,
-                title: "Corporate Foothold".to_string(),
-                theme: ActTheme::Foundation,
-                description: "Establish your syndicate's presence in the Americas and build the foundation for global operations.".to_string(),
-                chapters: vec![
-                    create_chapter(1, "new_york", "First Strike", ChapterTheme::Tutorial,
-                        "Your syndicate makes its first move against the megacorps. New York's financial networks hold the keys to corporate power."),
-                    create_chapter(2, "chicago", "Industrial Might", ChapterTheme::Corporate,
-                        "Chicago's industrial complex and Aegis Corporation's manufacturing base. Secure heavy weapons production."),
-                    create_chapter(3, "toronto", "Northern Expansion", ChapterTheme::Corporate,
-                        "Expand into Canada's financial sector. Nexus Corporation's northern operations are vulnerable."),
-                    create_chapter(4, "miami", "Gateway Drugs", ChapterTheme::Underground,
-                        "Miami's drug cartels control the Caribbean supply routes. Form alliances or eliminate competition."),
-                    create_chapter(5, "los_angeles", "Hollywood Hackers", ChapterTheme::Technology,
-                        "LA's entertainment industry masks serious cyber-crime operations. Infiltrate the digital underworld."),
-                    create_chapter(6, "mexico_city", "Cartel Politics", ChapterTheme::Underground,
-                        "Navigate Mexico City's complex cartel politics. The Syndicate's stronghold won't fall easily."),
-                    create_chapter(7, "sao_paulo", "South American Media", ChapterTheme::Revolution,
-                        "Control São Paulo's massive media infrastructure. Broadcast your message across South America."),
-                    create_chapter(8, "bogota", "Mountain Fortress", ChapterTheme::Underground,
-                        "Bogotá's high-altitude location and civil unrest make it a perfect revolutionary stronghold."),
-                ],
-                act_requirements: ActRequirements {
-                    min_territories: 0,
-                    min_daily_income: 0,
-                    required_research: vec![],
-                    previous_act_completion: false,
-                },
-            },
-  
-            // ACT 2: EUROPEAN INFILTRATION (Chapters 9-16)
-            CampaignAct {
-                id: 2,
-                title: "Old World Networks".to_string(),
-                theme: ActTheme::Foundation,
-                description: "Infiltrate Europe's ancient power structures and established corporate hierarchies.".to_string(),
-                chapters: vec![
-                    create_chapter(9, "london", "Eyes Everywhere", ChapterTheme::Surveillance,
-                        "London's omnipresent surveillance network. Turn their own cameras against them."),
-                    create_chapter(10, "paris", "Revolution Rising", ChapterTheme::Revolution,
-                        "Paris knows revolution. Organize the first major anti-corporate uprising since the old days."),
-                    create_chapter(11, "berlin", "Underground Networks", ChapterTheme::Underground,
-                        "Berlin's underground scenes hide the continent's most dangerous hackers and black market dealers."),
-                    create_chapter(12, "amsterdam", "Financial Haven", ChapterTheme::Corporate,
-                        "Amsterdam's banking sector launders money for half the world's criminal organizations."),
-                    create_chapter(13, "rome", "Ancient Corruption", ChapterTheme::Underground,
-                        "Rome's ancient corruption networks run deeper than you imagine. Helix Corporation has deep roots here."),
-                    create_chapter(14, "moscow", "Bear's Den", ChapterTheme::Technology,
-                        "Moscow's military-industrial complex controls weapons that could change the war's balance."),
-                    create_chapter(15, "istanbul", "Bridge Between Worlds", ChapterTheme::Underground,
-                        "Istanbul connects Europe to Asia. Control this hub, control the flow of information and contraband."),
-                    create_chapter(16, "stockholm", "Nordic Model", ChapterTheme::Surveillance,
-                        "Stockholm's advanced surveillance state is the model other cities want to copy. Break it first."),
-                ],
-                act_requirements: ActRequirements {
-                    min_territories: 4,
-                    min_daily_income: 15000,
-                    required_research: vec!["advanced_hacking".to_string(), "surveillance_countermeasures".to_string()],
-                    previous_act_completion: true,
-                },
-            },
-  
-            // ACT 3: ASIAN EXPANSION (Chapters 17-28)
-            CampaignAct {
-                id: 3,
-                title: "Digital Dragons".to_string(),
-                theme: ActTheme::Expansion,
-                description: "Challenge the tech giants in their home territory. Asia's megacities hold the future of human consciousness.".to_string(),
-                chapters: vec![
-                    create_chapter(17, "tokyo", "Silicon Shadows", ChapterTheme::Technology,
-                        "Nexus Corporation's Tokyo headquarters houses their experimental AI research. The neural interface prototypes could give your agents superhuman capabilities."),
-                    create_chapter(18, "seoul", "K-Pop Resistance", ChapterTheme::Technology,
-                        "Seoul's youth culture masks a sophisticated cyber-resistance movement. They've been waiting for someone like you."),
-                    create_chapter(19, "shanghai", "Industrial Heart", ChapterTheme::Corporate,
-                        "Shanghai's massive industrial output feeds corporate power worldwide. Sabotage the supply chains."),
-                    create_chapter(20, "hong_kong", "Financial Fortress", ChapterTheme::Corporate,
-                        "Hong Kong's financial networks process corporate transactions globally. Take control of the money flow."),
-                    create_chapter(21, "singapore", "Data Fortress", ChapterTheme::Technology,
-                        "Singapore's status as Asia's data hub makes it perfect for a massive cyber-warfare campaign."),
-                    create_chapter(22, "bangkok", "Golden Triangle", ChapterTheme::Underground,
-                        "Bangkok sits at the center of Southeast Asia's criminal networks. The Syndicate's influence runs deep here."),
-                    create_chapter(23, "manila", "Island Networks", ChapterTheme::Underground,
-                        "Manila's island geography creates natural safe havens for resistance operations."),
-                    create_chapter(24, "jakarta", "Archipelago Rebellion", ChapterTheme::Revolution,
-                        "Indonesia's thousands of islands could hide a revolutionary army. If you can unite them."),
-                    create_chapter(25, "mumbai", "Bollywood Dreams", ChapterTheme::Revolution,
-                        "Mumbai's entertainment industry influences a billion minds. Control the narrative, control the people."),
-                    create_chapter(26, "delhi", "Seat of Power", ChapterTheme::Corporate,
-                        "Delhi's government connections to Omnicorp run deeper than anyone realizes. Expose the corruption."),
-                    create_chapter(27, "karachi", "Port of Storms", ChapterTheme::Underground,
-                        "Karachi's chaotic port districts hide weapons shipments that could arm a revolution."),
-                    create_chapter(28, "dhaka", "River Networks", ChapterTheme::Revolution,
-                        "Dhaka's river networks provide hidden transport routes for revolutionary supplies."),
-                ],
-                act_requirements: ActRequirements {
-                    min_territories: 10,
-                    min_daily_income: 50000,
-                    required_research: vec!["neural_interface".to_string(), "advanced_ai".to_string()],
-                    previous_act_completion: true,
-                },
-            },
-  
-            // ACT 4: MIDDLE EAST & AFRICA (Chapters 29-36)
-            CampaignAct {
-                id: 4,
-                title: "Desert Storm".to_string(),
-                theme: ActTheme::Expansion,
-                description: "The cradle of civilization becomes the battleground for humanity's future.".to_string(),
-                chapters: vec![
-                    create_chapter(29, "dubai", "Golden Cage", ChapterTheme::Corporate,
-                        "Dubai's golden towers hide the darkest corporate secrets. Nexus's financial crimes are documented here."),
-                    create_chapter(30, "tehran", "Shadow Operations", ChapterTheme::Technology,
-                        "Tehran's underground tech scene develops weapons too dangerous for legitimate markets."),
-                    create_chapter(31, "cairo", "Ancient Secrets", ChapterTheme::Underground,
-                        "Cairo's ancient tunnels hide modern resistance networks that have fought oppression for millennia."),
-                    create_chapter(32, "lagos", "Oil and Blood", ChapterTheme::Revolution,
-                        "Lagos's oil wealth built corporate power. Time to redistribute that wealth to the people."),
-                    create_chapter(33, "nairobi", "Safari Networks", ChapterTheme::Underground,
-                        "Nairobi's wildlife conservation cover masks one of Africa's most sophisticated smuggling operations."),
-                    create_chapter(34, "johannesburg", "Mining the Future", ChapterTheme::Corporate,
-                        "Johannesburg's mines extract the rare metals that power corporate technology. Cut off their supply."),
-                    create_chapter(35, "casablanca", "Maghreb Connection", ChapterTheme::Underground,
-                        "Casablanca links African and European criminal networks. Control this hub, control continental flow."),
-                    create_chapter(36, "addis_ababa", "Highland Fortress", ChapterTheme::Technology,
-                        "Ethiopia's highlands hide Aegis Corporation's most secretive military research facilities."),
-                ],
-                act_requirements: ActRequirements {
-                    min_territories: 20,
-                    min_daily_income: 100000,
-                    required_research: vec!["global_networks".to_string(), "advanced_weapons".to_string()],
-                    previous_act_completion: true,
-                },
-            },
-  
-            // ACT 5: PACIFIC RIM (Chapters 37-40)
-            CampaignAct {
-                id: 5,
-                title: "Ring of Fire".to_string(),
-                theme: ActTheme::Confrontation,
-                description: "The Pacific Rim's island nations become the final testing ground for liberation technology.".to_string(),
-                chapters: vec![
-                    create_chapter(37, "sydney", "Southern Cross", ChapterTheme::Corporate,
-                        "Australia's isolation made it the perfect testing ground for corporate control experiments."),
-                    create_chapter(38, "melbourne", "Industrial Underground", ChapterTheme::Technology,
-                        "Melbourne's underground culture has been preparing for this war longer than anyone realizes."),
-                    create_chapter(39, "auckland", "Edge of the World", ChapterTheme::Underground,
-                        "New Zealand's remoteness hides the server farms that store corporate secrets from around the globe."),
-                    create_chapter(40, "lima", "Mountain Rebellion", ChapterTheme::Revolution,
-                        "Peru's mountainous terrain provides perfect cover for coordinating the final continental push."),
-                ],
-                act_requirements: ActRequirements {
-                    min_territories: 30,
-                    min_daily_income: 200000,
-                    required_research: vec!["global_coordination".to_string(), "mass_liberation".to_string()],
-                    previous_act_completion: true,
-                },
-            },
-  
-            // ACT 6: FINAL LIBERATION (Chapters 41-46)
-            CampaignAct {
-                id: 6,
-                title: "Global Revolution".to_string(),
-                theme: ActTheme::Liberation,
-                description: "Coordinate simultaneous strikes across all continents. The final battle for human consciousness begins.".to_string(),
-                chapters: vec![
-                    create_chapter(41, "rio_janeiro", "Carnival of Revolution", ChapterTheme::Revolution,
-                        "Rio's carnival traditions mask the coordination of South America's final liberation."),
-                    create_chapter(42, "buenos_aires", "Southern Command", ChapterTheme::Corporate,
-                        "Buenos Aires becomes the southern command center for coordinating global operations."),
-                    create_chapter(43, "prague", "Heart of Europe", ChapterTheme::Underground,
-                        "Prague's central location makes it the coordination hub for European liberation forces."),
-                    create_chapter(44, "warsaw", "Eastern Front", ChapterTheme::Technology,
-                        "Warsaw's position coordinates the liberation of Eastern Europe and connection to Asian forces."),
-                    create_chapter(45, "athens", "Cradle of Democracy", ChapterTheme::Revolution,
-                        "Athens, where democracy was born, becomes the symbol of humanity's return to self-governance."),
-                    create_chapter(46, "barcelona", "Final Hour", ChapterTheme::Liberation,
-                        "Barcelona coordinates the final simultaneous strike. All your territories, all your allies, one decisive moment."),
-                ],
-                act_requirements: ActRequirements {
-                    min_territories: 40,
-                    min_daily_income: 500000,
-                    required_research: vec!["neural_liberation".to_string(), "global_uprising".to_string()],
-                    previous_act_completion: true,
-                },
-            },
-        ],
-        total_chapters: 46,
-        victory_conditions: ExtendedVictoryConditions {
-            min_territories_per_region: [
-                ("americas".to_string(), 8),
-                ("europe".to_string(), 8),
-                ("asia".to_string(), 12),
-                ("middle_east_africa".to_string(), 8),
-                ("pacific".to_string(), 4),
-            ].into_iter().collect(),
-            total_liberation_threshold: 0.75, // 75% of world population
-            final_corporate_targets: vec![
-                "tokyo".to_string(),    // Nexus HQ
-                "new_york".to_string(), // Financial center
-                "london".to_string(),   // Surveillance center
-                "shanghai".to_string(), // Industrial center
-                "dubai".to_string(),    // Resource center
-            ],
+// Map real Singapore locations to districts
+pub fn create_singapore_districts() -> Vec<SingaporeDistrict> {
+    vec![
+        SingaporeDistrict {
+            id: "geylang".to_string(),
+            name: "Geylang Underground".to_string(),
+            district_type: DistrictType::Underground,
+            controlling_corp: Corporation::Syndicate,
+            population: 150000,
+            corruption_level: 8,
+            strategic_value: StrategyValue::Population,
+            connections: vec!["chinatown".to_string(), "marina_bay".to_string()],
+            landmarks: vec!["Geylang Market".to_string(), "Red Light District".to_string()],
         },
-    }
-}
-
-fn create_regional_campaigns() -> HashMap<String, RegionalCampaign> {
-    let mut campaigns = HashMap::new();
-
-    // Americas - Focus on Syndicate territory and financial systems
-    campaigns.insert("americas".to_string(), RegionalCampaign {
-        region_name: "Americas".to_string(),
-        corporate_focus: Corporation::Syndicate,
-        narrative_theme: "Establishing the foundation of resistance in corporate heartland".to_string(),
-        key_cities: vec!["new_york".to_string(), "chicago".to_string(), "los_angeles".to_string(),
-                        "mexico_city".to_string(), "sao_paulo".to_string(), "bogota".to_string(),
-                        "toronto".to_string(), "miami".to_string()],
-        regional_objectives: vec![
-            RegionalObjective {
-                objective_type: ObjectiveType::EstablishBeachhead,
-                target_cities: vec!["new_york".to_string()],
-                description: "Establish first foothold in corporate financial networks".to_string(),
-                rewards: ChapterRewards { credits: 5000, research_unlocks: vec![], special_equipment: vec![] },
-            },
-        ],
-    });
-
-    // Europe - Focus on Nexus and surveillance
-    campaigns.insert("europe".to_string(), RegionalCampaign {
-        region_name: "Europe".to_string(),
-        corporate_focus: Corporation::Nexus,
-        narrative_theme: "Breaking ancient power structures and surveillance states".to_string(),
-        key_cities: vec!["london".to_string(), "paris".to_string(), "berlin".to_string(),
-                        "amsterdam".to_string(), "rome".to_string(), "moscow".to_string(),
-                        "istanbul".to_string(), "stockholm".to_string()],
-        regional_objectives: vec![],
-    });
-
-    // Asia - Focus on technology and manufacturing
-    campaigns.insert("asia".to_string(), RegionalCampaign {
-        region_name: "Asia".to_string(),
-        corporate_focus: Corporation::Omnicorp,
-        narrative_theme: "Challenging tech giants and breaking manufacturing chains".to_string(),
-        key_cities: vec!["tokyo".to_string(), "shanghai".to_string(), "hong_kong".to_string(),
-                        "seoul".to_string(), "singapore".to_string(), "bangkok".to_string(),
-                        "manila".to_string(), "jakarta".to_string(), "mumbai".to_string(),
-                        "delhi".to_string(), "karachi".to_string(), "dhaka".to_string()],
-        regional_objectives: vec![],
-    });
-
-    campaigns
-}
-
-fn create_chapter(id: usize, city_id: &str, title: &str, theme: ChapterTheme, story_beat: &str) -> CampaignChapter {
-    CampaignChapter {
-        id,
-        city_id: city_id.to_string(),
-        title: title.to_string(),
-        theme,
-        story_beat: story_beat.to_string(),
-        prerequisites: if id == 1 { vec![] } else { vec![] }, // Will be filled based on connections
-        rewards: ChapterRewards {
-            credits: 5000 + (id as u32 * 1000), // Scaling rewards
-            research_unlocks: vec![],
-            special_equipment: vec![],
+        SingaporeDistrict {
+            id: "marina_bay".to_string(),
+            name: "Marina Corporate Plaza".to_string(),
+            district_type: DistrictType::Corporate,
+            controlling_corp: Corporation::Nexus,
+            population: 50000,
+            corruption_level: 2,
+            strategic_value: StrategyValue::Financial,
+            connections: vec!["raffles_place".to_string(), "orchard".to_string()],
+            landmarks: vec!["Marina Bay Sands".to_string(), "Corporate Towers".to_string()],
         },
-    }
-}
-
-// Helper function to get city connections (would integrate with your cities.json)
-fn get_city_connections(city_id: &str) -> Option<Vec<String>> {
-    // This would read from your cities.json file
-    // For now, return empty for compilation
-    Some(vec![])
+        // ... continue with all Singapore districts
+    ]
 }

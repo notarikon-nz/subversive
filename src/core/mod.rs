@@ -35,6 +35,9 @@ pub use territory::*;
 pub mod campaign_extended;
 pub use campaign_extended::*;
 
+pub mod campaign_database;
+pub use campaign_database::*;
+
 // Re-exports for convenience
 pub use events::*;
 pub use audio::*;

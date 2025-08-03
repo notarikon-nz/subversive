@@ -2,7 +2,6 @@
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
-use crate::core::*;
 
 // === DEVICE CONFIG DATA ===
 // Move static configuration to const data
@@ -40,7 +39,7 @@ pub struct Hackable {
 pub enum DeviceType {
     Camera, Turret, Drone, Door, Elevator, Vehicle,
     PowerStation, StreetLight, TrafficLight, Terminal,
-    SecuritySystem, AlarmPanel,
+    SecuritySystem, AlarmPanel, ElectricPanel, SecurityCamera,
     ATM, Billboard, // 0.2.10
 }
 

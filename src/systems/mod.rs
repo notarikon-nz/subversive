@@ -88,20 +88,15 @@ pub use enhanced_pathfinding::*;
 
 pub mod weather_tile_effects;
 pub mod colored_lighting;
-pub use weather_tile_effects::*;
 pub use colored_lighting::*;
 
 // 0.2.17
 pub mod territory_events;
-pub use territory_events::*;
 
 pub use urban_security::*;
 
 pub use minimap::*;
 pub use message_window::*;
-// pub use urban_simulation::*;
-pub use enhanced_neurovector::*;
-// pub use civilian_spawn::*;
 pub use npc_barks::*;
 pub use power_grid::*;
 pub use scanner::*;

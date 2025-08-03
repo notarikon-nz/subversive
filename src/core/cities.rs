@@ -37,7 +37,7 @@ pub struct CityCoordinates {
     pub longitude: f32,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Hash, Serialize, Deserialize, Eq, PartialEq)]
 pub enum Corporation {
     Nexus,      // High-tech, surveillance
     Syndicate,  // Criminal operations

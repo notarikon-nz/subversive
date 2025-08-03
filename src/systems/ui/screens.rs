@@ -1,6 +1,5 @@
 // src/systems/ui/screens.rs - All the screen UIs updated for Bevy 0.16
 use bevy::prelude::*;
-use crate::systems::ui::*;
 
 // Add a marker for inventory UI refresh
 #[derive(Resource, Default)]

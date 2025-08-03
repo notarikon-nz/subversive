@@ -8,7 +8,6 @@ use crate::systems::ai::*;
 use crate::systems::spawners::{spawn_agent};
 use crate::core::factions::Faction;
 use crate::systems::*;
-use crate::systems::urban_security::*;
 use crate::systems::selection::*;
 
 // === Z-SORTING COMPONENT ===

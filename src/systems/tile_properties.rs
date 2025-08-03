@@ -39,14 +39,6 @@ pub struct TileEnvironment {
     pub temperature: f32,        // For fire spread mechanics
 }
 
-#[derive(Debug, Clone, Copy)]
-pub enum DeviceType {
-    SecurityCamera,
-    StreetLight,
-    ElectricPanel,
-    Terminal,
-}
-
 // === ENHANCED TILE TYPES ===
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum TileType {

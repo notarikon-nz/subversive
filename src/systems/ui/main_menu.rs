@@ -57,7 +57,7 @@ pub fn main_menu_system_egui(
     input: Res<ButtonInput<KeyCode>>,
     mut research_progress: ResMut<ResearchProgress>,
     mut territory_manager: ResMut<TerritoryManager>,
-    mut progression_tracker: ResMut<ProgressionTracker>,
+    mut progression_tracker: ResMut<CampaignProgressionTracker>,
 ) {
 
     // Handle keyboard navigation - this works even without egui context
@@ -156,7 +156,7 @@ fn execute_menu_option(
     global_data: &mut GlobalData,
     research_progress: &mut ResearchProgress,
     territory_manager: &mut TerritoryManager,
-    progression_tracker: &mut ProgressionTracker,
+    progression_tracker: &mut CampaignProgressionTracker,
 ) {
     match option_type {
         MenuOptionType::Continue => {
@@ -171,7 +171,7 @@ fn execute_menu_option(
             *global_data = GlobalData::default();
             *research_progress = ResearchProgress::default();
             *territory_manager = TerritoryManager::default();
-            *progression_tracker = ProgressionTracker::default();
+            *progression_tracker = CampaignProgressionTracker::default();
             crate::systems::save::save_game_complete(global_data, research_progress, territory_manager, progression_tracker);
             next_state.set(GameState::GlobalMap);
         },

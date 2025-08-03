@@ -1,7 +1,7 @@
 // src/main.rs - Fixed system tuple parentheses
 use bevy::prelude::*;
 use bevy_light_2d::prelude::*;
-use bevy::{color::palettes::css::{BLUE, YELLOW}};
+use bevy::{color::palettes::css::{YELLOW}};
 
 use bevy_egui::{egui, EguiContexts, EguiPlugin};
 use bevy_ecs_tilemap::prelude::*;
@@ -23,9 +23,6 @@ use systems::ui::inventory_compatibility::*;
 use systems::scenes::{spawn_fallback_isometric_mission};
 
 use systems::input::*;
-use systems::weather_tile_effects::*;
-
-use systems::spawners::*;
 
 // 0.2.16
 // use systems::light_2d_setup::*;
@@ -54,7 +51,6 @@ use systems::ui::{main_menu, settings, credits};
 use systems::ui::{MainMenuState};
 use systems::ui::screens::InventoryUIState;
 use systems::ui::post_mission::{PostMissionUIState};
-use systems::tile_properties::{texture_index_to_tile_type, tile_type_to_texture_index};
 use systems::enhanced_pathfinding::{EnhancedPathfindingGrid};
 
 fn main() {
@@ -179,8 +175,8 @@ fn main() {
 
         // 0.2.17
         .init_resource::<TerritoryManager>()
-        .init_resource::<ProgressionTracker>()
-        .insert_resource(ExtendedCampaignDatabase::load())
+        .init_resource::<CampaignProgressionTracker>()
+        .insert_resource(NeoSingaporeCampaignDatabase::load())
 
         // older
         .add_event::<ActionEvent>()
@@ -309,10 +305,11 @@ fn main() {
         ))
 
         .add_systems(Update,(
+
             despawn::despawn_marked_entities,
             // 0.2.17
-            territory_event_system,
-            territory_daily_update_system,
+            territory::territory_daily_update_system,
+
         ).run_if(in_state(GameState::GlobalMap)))
 
         .add_systems(OnExit(GameState::GlobalMap),
@@ -898,7 +895,7 @@ pub fn setup_mission_tilemap (
     // setup_isometric_tilemap(commands, asset_server);
 }
 
-fn load_global_data_or_default() -> (GlobalData, ResearchProgress, TerritoryManager, ProgressionTracker) {
+fn load_global_data_or_default() -> (GlobalData, ResearchProgress, TerritoryManager, CampaignProgressionTracker) {
     if let Some((loaded_global_data, territory_manager, progression_tracker)) = crate::systems::save::load_game() {
         let research_progress = loaded_global_data.research_progress.clone();
         (loaded_global_data, research_progress, territory_manager, progression_tracker)
@@ -906,7 +903,7 @@ fn load_global_data_or_default() -> (GlobalData, ResearchProgress, TerritoryMana
         let global_data = GlobalData::default();
         let research_progress = global_data.research_progress.clone();
         let territory_manager = TerritoryManager::default();
-        let progression_tracker = ProgressionTracker::default();
+        let progression_tracker = CampaignProgressionTracker::default();
         (global_data, research_progress, territory_manager, progression_tracker)
     }
 }

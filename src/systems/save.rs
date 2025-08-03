@@ -22,7 +22,7 @@ pub struct SaveData {
     pub alert_level: u8,
      // 0.2.17
     pub territory_manager: Option<TerritoryManager>,
-    pub progression_tracker: Option<ProgressionTracker>,
+    pub progression_tracker: Option<CampaignProgressionTracker>,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -101,7 +101,7 @@ pub fn save_game_complete(
     global_data: &GlobalData,
     research_progress: &ResearchProgress,
     territory_manager: &TerritoryManager,
-    progression_tracker: &ProgressionTracker,
+    progression_tracker: &CampaignProgressionTracker,
 ) {
     let mut updated_global_data = global_data.clone();
     updated_global_data.research_progress = research_progress.clone();
@@ -114,17 +114,14 @@ pub fn save_game_complete(
 
     if let Ok(json) = serde_json::to_string_pretty(&save_data) {
         if fs::write(SAVE_FILE, json).is_ok() {
-            info!("Game saved successfully - {} research projects, {} cities unlocked, {} territories controlled",
-                  research_progress.completed.len(),
-                  updated_global_data.cities_progress.unlocked_cities.len(),
-                  territory_manager.territory_count);
+            info!("Game saved successfully");
         } else {
             warn!("Failed to save game");
         }
     }
 }
 
-pub fn load_game() -> Option<(GlobalData, TerritoryManager, ProgressionTracker)> {
+pub fn load_game() -> Option<(GlobalData, TerritoryManager, CampaignProgressionTracker)> {
     fs::read_to_string(SAVE_FILE)
         .ok()
         .and_then(|content| serde_json::from_str::<SaveData>(&content).ok())
@@ -146,7 +143,7 @@ pub fn save_input_system(
     global_data: Res<GlobalData>,
     research_progress: Res<ResearchProgress>,
     territory_manager: Res<TerritoryManager>,
-    progression_tracker: Res<ProgressionTracker>,
+    progression_tracker: Res<CampaignProgressionTracker>,
     game_state: Res<State<GameState>>,
 ) {
     if input.just_pressed(KeyCode::F5) && *game_state.get() == GameState::GlobalMap {
@@ -158,7 +155,7 @@ pub fn auto_save_system(
     global_data: Res<GlobalData>,
     research_progress: Res<ResearchProgress>,
     territory_manager: Res<TerritoryManager>,
-    progression_tracker: Res<ProgressionTracker>,
+    progression_tracker: Res<CampaignProgressionTracker>,
     mut last_day: Local<u32>,
 ) {
     if global_data.current_day != *last_day && global_data.current_day > 1 {
@@ -172,7 +169,7 @@ pub fn post_mission_save_system(
     global_data: Res<GlobalData>,
     research_progress: Res<ResearchProgress>,
     territory_manager: Res<TerritoryManager>,
-    progression_tracker: Res<ProgressionTracker>,
+    progression_tracker: Res<CampaignProgressionTracker>,
     cities_progress: Res<CitiesProgress>,
     post_mission: Res<PostMissionResults>,
 ) {

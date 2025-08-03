@@ -6,7 +6,6 @@ use serde::{Deserialize, Serialize};
 
 // 0.2.17
 pub mod territory;
-pub use territory::*;
 
 pub mod agents;
 pub mod research;
@@ -193,7 +192,7 @@ pub fn hub_interaction_system(
     scientist_query: Query<(Entity, &Scientist)>,
 
     mut resources: ParamSet<(
-        (Res<HubDatabases>, Res<ProgressionTracker>, Res<ExtendedCampaignDatabase>, ResMut<TerritoryManager>),
+        (Res<HubDatabases>, Res<CampaignProgressionTracker>, Res<NeoSingaporeCampaignDatabase>, ResMut<TerritoryManager>),
     )>,
 ) {
     if let Ok(ctx) = contexts.ctx_mut() {

@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 use bevy_light_2d::prelude::*;
-use bevy::{color::palettes::css::{BLUE, YELLOW}};
+use bevy::{color::palettes::css::{YELLOW}};
 
 use crate::core::*;
 use crate::core::factions::Faction;

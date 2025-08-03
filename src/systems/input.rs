@@ -2,7 +2,6 @@ use bevy::prelude::*;
 use crate::core::*;
 use crate::systems::scanner::*;
 use crate::systems::npc_barks::*;
-use crate::systems::isometric_camera::{IsometricCamera};
 
 // Simplified input handler - remove duplicate movement handling
 pub fn handle_input(
