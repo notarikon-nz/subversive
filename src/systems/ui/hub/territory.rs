@@ -285,22 +285,3 @@ fn show_win_conditions(
         }
     });
 }
-
-// Helper function to integrate with existing hub system
-pub fn integrate_territory_tab(
-    ui: &mut egui::Ui,
-    hub_state: &mut HubState,
-    territory_manager: &mut TerritoryManager,
-    progression_tracker: &ProgressionTracker,
-    cities_db: &CitiesDatabase,
-    campaign_db: &ExtendedCampaignDatabase,
-    global_data: &GlobalData,
-) {
-    if ui.selectable_label(matches!(hub_state.active_tab, HubTab::Territory), "Territory").clicked() {
-        hub_state.active_tab = HubTab::Territory;
-    }
-
-    if matches!(hub_state.active_tab, HubTab::Territory) {
-        show_territory_control(ui, territory_manager, progression_tracker, cities_db, campaign_db, global_data);
-    }
-}

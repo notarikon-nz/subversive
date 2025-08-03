@@ -1,9 +1,8 @@
 // src/systems/colored_lighting.rs - Enhanced colored lighting system
 use bevy::prelude::*;
+use bevy_light_2d::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
 use crate::core::*;
-use crate::systems::tilemap::IsometricSettings;
-use crate::systems::tile_lighting::{TileLight, TileLightingGrid, ShadowCaster};
 
 // === COLORED LIGHTING COMPONENTS ===
 
@@ -46,90 +45,6 @@ pub enum LightType {
     AlarmLight,        // Flashing red
     HazardLight,       // Yellow/orange warning
     LaserSight,        // Intense red beam
-}
-
-// === COLORED LIGHTING GRID ===
-
-#[derive(Resource)]
-pub struct ColoredLightingGrid {
-    pub width: usize,
-    pub height: usize,
-    pub red_channel: Vec<f32>,
-    pub green_channel: Vec<f32>,
-    pub blue_channel: Vec<f32>,
-    pub intensity_channel: Vec<f32>,
-    pub dirty: bool,
-}
-
-impl ColoredLightingGrid {
-    pub fn new(width: usize, height: usize) -> Self {
-        let size = width * height;
-        Self {
-            width,
-            height,
-            red_channel: vec![0.0; size],
-            green_channel: vec![0.0; size],
-            blue_channel: vec![0.0; size],
-            intensity_channel: vec![0.0; size],
-            dirty: true,
-        }
-    }
-
-    pub fn get_color(&self, x: usize, y: usize) -> Color {
-        if x < self.width && y < self.height {
-            let idx = y * self.width + x;
-            Color::srgb(
-                self.red_channel[idx],
-                self.green_channel[idx],
-                self.blue_channel[idx]
-            )
-        } else {
-            Color::BLACK
-        }
-    }
-
-    pub fn get_intensity(&self, x: usize, y: usize) -> f32 {
-        if x < self.width && y < self.height {
-            self.intensity_channel[y * self.width + x]
-        } else {
-            0.0
-        }
-    }
-
-    pub fn add_light(&mut self, x: usize, y: usize, color: Color, intensity: f32) {
-        if x < self.width && y < self.height {
-            let idx = y * self.width + x;
-            let linear_color = LinearRgba::from(color);
-            // Additive color blending with intensity weighting
-            self.red_channel[idx] += linear_color.red * intensity;
-            self.green_channel[idx] += linear_color.green * intensity;
-            self.blue_channel[idx] += linear_color.blue * intensity;
-            self.intensity_channel[idx] += intensity;
-        }
-    }
-
-    pub fn clear(&mut self) {
-        self.red_channel.fill(0.0);
-        self.green_channel.fill(0.0);
-        self.blue_channel.fill(0.0);
-        self.intensity_channel.fill(0.0);
-        self.dirty = true;
-    }
-
-    pub fn normalize(&mut self) {
-        // Normalize colors to prevent oversaturation
-        for i in 0..self.red_channel.len() {
-            let max_component = self.red_channel[i]
-                .max(self.green_channel[i])
-                .max(self.blue_channel[i]);
-            
-            if max_component > 1.0 {
-                self.red_channel[i] /= max_component;
-                self.green_channel[i] /= max_component;
-                self.blue_channel[i] /= max_component;
-            }
-        }
-    }
 }
 
 // === LIGHT TYPE CONFIGURATIONS ===
@@ -300,223 +215,10 @@ impl ColoredLight {
     }
 }
 
-// === COLORED LIGHTING CALCULATION SYSTEM ===
-
-pub fn calculate_colored_lighting(
-    mut colored_grid: ResMut<ColoredLightingGrid>,
-    light_query: Query<(&Transform, &ColoredLight, &crate::core::DeviceState), Without<MarkedForDespawn>>,
-    shadow_query: Query<(&Transform, &ShadowCaster), Without<ColoredLight>>,
-    isometric_settings: Res<IsometricSettings>,
-    day_night: Res<crate::core::DayNightCycle>,
-    time: Res<Time>,
-) {
-    if !colored_grid.dirty && !day_night.is_changed() {
-        return;
-    }
-
-    // Clear previous lighting
-    colored_grid.clear();
-
-    // Apply ambient lighting based on time of day
-    let (ambient_color, ambient_intensity) = match day_night.current_period {
-        crate::core::TimeOfDay::Day => (Color::srgb(1.0, 1.0, 0.95), 0.4),
-        crate::core::TimeOfDay::Dusk => (Color::srgb(1.0, 0.7, 0.5), 0.3),
-        crate::core::TimeOfDay::Night => (Color::srgb(0.2, 0.3, 0.5), 0.1),
-        crate::core::TimeOfDay::Dawn => (Color::srgb(0.9, 0.8, 0.7), 0.25),
-    };
-
-    // Apply ambient lighting to all tiles
-    for y in 0..colored_grid.height {
-        for x in 0..colored_grid.width {
-            colored_grid.add_light(x, y, ambient_color, ambient_intensity);
-        }
-    }
-
-    // Calculate colored light from each source
-    for (transform, colored_light, device_state) in light_query.iter() {
-        if !device_state.powered || !device_state.operational {
-            continue;
-        }
-
-        let world_pos = transform.translation.truncate();
-        let light_tile = isometric_settings.world_to_tile(world_pos);
-        
-        // Apply flicker effect
-        let (current_color, current_intensity) = if let Some(flicker) = &colored_light.flicker {
-            let time_factor = time.elapsed_secs() * flicker.frequency;
-            
-            // Intensity flicker
-            let intensity_flicker = (time_factor.sin() * flicker.intensity_variance + 1.0).clamp(0.1, 1.0);
-            let final_intensity = colored_light.intensity * intensity_flicker;
-            
-            // Color flicker
-            let color_shift = time_factor.cos() * flicker.color_variance;
-            let linear_color = LinearRgba::from(colored_light.base_color);
-            let flickered_color = Color::srgb(
-                (linear_color.red + color_shift).clamp(0.0, 1.0),
-                (linear_color.green + color_shift * 0.5).clamp(0.0, 1.0),
-                (linear_color.blue + color_shift * 0.3).clamp(0.0, 1.0),
-            );
-            
-            (flickered_color, final_intensity)
-        } else {
-            (colored_light.base_color, colored_light.intensity)
-        };
-
-        // Propagate colored light
-        propagate_colored_light(
-            &mut colored_grid,
-            light_tile,
-            current_color,
-            current_intensity,
-            colored_light.radius,
-            &isometric_settings,
-        );
-    }
-
-    // Normalize to prevent oversaturation
-    colored_grid.normalize();
-    colored_grid.dirty = false;
-}
-
-fn propagate_colored_light(
-    colored_grid: &mut ColoredLightingGrid,
-    center: IVec2,
-    color: Color,
-    intensity: f32,
-    radius: f32,
-    isometric_settings: &IsometricSettings,
-) {
-    let radius_tiles = (radius / (isometric_settings.tile_width * 0.5)) as i32;
-    
-    for dy in -radius_tiles..=radius_tiles {
-        for dx in -radius_tiles..=radius_tiles {
-            let tile_pos = IVec2::new(center.x + dx, center.y + dy);
-            
-            if tile_pos.x < 0 || tile_pos.y < 0 || 
-               tile_pos.x >= colored_grid.width as i32 || 
-               tile_pos.y >= colored_grid.height as i32 {
-                continue;
-            }
-
-            let distance = (dx * dx + dy * dy) as f32;
-            let max_distance = radius_tiles * radius_tiles;
-            
-            if distance <= max_distance as f32 {
-                // Smooth distance falloff
-                let falloff = 1.0 - (distance.sqrt() / radius_tiles as f32);
-                let falloff_smooth = falloff * falloff; // Quadratic falloff for more realistic lighting
-                
-                let light_contribution = intensity * falloff_smooth;
-                
-                let x = tile_pos.x as usize;
-                let y = tile_pos.y as usize;
-                
-                colored_grid.add_light(x, y, color, light_contribution);
-            }
-        }
-    }
-}
-
-// === COLORED VISUAL UPDATE SYSTEM ===
-
-pub fn update_visuals_from_colored_lighting(
-    colored_grid: Res<ColoredLightingGrid>,
-    tilemap_query: Query<&TileStorage, With<crate::systems::tilemap::IsometricMap>>,
-    mut tile_query: Query<&mut Sprite, With<TileTextureIndex>>,
-    day_night: Res<crate::core::DayNightCycle>,
-) {
-    if !colored_grid.is_changed() && !day_night.is_changed() {
-        return;
-    }
-
-    let Ok(tile_storage) = tilemap_query.single() else { return; };
-    
-    for y in 0..colored_grid.height {
-        for x in 0..colored_grid.width {
-            let tile_pos = TilePos { x: x as u32, y: y as u32 };
-            
-            if let Some(tile_entity) = tile_storage.get(&tile_pos) {
-                if let Ok(mut sprite) = tile_query.get_mut(tile_entity) {
-                    let light_color = colored_grid.get_color(x, y);
-                    let light_intensity = colored_grid.get_intensity(x, y);
-                    
-                    // Combine base tile color with lighting
-                    let base_brightness = 0.5; // Base tile brightness
-                    let final_brightness = (base_brightness + light_intensity).clamp(0.1, 1.0);
-                    let linear_color = LinearRgba::from(light_color);
-                    // Apply colored lighting
-                    sprite.color = Color::srgb(
-                        linear_color.red * final_brightness,
-                        linear_color.green * final_brightness,
-                        linear_color.blue * final_brightness,
-                    );
-                }
-            }
-        }
-    }
-}
-
-// === ENTITY COLORED LIGHTING ===
-
-pub fn update_entity_colored_lighting(
-    colored_grid: Res<ColoredLightingGrid>,
-    isometric_settings: Res<IsometricSettings>,
-    mut entity_query: Query<(&Transform, &mut Sprite), (Or<(With<Agent>, With<Enemy>, With<Civilian>)>, Without<TileTextureIndex>)>,
-    day_night: Res<crate::core::DayNightCycle>,
-) {
-    if !colored_grid.is_changed() && !day_night.is_changed() {
-        return;
-    }
-
-    for (transform, mut sprite) in entity_query.iter_mut() {
-        let world_pos = transform.translation.truncate();
-        let tile_pos = isometric_settings.world_to_tile(world_pos);
-        
-        if tile_pos.x >= 0 && tile_pos.y >= 0 &&
-           tile_pos.x < colored_grid.width as i32 &&
-           tile_pos.y < colored_grid.height as i32 {
-            
-            let x = tile_pos.x as usize;
-            let y = tile_pos.y as usize;
-            
-            let light_color = colored_grid.get_color(x, y);
-            let light_intensity = colored_grid.get_intensity(x, y);
-            
-            // Apply colored lighting to entity
-            let base_brightness = 0.7; // Entities should be slightly brighter than tiles
-            let final_brightness = (base_brightness + light_intensity).clamp(0.2, 1.0);
-            let linear_color = LinearRgba::from(light_color);
-            sprite.color = Color::srgb(
-                linear_color.red * final_brightness,
-                linear_color.green * final_brightness,
-                linear_color.blue * final_brightness,
-            );
-        }
-    }
-}
-
-// === SETUP SYSTEM ===
-
-pub fn setup_colored_lighting_system(
-    mut commands: Commands,
-    isometric_settings: Res<IsometricSettings>,
-) {
-    let colored_grid = ColoredLightingGrid::new(
-        isometric_settings.map_width as usize,
-        isometric_settings.map_height as usize,
-    );
-    
-    commands.insert_resource(colored_grid);
-    info!("Colored lighting system initialized: {}x{}", 
-          isometric_settings.map_width, isometric_settings.map_height);
-}
-
 // === LIGHTING BEHAVIOR SYSTEM ===
 
 pub fn colored_light_behavior_system(
     mut light_query: Query<(&mut ColoredLight, &mut Sprite, &crate::core::DeviceState, &Health), Without<TileTextureIndex>>,
-    mut colored_grid: ResMut<crate::systems::colored_lighting::ColoredLightingGrid>,
 ) {
     let mut any_changed = false;
 
@@ -542,8 +244,125 @@ pub fn colored_light_behavior_system(
             any_changed = true;
         }
     }
-
-    if any_changed {
-        colored_grid.dirty = true;
-    }
 }
+
+
+// === SINGLE UNIFIED SPAWN FUNCTION ===
+
+pub fn spawn_colored_light(
+    commands: &mut Commands,
+    position: Vec2,
+    light_type: LightType,
+    network_id: Option<String>,
+    power_grid: Option<&mut ResMut<crate::core::PowerGrid>>,
+) -> Entity {
+    info!("Spawning {:?} light at {:?}", light_type, position); // ADD THIS
+
+    let colored_light = ColoredLight::new(light_type);
+    let z_height = match light_type {
+        LightType::LaserSight | LightType::MonitorGlow => 1.0,
+        LightType::FireLight => 3.0,
+        LightType::NeonSign | LightType::EmergencyLight => 5.0,
+        LightType::HazardLight => 6.0,
+        LightType::StreetLight | LightType::SecurityLight => 10.0,
+        LightType::AlarmLight => 12.0,
+        LightType::OfficeLight | LightType::LaboratoryLight | LightType::IndustrialLight => 15.0,
+    };
+
+    let sprite_size = match light_type {
+        LightType::LaserSight => Vec2::new(200.0, 2.0),
+        LightType::MonitorGlow => Vec2::new(12.0, 8.0),
+        LightType::EmergencyLight | LightType::HazardLight => Vec2::new(6.0, 6.0),
+        LightType::StreetLight => Vec2::new(8.0, 24.0),
+        LightType::SecurityLight | LightType::AlarmLight => Vec2::new(12.0, 8.0),
+        LightType::OfficeLight => Vec2::new(16.0, 4.0),
+        LightType::LaboratoryLight => Vec2::new(20.0, 6.0),
+        LightType::IndustrialLight => Vec2::new(24.0, 12.0),
+        LightType::NeonSign => Vec2::new(32.0, 16.0), // Default size
+        LightType::FireLight => Vec2::new(8.0, 12.0),
+    };
+
+    let health = match light_type {
+        LightType::MonitorGlow => 15.0,
+        LightType::NeonSign | LightType::EmergencyLight => 20.0,
+        LightType::FireLight => 0.0, // Fire doesn't have health
+        LightType::OfficeLight => 30.0,
+        LightType::HazardLight | LightType::AlarmLight => 35.0,
+        LightType::LaboratoryLight => 40.0,
+        LightType::StreetLight => 50.0,
+        LightType::SecurityLight => 75.0,
+        LightType::IndustrialLight => 100.0,
+        LightType::LaserSight => 0.0, // Attached to weapons
+    };
+
+    let device_type = match light_type {
+        LightType::SecurityLight => DeviceType::Camera,
+        LightType::AlarmLight => DeviceType::AlarmPanel,
+        LightType::NeonSign => DeviceType::Billboard,
+        _ => DeviceType::StreetLight,
+    };
+
+    let mut entity_commands = commands.spawn((
+        Transform::from_translation(position.extend(z_height)),
+        colored_light.clone(),
+        Sprite {
+            color: colored_light.base_color,
+            custom_size: Some(sprite_size),
+            ..default()
+        },
+        PointLight2d {
+            intensity: z_height / 3.0,
+            radius: z_height * 10.0,
+            falloff: 1.0,
+            cast_shadows: true,
+            color: colored_light.base_color,
+        },
+    ));
+
+    // Add physics only if it has health
+    if health > 0.0 {
+        entity_commands.insert((
+            Health(health),
+            bevy_rapier2d::prelude::RigidBody::Fixed,
+            bevy_rapier2d::prelude::Collider::cuboid(sprite_size.x * 0.5, sprite_size.y * 0.5),
+        ));
+    }
+
+    // Add shadow caster for tall lights
+    if matches!(light_type, LightType::StreetLight | LightType::SecurityLight | LightType::IndustrialLight) {
+        let shadow_height = match light_type {
+            LightType::IndustrialLight => 12.0,
+            LightType::StreetLight => 8.0,
+            LightType::SecurityLight => 6.0,
+            _ => 4.0,
+        };
+        // entity_commands.insert(ShadowCaster { height: shadow_height, opacity: 0.3 });
+    }
+
+    // Add hackable components if networked
+    if let Some(network_id) = network_id {
+        entity_commands.insert((
+            crate::core::Hackable::new(device_type).with_network(network_id.clone()),
+            crate::core::DeviceState::new(device_type),
+        ));
+
+        // Add to power network
+        if let Some(power_grid) = power_grid {
+            power_grid.networks.entry(network_id.clone())
+                .or_insert_with(|| crate::core::PowerNetwork::new(network_id.clone()));
+            
+            if let Some(network) = power_grid.networks.get_mut(&network_id) {
+                network.connected_devices.insert(entity_commands.id());
+            }
+        }
+    } else if health > 0.0 && !matches!(light_type, LightType::FireLight | LightType::LaserSight) {
+        // Non-networked but still hackable (battery powered)
+        entity_commands.insert((
+            crate::core::Hackable::new(device_type),
+            crate::core::DeviceState::new(device_type),
+        ));
+    }
+
+    entity_commands.id()
+}
+

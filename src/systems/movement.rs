@@ -9,7 +9,6 @@ pub fn system(
         Entity, 
         &mut Transform, 
         &MovementSpeed, 
-        Option<&Agent>,
         Option<&Enemy>,
         Option<&mut Patrol>,
     )>,
@@ -22,7 +21,7 @@ pub fn system(
     // Process movement action events
     for event in action_events.read() {
         if let Action::MoveTo(target_pos) = event.action {
-            if let Ok((entity, transform, _speed, agent, enemy, _)) = moveable_query.get(event.entity) {
+            if let Ok((entity, transform, _speed, enemy, _)) = moveable_query.get(event.entity) {
                 let current_pos = transform.translation.truncate();
                 let distance = current_pos.distance(target_pos);
                 
@@ -45,7 +44,7 @@ pub fn system(
     let mut patrol_updates = Vec::new(); // Store patrol updates separately
 
     // Phase 1: Move entities toward their targets
-    for (entity, mut transform, speed, agent, enemy, patrol_opt) in moveable_query.iter_mut() {
+    for (entity, mut transform, speed, enemy, patrol_opt) in moveable_query.iter_mut() {
 
         // Skip if no move target
         let Ok(move_target) = target_query.get(entity) else { continue; };
@@ -76,7 +75,7 @@ pub fn system(
     // Phase 2: Handle patrol updates separately
     for entity in patrol_updates {
         // Safely get patrol data
-        let Ok((_, _, _, _, _, Some(mut patrol))) = moveable_query.get_mut(entity) else { continue; };
+        let Ok((_, _, _, _, Some(mut patrol))) = moveable_query.get_mut(entity) else { continue; };
         
         patrol.advance();
         
@@ -100,7 +99,7 @@ pub fn system(
     // Phase 3: Collect entities needing patrol (no insertions yet)
     let mut entities_needing_patrol = Vec::new();
 
-    for (entity, _, _, _, enemy, patrol_opt) in moveable_query.iter() {
+    for (entity, _, _, enemy, patrol_opt) in moveable_query.iter() {
         // Only check enemies without existing move targets
         if enemy.is_none() { continue; }
         

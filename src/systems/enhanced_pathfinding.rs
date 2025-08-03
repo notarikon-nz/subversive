@@ -1,5 +1,6 @@
 // src/systems/enhanced_pathfinding.rs - Pathfinding with tile properties integration
 use bevy::prelude::*;
+use bevy_ecs_tilemap::prelude::*;
 use crate::core::*;
 use crate::systems::pathfinding::*;
 use crate::systems::tile_properties::*;
@@ -465,9 +466,9 @@ pub fn enhanced_movement_system(
                     agent.current_path = path;
                     agent.path_index = 0;
                     agent.recalculate = false;
-                    info!("Enhanced path found with {} waypoints", agent.current_path.len());
+                    //info!("Enhanced path found with {} waypoints", agent.current_path.len());
                 } else {
-                    warn!("No enhanced path found from {:?} to {:?}", start_pos, target_pos);
+                    //warn!("No enhanced path found from {:?} to {:?}", start_pos, target_pos);
                     agent.current_path.clear();
                 }
             }
@@ -689,3 +690,30 @@ pub fn get_tile_movement_multiplier(
     }
 }
 
+use crate::systems::tilemap::*;
+
+// ===== MAIN.RS =====
+pub fn setup_enhanced_pathfinding_grid(mut commands: Commands) {
+    let world_size = Vec2::new(2000.0, 2000.0); // Match your world size
+    let tile_size = 32.0; // Average of isometric tile dimensions
+
+    let grid = EnhancedPathfindingGrid::new(world_size, tile_size);
+    commands.insert_resource(grid);
+}
+
+pub fn apply_initial_tile_properties(
+    mut commands: Commands,
+    tilemap_query: Query<&TileStorage, With<IsometricMap>>,
+    tile_query: Query<(Entity, &TileTextureIndex), Without<TileProperties>>,
+) {
+    let Ok(tile_storage) = tilemap_query.single() else { return; };
+
+    // Apply properties to all existing tiles
+    for (entity, texture_index) in tile_query.iter() {
+        let tile_type = texture_index_to_tile_type(texture_index.0);
+        let properties = TileProperties::for_tile_type(tile_type);
+        commands.entity(entity).insert(properties);
+    }
+
+    info!("Applied initial tile properties to {} tiles", tile_query.iter().count());
+}

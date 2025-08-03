@@ -45,10 +45,8 @@ pub mod advanced_prompts;
 // 0.2.9
 pub mod traffic;
 pub mod roads;
-pub mod traffic_upgrades;
 pub use traffic::*;
 pub use roads::*;
-pub use traffic_upgrades::*;
 
 // 0.2.10
 pub mod access_control;
@@ -87,14 +85,10 @@ pub mod enhanced_pathfinding;
 pub use tile_properties::*;
 pub use enhanced_pathfinding::*;
 
-pub mod tile_lighting;
 pub mod weather_tile_effects;
 pub mod colored_lighting;
-pub mod colored_lighting_spawn;
-pub use tile_lighting::*;
 pub use weather_tile_effects::*;
 pub use colored_lighting::*;
-pub use colored_lighting_spawn::*;
 
 // 0.2.17
 pub mod territory_events;

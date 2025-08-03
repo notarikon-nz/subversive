@@ -10,7 +10,7 @@ pub fn fps_system(
     mut commands: Commands,
     diagnostics: Res<DiagnosticsStore>,
     ui_state: Res<UIState>,
-    mut fps_text_query: Query<(Entity, &mut Text), With<FpsText>>,
+    mut fps_text_query: Query<(Entity, &mut Text), (With<FpsText>, Without<MarkedForDespawn>)>,
 ) {
     if !ui_state.fps_visible {
         // Clean up FPS text if it exists and should be hidden

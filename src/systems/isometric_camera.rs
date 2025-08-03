@@ -1,5 +1,6 @@
 // src/systems/isometric_camera.rs - Camera system for isometric view
 use bevy::prelude::*;
+use bevy_light_2d::prelude::*;
 use crate::core::*;
 
 // === ISOMETRIC CAMERA COMPONENT ===
@@ -35,11 +36,13 @@ impl Default for IsometricCamera {
 }
 
 // === CAMERA SETUP ===
-pub fn setup_isometric_camera(mut commands: Commands) {
+pub fn setup_camera_lighting_and_physics(mut commands: Commands) {
     // Create isometric camera with appropriate projection
     commands.spawn((
         Camera2d,
+        Light2d::default(),
         Camera {
+            hdr: true, // Important for Light2d!
             clear_color: ClearColorConfig::Custom(Color::srgb(0.1, 0.2, 0.1)), // Darker green background
             ..default()
         },
@@ -60,6 +63,9 @@ pub fn setup_isometric_camera(mut commands: Commands) {
 
     info!("Isometric camera initialized");
 }
+
+
+
 
 // === CAMERA MOVEMENT SYSTEM ===
 pub fn isometric_camera_movement(

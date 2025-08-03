@@ -95,12 +95,3 @@ pub fn create_terminal_sprite(sprites: &GameSprites, terminal_type: &crate::core
         Transform::default(),
     )
 }
-
-// NEW: Create a simple colored rectangle sprite as a guaranteed fallback
-pub fn create_colored_rectangle(size: Vec2, color: Color) -> Sprite {
-    Sprite {
-        color,
-        custom_size: Some(size),
-        ..default()
-    }
-}

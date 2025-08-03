@@ -59,7 +59,6 @@ impl TerritoryManager {
 
         self.controlled_cities.insert(city_id.clone(), control);
         self.territory_count += 1;
-        info!("Established territory control in {}", city_id);
     }
 
     pub fn collect_taxes(&mut self, cities_db: &CitiesDatabase, current_day: u32) -> u32 {
@@ -113,11 +112,6 @@ impl TerritoryManager {
                 0.7..=1.0 => ControlLevel::Dominant,
                 _ => ControlLevel::None,
             };
-
-            // Risk of losing control if strength drops too low
-            if territory.control_strength < 0.1 {
-                info!("Warning: Control weakening in {}", territory.city_id);
-            }
         }
 
         // Remove territories with no control
@@ -215,10 +209,6 @@ impl ProgressionTracker {
         self.chapter_completion.insert(chapter_city, true);
         self.campaign_progress.current_chapter += 1;
         self.campaign_progress.cities_liberated += 1;
-
-        info!("Campaign advanced to chapter {}/{}",
-              self.campaign_progress.current_chapter,
-              self.campaign_progress.total_chapters);
     }
 }
 
@@ -343,7 +333,6 @@ pub fn territory_daily_update_system(
         let tax_income = territory_manager.collect_taxes(&cities_db, global_data.current_day);
         if tax_income > 0 {
             global_data.credits += tax_income;
-            info!("Collected {} credits in taxes", tax_income);
         }
 
         // Update progression
@@ -354,6 +343,7 @@ pub fn territory_daily_update_system(
         if progression_tracker.check_win_conditions(&territory_manager) {
             info!("CAMPAIGN VICTORY ACHIEVED!");
             // Handle campaign completion
+            // PLAY CINEMATIC
         }
     }
 }

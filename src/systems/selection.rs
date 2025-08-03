@@ -54,22 +54,6 @@ pub fn system(
     }
 }
 
-fn toggle_agent_selection(
-    commands: &mut Commands,
-    selection: &mut SelectionState,
-    world_pos: Vec2,
-    selectable_query: &Query<(Entity, &Selectable, &Transform), With<Agent>>,
-) {
-    if let Some(entity) = find_agent_at_position(world_pos, selectable_query) {
-        if selection.selected.contains(&entity) {
-            // Remove from selection
-            commands.entity(entity).remove::<Selected>();
-            selection.selected.retain(|&e| e != entity);
-        } else {
-            add_to_selection(commands, selection, entity);
-        }
-    }
-}
 
 fn find_agent_at_position(
     world_pos: Vec2,
@@ -188,38 +172,3 @@ fn complete_drag_selection(
     }
 }
 
-// Modified selection system to handle agent-specific selection
-pub fn handle_agent_selection_events(
-    mut action_events: EventReader<ActionEvent>,
-    mut selection: ResMut<SelectionState>,
-    agents: Query<(Entity, &AgentIndex, &Transform), With<Agent>>,
-    mut camera_query: Query<&mut Transform, (With<Camera>, Without<Agent>)>,
-) {
-    for event in action_events.read() {
-        match event.action {
-            Action::SelectAgent(idx) => {
-                // Find agent with matching index
-                for (entity, agent_idx, _) in agents.iter() {
-                    if agent_idx.0 == idx {
-                        selection.selected.clear();
-                        selection.selected.push(entity);
-                        break;
-                    }
-                }
-            }
-            Action::CenterCameraOnAgent(idx) => {
-                // Find agent and center camera without changing selection
-                for (entity, agent_idx, agent_transform) in agents.iter() {
-                    if agent_idx.0 == idx {
-                        if let Ok(mut camera_transform) = camera_query.single_mut() {
-                            camera_transform.translation.x = agent_transform.translation.x;
-                            camera_transform.translation.y = agent_transform.translation.y;
-                        }
-                        break;
-                    }
-                }
-            }
-            _ => {}
-        }
-    }
-}

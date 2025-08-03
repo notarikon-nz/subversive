@@ -872,14 +872,3 @@ fn find_closest_agent(enemy_transform: &Transform, agent_query: &Query<(Entity, 
         })
         .map(|(entity, _)| entity)
 }
-
-fn find_any_hostile_target(
-    enemy_transform: &Transform,
-    vision: &Vision,
-    agent_query: &Query<(Entity, &Transform), With<Agent>>,
-    all_enemy_query: &Query<(Entity, &Transform, &Faction), (With<Enemy>, Without<Dead>)>
-) -> Option<Entity> {
-    // Simplified: just find closest agent (player)
-    find_closest_agent(enemy_transform, agent_query)
-}
-

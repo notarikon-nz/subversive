@@ -1,9 +1,14 @@
 // src/main.rs - Fixed system tuple parentheses
 use bevy::prelude::*;
+use bevy_light_2d::prelude::*;
+use bevy::{color::palettes::css::{BLUE, YELLOW}};
+
 use bevy_egui::{egui, EguiContexts, EguiPlugin};
 use bevy_ecs_tilemap::prelude::*;
 use bevy_rapier2d::prelude::*;
+
 use bevy::time::common_conditions::on_timer;
+
 use leafwing_input_manager::prelude::*;
 use std::sync::Arc; // fonts
 
@@ -21,6 +26,9 @@ use systems::input::*;
 use systems::weather_tile_effects::*;
 
 use systems::spawners::*;
+
+// 0.2.16
+// use systems::light_2d_setup::*;
 
 // 0.2.17
 use crate::core::territory::*;
@@ -68,6 +76,7 @@ fn main() {
         .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin::default())
         .add_plugins(EguiPlugin::default()) // 0.2.5.4
         .add_plugins(TilemapPlugin)
+        .add_plugins(Light2dPlugin)
 
         .register_type::<PlayerAction>()
         .register_type::<DecalDemoAction>()
@@ -77,6 +86,7 @@ fn main() {
         .init_resource::<GameMode>()
         .init_resource::<FontsLoaded>()
         .init_resource::<SelectionState>()
+        .init_resource::<SceneData>()
         .init_resource::<MissionData>()
         .init_resource::<InventoryState>()
         .init_resource::<InventoryUIState>()
@@ -161,7 +171,7 @@ fn main() {
         .init_resource::<CameraZoomLevels>()
         // phase 2
         .init_resource::<EnhancedPathfindingGrid>()
-        .init_resource::<TileLightingGrid>()
+        //.init_resource::<TileLightingGrid>()
 
         // 0.2.17
         .init_resource::<TerritoryManager>()
@@ -194,7 +204,6 @@ fn main() {
         // 0.2.16
         .add_event::<TileDamageEvent>()
 
-
         // 0.2.17
         .add_event::<TerritoryControlEvent>()
 
@@ -204,27 +213,26 @@ fn main() {
 
             // 0.2.16
             // setup_camera_and_input,
-            setup_isometric_camera,
+            isometric_camera::setup_camera_lighting_and_physics,
             setup_input_mapping,
 
             audio::setup_audio,
-            setup_attachments,
-            apply_loaded_research_benefits,
+            attachments::setup_attachments,
+            research_gameplay::apply_loaded_research_benefits,
             fonts::check_fonts_loaded,
             setup_urban_areas,
             setup_police_system,
             sprites::load_sprites,
             pathfinding::setup_pathfinding_grid, // 0.2.5.3
-            setup_enhanced_pathfinding_grid, // 0.2.16 P2
+            enhanced_pathfinding::setup_enhanced_pathfinding_grid, // 0.2.16 P2
         ))
         .add_systems(Startup, (
 
-            colored_lighting::setup_colored_lighting_system,
-            setup_weather_tile_system,
+//            setup_weather_tile_system,
 
             setup_cyberpunk2077_theme, // 0.2.5.4
             setup_traffic_system, // 0.2.9
-            setup_banking_network, // 0.2.10
+            hacking_financial::setup_banking_network, // 0.2.10
             setup_enhanced_inventory,   // 0.2.15
 
             // Cursor and interaction systems
@@ -241,7 +249,7 @@ fn main() {
             main_menu::setup_main_menu_egui,
  
             // 0.2.16
-            apply_initial_tile_properties, 
+            enhanced_pathfinding::apply_initial_tile_properties, 
         ))
 
         .add_systems(Update, loading_system::loading_system.run_if(in_state(GameState::Loading)))
@@ -254,7 +262,6 @@ fn main() {
             save::save_input_system,
             audio::audio_system,
             scene_cache_debug_system,
-
         ))
 
         .add_systems(Update, (
@@ -314,6 +321,9 @@ fn main() {
             (
                 setup_isometric_mission_scene,
                 (
+                    //colored_lighting::setup_colored_lighting_system,
+                    
+
                     health_bars::spawn_agent_status_bars,
                     health_bars::spawn_enemy_health_bars,
                     factions::setup_factions_system,
@@ -322,17 +332,24 @@ fn main() {
                     setup_interactive_decals_demo,
                     setup_minimap,
 
-                    // 0.2.13
-                    weather::setup_weather_system,
-                    weather::spawn_weather_overlay,
                     // 0.2.16 P2
                     assign_tile_properties_system,
                     update_enhanced_pathfinding_system,
+
+                    //mark_lighting_dirty.after(colored_lighting::setup_colored_lighting_system),
 
                 ).after(setup_isometric_mission_scene),
             ).after(setup_mission_tilemap),
         ))
 
+        /*
+        .add_systems(OnEnter(GameState::Mission), (
+
+            // 0.2.13
+            weather::setup_weather_system,
+            weather::spawn_weather_overlay,
+        ))
+        */
         // 0.2.12
         .add_systems(Update, (
             // Research progression (daily)
@@ -360,6 +377,7 @@ fn main() {
 
         // 0.2.16
         .add_systems(Update, (
+            movement::system,
             // REPLACE: camera::movement,
             isometric_camera_movement, // USE THIS INSTEAD
             camera_edge_scrolling,
@@ -417,19 +435,9 @@ fn main() {
 
         ).run_if(in_state(GameState::Mission)))
 
-        // MOVEMENT SYSTEMS 0.2.5.3
-        // Replaces original movement::system
-        /*
         .add_systems(Update, (
-            // movement::system,
-            pathfinding::update_pathfinding_grid,
-            pathfinding::add_pathfinding_to_agents,
-             pathfinding::pathfinding_movement_system,
-        ).run_if(in_state(GameState::Mission)))
-        */
+            add_enhanced_pathfinding_to_agents,
 
-        // 0.2.16
-        .add_systems(Update, (
             // === CORE TILE SYSTEMS ===
             assign_tile_properties_system,
             tile_destruction_system,
@@ -438,7 +446,6 @@ fn main() {
  
             // === ENHANCED PATHFINDING ===
             update_enhanced_pathfinding_system,
-            add_enhanced_pathfinding_to_agents,
  
             // REPLACE: pathfinding::pathfinding_movement_system,
             enhanced_movement_system, // USE THIS INSTEAD
@@ -527,8 +534,8 @@ fn main() {
             traffic::traffic_cleanup_system,
 
             // Civilian Handling
-            traffic_upgrades::civilian_traffic_interaction_system,
-            traffic_upgrades::traffic_light_vehicle_system,
+            traffic::civilian_traffic_interaction_system,
+            traffic::traffic_light_vehicle_system,
 
             // Emergency and military systems
             emergency_response_system,
@@ -564,15 +571,16 @@ fn main() {
             day_night::time_ui_system,
 
             // 0.2.13
-            weather::weather_particle_system,
-            weather::update_weather_overlay,
-            weather::weather_gameplay_effects,
+            // weather::weather_particle_system,
+            // weather::update_weather_overlay,
+            // weather::weather_gameplay_effects,
 
             health_bars::update_agent_status_bars,
             health_bars::update_enemy_health_bars,
         ).run_if(in_state(GameState::Mission)))
 
         // 0.2.16
+        /*
         .add_systems(Update, (
             // NEW: Weather tile effects
             weather_tile_effects::update_weather_tile_accumulation,
@@ -580,20 +588,8 @@ fn main() {
             weather_tile_effects::update_tile_visuals_for_weather,
             weather_tile_effects::apply_weather_movement_effects,
             weather_tile_effects::weather_tile_audio_system,
- 
-            // NEW: Lighting systems
-            colored_lighting::calculate_colored_lighting,
-            tile_lighting::update_tile_visuals_from_lighting,
-            colored_lighting::update_entity_colored_lighting,
-            colored_lighting::colored_light_behavior_system, 
-
-            tile_lighting::update_lights_from_power_grid,
-            tile_lighting::apply_weather_lighting_effects,
- 
-            tile_lighting::light_destruction_system,
-
         ).run_if(in_state(GameState::Mission)))
-
+         */
 
         // Urban simulation
         .add_systems(Update, (
@@ -623,6 +619,7 @@ fn main() {
             police::police_deescalation_system,
 
             weapons::enemy_weapon_update_system,
+            
         ).run_if(in_state(GameState::Mission)))
 
         .add_systems(Update, (
@@ -655,14 +652,31 @@ fn main() {
             spawners::spawn_scientists_in_mission,
         ).run_if(in_state(GameState::Mission)))
 
-        // Hacking and infrastructure
+        
         .add_systems(Update, (
             lore::lore_interaction_system,
             lore::lore_notification_system,
-            hacking_feedback::enhanced_hacking_system,
-            hack_recovery_system,
+            // Power grid updates
             power_grid_system,
             power_grid_management_system,
+            
+            // Calculate lighting
+            // colored_lighting::calculate_colored_lighting,
+            
+            // Apply lighting to visuals
+            //colored_lighting::update_tile_visuals_from_lighting,
+            //colored_lighting::update_entity_colored_lighting,
+            
+            // Light behaviors
+            //colored_lighting::colored_light_behavior_system,
+            //tile_lighting::street_light_behavior_system,            
+        ).chain().run_if(in_state(GameState::Mission)))
+
+        // Hacking and infrastructure
+        .add_systems(Update, (
+            hacking_feedback::enhanced_hacking_system,
+            hack_recovery_system,
+
             street_light_system,
             traffic_light_system,
             security_camera_system,
@@ -705,20 +719,20 @@ fn main() {
         .add_systems(Update, (
             // debug_pathfinding_grid,
             interactive_decals_demo_system,
-            // 0.2.12
-            research_debug_system,
             // 0.2.13
-            weather::weather_debug_system,
+            //weather::weather_debug_system,
             // 0.2.16
             debug_enhanced_pathfinding_system,
-            debug_colored_lighting_system,
+            //debug_colored_lighting,
+            //debug_lighting_grid_visualization, // F11
+
         ).run_if(in_state(GameState::Mission)))
 
         .add_systems(OnExit(GameState::Mission), (
             minimap::cleanup_minimap_ui,
             cursor_memory_cleanup,
             // 0.2.13
-            weather::cleanup_weather_system,
+            //weather::cleanup_weather_system,
             // 0.2.14
             world_scan::cleanup_scan_overlays,
         ))
@@ -776,6 +790,7 @@ pub fn setup_isometric_mission_scene(
     agents: Query<Entity, With<Agent>>,
     tilemap_settings: Option<Res<IsometricSettings>>,
     mut power_grid: ResMut<crate::core::PowerGrid>,
+    mut scene: ResMut<SceneData>,
 ) {
     info!("setup_isometric_mission_scene");
 
@@ -821,12 +836,10 @@ pub fn setup_isometric_mission_scene(
             info!("Loaded isometric scene: {} for city: {}",
                   scene_name, selected_city.map_or("None", |c| &c.name));
             spawn_hackable_test_objects(&mut commands, &sprites, &mut power_grid);
-            spawn_enhanced_colored_scene_lighting(&mut commands, &scene, power_grid);
         },
         None => {
             error!("Failed to load scene: {}. Creating fallback.", scene_name);
             spawn_fallback_isometric_mission(&mut commands, &*global_data, &sprites, &tilemap_settings);
-            spawn_colored_fallback_lighting(&mut commands, power_grid);
         }
     }
 
@@ -835,90 +848,26 @@ pub fn setup_isometric_mission_scene(
     spawn_gasoline_spill(&mut commands, Vec2::new(200.0, 100.0), 40.0);
     spawn_explodable(&mut commands, Vec2::new(250.0, 100.0), ExplodableType::FuelBarrel);
 
-    
+    let network_id = "district_main".to_string();
+    let some_id = Some(network_id.clone());
 
-}
-
-pub fn spawn_enhanced_colored_scene_lighting(
-    commands: &mut Commands,
-    scene: &crate::systems::scenes::SceneData,
-    mut power_grid: ResMut<crate::core::PowerGrid>,
-) {
-    // Main street lighting
-    let street_lights = spawn_area_lighting(
-        commands, 
-        Vec2::ZERO, 
-        AreaType::Street, 
-        "main_grid".to_string(), 
+    spawners::spawn_street_light(
+        &mut commands, 
+        Vec2::new(100.0, 100.0), 
+        network_id, 
         &mut power_grid
     );
-    
-    // Security lighting near terminals
-    for terminal in &scene.terminals {
-        let pos = Vec2::from(terminal.position) + Vec2::new(0.0, 30.0);
-        spawn_colored_light(commands, pos, LightType::SecurityLight, Some("security_grid".to_string()), Some(&mut power_grid));
-    }
-    
-    // Emergency beacons near enemies
-    for enemy in &scene.enemies {
-        if fastrand::f32() < 0.3 {
-            let pos = Vec2::from(enemy.position) + Vec2::new((fastrand::f32() - 0.5) * 60.0, (fastrand::f32() - 0.5) * 60.0);
-            spawn_colored_light(commands, pos, LightType::EmergencyLight, None, None);
-        }
-    }
-    
-    // Atmospheric neon
-    let neon_configs = vec![
-        (Vec2::new(-200.0, 80.0), Color::srgb(1.0, 0.0, 1.0)),
-        (Vec2::new(180.0, -80.0), Color::srgb(0.0, 1.0, 1.0)),
-        (Vec2::new(-80.0, -120.0), Color::srgb(1.0, 1.0, 0.0)),
-    ];
-    
-    for (pos, color) in neon_configs {
-        spawn_neon_sign(commands, pos, color, "BAR");
-    }
-}
 
-// === UPDATE FALLBACK LIGHTING FUNCTION ===
-fn spawn_colored_fallback_lighting(
-    commands: &mut Commands,
-    mut power_grid: ResMut<crate::core::PowerGrid>,
-) {
-    let network_id = "fallback_grid".to_string();
-
-    // Create fallback network
-    power_grid.networks.insert(
-        network_id.clone(),
-        crate::core::PowerNetwork::new(network_id.clone())
+    colored_lighting::spawn_colored_light(
+        &mut commands, 
+        Vec2::new(75.0,150.0), 
+        LightType::NeonSign, 
+        some_id, 
+        Some(&mut power_grid)
     );
 
-    // Mix of different light types for visual interest
-    let light_configs = vec![
-        (Vec2::new(-100.0, 0.0), LightType::StreetLight),
-        (Vec2::new(100.0, 0.0), LightType::SecurityLight),
-        (Vec2::new(0.0, -100.0), LightType::IndustrialLight),
-        (Vec2::new(0.0, 100.0), LightType::OfficeLight),
-        (Vec2::new(0.0, 0.0), LightType::EmergencyLight),
-    ];
-
-    for (pos, light_type) in light_configs {
-        match light_type {
-            LightType::EmergencyLight => {
-                spawn_colored_light(commands, pos, LightType::EmergencyLight, None, None);
-            },
-            _ => {
-                spawn_colored_light(commands, pos, LightType::StreetLight, Some(network_id.clone().to_string()), Some(&mut power_grid));
-            }
-        }
-    }
-
-    // Add some neon for atmosphere
-    spawn_neon_sign(commands, Vec2::new(50.0, 50.0), Color::srgb(0.0, 1.0, 1.0), "TEST");
-    spawn_neon_sign(commands, Vec2::new(-50.0, -50.0), Color::srgb(1.0, 0.0, 1.0), "DEMO");
-
-    info!("Spawned colored fallback lighting with mixed light types");
+    // spawn_enhanced_colored_scene_lighting(&mut commands, &mut scene, power_grid);
 }
-
 
 // REPLACES setup_camera_and_input
 pub fn setup_input_mapping(mut commands: Commands) {
@@ -949,18 +898,7 @@ pub fn setup_mission_tilemap (
     commands: Commands,
     asset_server: Res<AssetServer>,
 ) {
-    setup_isometric_tilemap(commands, asset_server);
-}
-
-fn setup_attachments(mut commands: Commands) {
-    let attachment_db = AttachmentDatabase::load();
-    let mut unlocked = UnlockedAttachments::default();
-    unlocked.attachments.insert("red_dot".to_string());
-    unlocked.attachments.insert("iron_sights".to_string());
-    unlocked.attachments.insert("tactical_grip".to_string());
-
-    commands.insert_resource(attachment_db);
-    commands.insert_resource(unlocked);
+    // setup_isometric_tilemap(commands, asset_server);
 }
 
 fn load_global_data_or_default() -> (GlobalData, ResearchProgress, TerritoryManager, ProgressionTracker) {
@@ -975,21 +913,6 @@ fn load_global_data_or_default() -> (GlobalData, ResearchProgress, TerritoryMana
         (global_data, research_progress, territory_manager, progression_tracker)
     }
 }
-
-
-fn apply_loaded_research_benefits(
-    global_data: Res<GlobalData>,
-    research_db: Res<ResearchDatabase>,
-    mut unlocked_attachments: ResMut<UnlockedAttachments>,
-) {
-    apply_research_unlocks(
-        &global_data.research_progress,
-        &research_db,
-        &mut unlocked_attachments,
-    );
-}
-
-
 
 fn ensure_data_directories() {
     let directories = [
@@ -1061,13 +984,6 @@ fn setup_police_system(mut commands: Commands) {
     commands.insert_resource(PoliceResponse::default());
     commands.insert_resource(PoliceEscalation::default());
 }
-
-fn setup_egui_theme(mut contexts: EguiContexts) {
-    if let Ok(ctx) = contexts.ctx_mut() {
-        ui::setup_cyberpunk_theme(ctx);
-    }
-}
-
 
 fn setup_cyberpunk2077_theme(mut contexts: EguiContexts) {
     if let Ok(ctx) = contexts.ctx_mut() {
@@ -1265,36 +1181,10 @@ pub fn cursor_memory_cleanup(
 }
 
 
-fn setup_banking_network(mut commands: Commands) {
-    let banking_network = BankingNetwork {
-        banks: vec![
-            Bank {
-                id: "MegaBank".to_string(),
-                name: "MegaBank Corporation".to_string(),
-                total_funds: 1000000,
-                security_level: 4,
-            },
-            Bank {
-                id: "CyberCredit".to_string(),
-                name: "CyberCredit Union".to_string(),
-                total_funds: 500000,
-                security_level: 3,
-            },
-            Bank {
-                id: "DataVault".to_string(),
-                name: "DataVault Financial".to_string(),
-                total_funds: 2000000,
-                security_level: 5,
-            },
-        ],
-        stolen_accounts: Vec::new(),
-    };
 
-    commands.insert_resource(banking_network);
-}
 
 // NEW: Function to spawn hackable test objects
-fn spawn_hackable_test_objects(
+pub fn spawn_hackable_test_objects(
     commands: &mut Commands,
     sprites: &GameSprites,
     power_grid: &mut ResMut<PowerGrid>,
@@ -1387,6 +1277,13 @@ fn spawn_hackable_test_objects(
             ViewVisibility::default(),
             bevy_rapier2d::prelude::RigidBody::Fixed,
             bevy_rapier2d::prelude::Collider::cuboid(4.0, 12.0),
+            PointLight2d {
+                intensity: 3.0,
+                radius: 100.0,
+                falloff: 1.0,
+                cast_shadows: true,
+                color: Color::Srgba(YELLOW),
+            },            
         )).id();
 
         make_hackable_networked(
@@ -1419,138 +1316,3 @@ fn spawn_hackable_test_objects(
 }
 
 
-pub fn research_debug_system(
-    input: Res<ButtonInput<KeyCode>>,
-    mut research_progress: ResMut<ResearchProgress>,
-    mut global_data: ResMut<GlobalData>,
-    scientist_query: Query<(Entity, &Scientist)>,
-) {
-
-
-    if input.just_pressed(KeyCode::F9) {
-        // Collect the project IDs first (this ends the immutable borrow)
-        let project_ids: Vec<String> = research_progress.active_queue
-            .iter()
-            .map(|active| active.project_id.clone())
-            .collect();
-
-        // Now we can mutably borrow research_progress
-        for project_id in project_ids {
-            research_progress.completed.insert(project_id);
-        }
-        research_progress.active_queue.clear();
-        info!("DEBUG: Completed all active research");
-    }
-
-    if input.just_pressed(KeyCode::F10) {
-        // Debug: Add test scientist
-        info!("DEBUG: Scientist debug info:");
-        for (entity, scientist) in scientist_query.iter() {
-            info!("  {} - {:?} - Recruited: {} - Productivity: {:.2}",
-                  scientist.name, scientist.specialization, scientist.is_recruited, scientist.productivity_bonus);
-        }
-    }
-
-    if input.just_pressed(KeyCode::F11) {
-        // Debug: Add 10000 credits
-        global_data.credits += 10000;
-        info!("DEBUG: Added $10,000 credits");
-    }
-}
-
-
-
-fn setup_enhanced_pathfinding_grid(mut commands: Commands) {
-    let world_size = Vec2::new(2000.0, 2000.0); // Match your world size
-    let tile_size = 32.0; // Average of isometric tile dimensions
-
-    let grid = EnhancedPathfindingGrid::new(world_size, tile_size);
-    commands.insert_resource(grid);
-}
-
-fn apply_initial_tile_properties(
-    mut commands: Commands,
-    tilemap_query: Query<&TileStorage, With<IsometricMap>>,
-    tile_query: Query<(Entity, &TileTextureIndex), Without<TileProperties>>,
-) {
-    let Ok(tile_storage) = tilemap_query.single() else { return; };
-
-    // Apply properties to all existing tiles
-    for (entity, texture_index) in tile_query.iter() {
-        let tile_type = texture_index_to_tile_type(texture_index.0);
-        let properties = TileProperties::for_tile_type(tile_type);
-        commands.entity(entity).insert(properties);
-    }
-
-    info!("Applied initial tile properties to {} tiles", tile_query.iter().count());
-}
-
-use crate::systems::tile_properties::{TileType};
-
-pub fn setup_tile_test_scenario(
-    commands: &mut Commands,
-    tilemap_entity: Entity,
-    tile_storage: &TileStorage,
-    isometric_settings: &IsometricSettings,
-) {
-    // Create a small test area with different tile types
-    let test_tiles = [
-        (15, 15, TileType::Wall),
-        (16, 15, TileType::Door),
-        (17, 15, TileType::Window),
-        (15, 16, TileType::LowCover),
-        (16, 16, TileType::Water),
-        (17, 16, TileType::Hazardous),
-        (15, 17, TileType::Rubble),
-        (16, 17, TileType::Mud),
-    ];
-
-    for (x, y, tile_type) in test_tiles {
-        let tile_pos = TilePos { x, y };
-        if let Some(tile_entity) = tile_storage.get(&tile_pos) {
-            let texture_index = tile_type_to_texture_index(tile_type);
-            let properties = TileProperties::for_tile_type(tile_type);
- 
-            commands.entity(tile_entity)
-                .insert(TileTextureIndex(texture_index))
-                .insert(properties);
-        }
-    }
-
-    info!("Created tile test scenario at (15,15) to (17,17)");
-}
-
-pub fn debug_colored_lighting_system(
-    input: Res<ButtonInput<KeyCode>>,
-    mut colored_grid: ResMut<crate::systems::colored_lighting::ColoredLightingGrid>,
-    mut light_query: Query<&mut crate::systems::colored_lighting::ColoredLight>,
-    mut show_lighting_debug: Local<bool>,
-) {
-    if input.just_pressed(KeyCode::KeyL) {
-        // Toggle all lights for testing
-        for mut light in light_query.iter_mut() {
-            light.intensity = if light.intensity > 0.0 { 0.0 } else { 0.8 };
-        }
-        colored_grid.dirty = true;
-        info!("Toggled all colored lights");
-    }
-
-    if input.just_pressed(KeyCode::KeyO) {
-        *show_lighting_debug = !*show_lighting_debug;
-        info!("Colored lighting debug overlay: {}", if *show_lighting_debug { "ON" } else { "OFF" });
-    }
-
-    if input.just_pressed(KeyCode::KeyP) {
-        // Cycle through light colors for testing
-        for mut light in light_query.iter_mut() {
-            light.base_color = match light.light_type {
-                crate::systems::colored_lighting::LightType::StreetLight => Color::srgb(1.0, 0.0, 0.0), // Red
-                crate::systems::colored_lighting::LightType::SecurityLight => Color::srgb(0.0, 1.0, 0.0), // Green
-                crate::systems::colored_lighting::LightType::EmergencyLight => Color::srgb(0.0, 0.0, 1.0), // Blue
-                _ => Color::srgb(1.0, 1.0, 0.0), // Yellow
-            };
-        }
-        colored_grid.dirty = true;
-        info!("Cycled light colors for testing");
-    }
-}

@@ -16,7 +16,7 @@ use crate::systems::selection::*;
 pub struct IsometricDepth(pub f32);
 
 // === SCENE DATA STRUCTURES ===
-#[derive(Resource, Clone, Serialize, Deserialize)]
+#[derive(Resource, Clone, Default, Serialize, Deserialize)]
 pub struct SceneData {
     pub agents: Vec<AgentSpawn>,
     pub civilians: Vec<CivilianSpawn>,
@@ -522,34 +522,12 @@ pub fn select_weapon_for_faction(faction: &Faction) -> WeaponType {
     }
 }
 
-pub fn get_police_stats(unit_type: EscalationLevel) -> (f32, WeaponType, f32, f32) {
-    match unit_type {
-        EscalationLevel::Patrol => (80.0, WeaponType::Pistol, 100.0, 100.0),
-        EscalationLevel::Armed => (120.0, WeaponType::Rifle, 120.0, 120.0),
-        EscalationLevel::Tactical => (150.0, WeaponType::Rifle, 140.0, 140.0),
-        EscalationLevel::Military => (180.0, WeaponType::Minigun, 130.0, 160.0),
-        EscalationLevel::Corporate => (200.0, WeaponType::Flamethrower, 150.0, 180.0),
-        EscalationLevel::None => (100.0, WeaponType::Pistol, 100.0, 100.0),
-    }
-}
-
 pub fn parse_terminal_type(type_str: &str) -> TerminalType {
     match type_str {
         "objective" => TerminalType::Objective,
         "equipment" => TerminalType::Equipment,
         "intel" => TerminalType::Intel,
         _ => TerminalType::Objective,
-    }
-}
-
-pub fn parse_police_unit_type(type_str: &str) -> EscalationLevel {
-    match type_str.to_lowercase().as_str() {
-        "patrol" => EscalationLevel::Patrol,
-        "armed" => EscalationLevel::Armed,
-        "tactical" | "swat" => EscalationLevel::Tactical,
-        "military" | "army" => EscalationLevel::Military,
-        "corporate" | "elite" => EscalationLevel::Corporate,
-        _ => EscalationLevel::Patrol,
     }
 }
 

@@ -347,3 +347,17 @@ pub fn count_scientists_by_category(
         .count()
 }
 
+
+// ===== MAIN.RS =====
+
+pub fn apply_loaded_research_benefits(
+    global_data: Res<GlobalData>,
+    research_db: Res<ResearchDatabase>,
+    mut unlocked_attachments: ResMut<UnlockedAttachments>,
+) {
+    apply_research_unlocks(
+        &global_data.research_progress,
+        &research_db,
+        &mut unlocked_attachments,
+    );
+}

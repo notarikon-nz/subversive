@@ -411,3 +411,33 @@ pub fn setup_financial_district(
     spawn_billboard(commands, center + Vec2::new(300.0, 0.0),
                    Some(network_id), &mut power_grid_option);
 }
+
+
+// ===== MAIN.RS =====
+pub fn setup_banking_network(mut commands: Commands) {
+    let banking_network = BankingNetwork {
+        banks: vec![
+            Bank {
+                id: "MegaBank".to_string(),
+                name: "MegaBank Corporation".to_string(),
+                total_funds: 1000000,
+                security_level: 4,
+            },
+            Bank {
+                id: "CyberCredit".to_string(),
+                name: "CyberCredit Union".to_string(),
+                total_funds: 500000,
+                security_level: 3,
+            },
+            Bank {
+                id: "DataVault".to_string(),
+                name: "DataVault Financial".to_string(),
+                total_funds: 2000000,
+                security_level: 5,
+            },
+        ],
+        stolen_accounts: Vec::new(),
+    };
+
+    commands.insert_resource(banking_network);
+}

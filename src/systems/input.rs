@@ -4,18 +4,6 @@ use crate::systems::scanner::*;
 use crate::systems::npc_barks::*;
 use crate::systems::isometric_camera::{IsometricCamera};
 
-pub fn get_isometric_world_mouse_position(
-    windows: &Query<&Window>,
-    cameras: &Query<(&Camera, &GlobalTransform, &IsometricCamera)>,
-) -> Option<Vec2> {
-    let window = windows.single().ok()?;
-    let (camera, camera_transform, _) = cameras.single().ok()?;
-    let cursor_pos = window.cursor_position()?;
-    
-    // Convert cursor position to world coordinates for isometric camera
-    camera.viewport_to_world_2d(camera_transform, cursor_pos).ok()
-}
-
 // Simplified input handler - remove duplicate movement handling
 pub fn handle_input(
     keyboard: Res<ButtonInput<KeyCode>>,
@@ -66,7 +54,6 @@ pub fn handle_input(
 
     // Other controls...
     if keyboard.just_pressed(KeyCode::KeyE) {
-        info!("Interaction Requested");
         if let Some(&agent) = selection.selected.first() {
             action_events.write(ActionEvent {
                 entity: agent,
@@ -132,69 +119,3 @@ fn handle_agent_selection(
     }
 }
 
-fn find_target_under_mouse(
-    windows: &Query<&Window>,
-    cameras: &Query<(&Camera, &GlobalTransform)>,
-    target_query: &Query<(Entity, &Transform, &Health), Or<(With<Enemy>, With<Vehicle>)>>,
-    agent_query: &Query<(&Transform, &Inventory), With<Agent>>,
-    selection: &SelectionState,
-) -> Option<Entity> {
-    let mouse_pos = get_world_mouse_position(windows, cameras)?;
-
-    // Get the primary selected agent to determine range
-    let primary_agent = selection.selected.first()?;
-    let (agent_transform, inventory) = agent_query.get(*primary_agent).ok()?;
-    let agent_pos = agent_transform.translation.truncate();
-    let range = get_weapon_range_simple(inventory);
-
-    // Find the closest valid target under the mouse
-    target_query.iter()
-        .filter(|(_, _, health)| health.0 > 0.0) // Target must be alive
-        .filter(|(_, transform, _)| {
-            // Target must be in range of primary agent
-            agent_pos.distance(transform.translation.truncate()) <= range
-        })
-        .filter(|(_, transform, _)| {
-            // Target must be close to mouse cursor
-            mouse_pos.distance(transform.translation.truncate()) < 35.0
-        })
-        .min_by(|(_, a_transform, _), (_, b_transform, _)| {
-            let a_dist = mouse_pos.distance(a_transform.translation.truncate());
-            let b_dist = mouse_pos.distance(b_transform.translation.truncate());
-            a_dist.partial_cmp(&b_dist).unwrap_or(std::cmp::Ordering::Equal)
-        })
-        .map(|(entity, _, _)| entity)
-}
-
-pub fn get_weapon_range_simple(inventory: &Inventory) -> f32 {
-    let base_range = 150.0;
-    if let Some(weapon_config) = &inventory.equipped_weapon {
-        let stats = weapon_config.stats();
-        (base_range * (1.0_f32 + stats.range as f32 * 0.1_f32)).max(50.0_f32)
-    } else {
-        base_range
-    }
-}
-
-fn toggle_neurovector_targeting(game_mode: &mut GameMode, agent: Entity) {
-    match &game_mode.targeting {
-        Some(TargetingMode::Neurovector { .. }) => {
-            game_mode.targeting = None;
-        }
-        _ => {
-            game_mode.targeting = Some(TargetingMode::Neurovector { agent });
-        }
-    }
-}
-
-// In toggle_combat_targeting:
-fn toggle_combat_targeting(game_mode: &mut GameMode, agent: Entity) {
-    match &game_mode.targeting {
-        Some(TargetingMode::Combat { .. }) => {
-            game_mode.targeting = None;
-        }
-        _ => {
-            game_mode.targeting = Some(TargetingMode::Combat { agent });
-        }
-    }
-}

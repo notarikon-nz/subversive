@@ -64,7 +64,7 @@ pub fn system(
                         &cameras, 
                         isometric_settings.as_deref()
                     ) {
-                        info!("Combat: Agent {:?} attacking target {:?}", agent, target);
+                        // info!("Combat: Agent {:?} attacking target {:?}", agent, target);
                         execute_attack(agent, target, &mut commands, &agent_query, &mut agent_weapon_query, &target_query, &mut audio_events, &weapon_db);
                         target_found = true;
                         break; // Found a target, stop checking other agents
@@ -74,7 +74,7 @@ pub fn system(
         
             // If no combat targets found, send movement commands via Action events
             if !target_found {
-                info!("Combat: No targets found, sending movement commands to {:?}", world_pos);
+                // info!("Combat: No targets found, sending movement commands to {:?}", world_pos);
                 for &agent in &selection.selected {
                     action_events.write(ActionEvent {
                         entity: agent,
@@ -230,48 +230,6 @@ fn get_attack_stats(
     (35.0, 0.8, 1.0) // Default values
 }
 
-fn find_target_at_mouse(
-    target_query: &Query<(Entity, &Transform, &Health), Or<(With<Enemy>, With<Vehicle>, With<Civilian>)>>,
-    agent_pos: Vec2,
-    range: f32,
-    windows: &Query<&Window>,
-    cameras: &Query<(&Camera, &GlobalTransform)>,
-) -> Option<Entity> {
-    // Get mouse position in world coordinates
-    let mouse_pos = get_world_mouse_position(windows, cameras)?;
-    
-    // Debug output
-    info!("Mouse world pos: {:?}, Agent pos: {:?}", mouse_pos, agent_pos);
-    
-    // Find closest target near mouse cursor
-    let mut closest_target = None;
-    let mut closest_distance = f32::INFINITY;
-    
-    for (entity, transform, health) in target_query.iter() {
-        if health.0 <= 0.0 { continue; } // Skip dead entities
-        
-        let target_pos = transform.translation.truncate();
-        let agent_to_target = agent_pos.distance(target_pos);
-        let mouse_to_target = mouse_pos.distance(target_pos);
-        
-        // Target must be in range of agent and near mouse cursor
-        if agent_to_target <= range && mouse_to_target < 35.0 {
-            if mouse_to_target < closest_distance {
-                closest_distance = mouse_to_target;
-                closest_target = Some(entity);
-            }
-        }
-    }
-    
-    if let Some(target) = closest_target {
-        info!("Found target: {:?} at distance {:.1} from mouse", target, closest_distance);
-    } else {
-        info!("No target found near mouse cursor");
-    }
-    
-    closest_target
-}
-
 fn find_target_at_mouse_isometric(
     target_query: &Query<(Entity, &Transform, &Health), Or<(With<Enemy>, With<Vehicle>, With<Civilian>)>>,
     agent_pos: Vec2,
@@ -283,8 +241,6 @@ fn find_target_at_mouse_isometric(
     // Just use the regular mouse position function - it works for both camera types
     let mouse_pos = get_world_mouse_position(windows, cameras)?;
     
-    info!("Isometric mouse world pos: {:?}, Agent pos: {:?}", mouse_pos, agent_pos);
-    
     // Find targets in range
     let valid_targets: Vec<_> = target_query.iter()
         .filter(|(_, _, health)| health.0 > 0.0)
@@ -294,15 +250,12 @@ fn find_target_at_mouse_isometric(
         })
         .collect();
     
-    info!("Found {} valid targets in range", valid_targets.len());
-    
     // Find closest to mouse
     valid_targets.into_iter()
         .filter(|(_, transform, _)| {
             let target_pos = transform.translation.truncate();
             let distance = mouse_pos.distance(target_pos);
-            info!("Target distance from mouse: {:.1}", distance);
-            distance < 50.0 // Increased tolerance for isometric
+            distance < 75.0 // Increased tolerance for isometric
         })
         .min_by(|(_, a_transform, _), (_, b_transform, _)| {
             let a_dist = mouse_pos.distance(a_transform.translation.truncate());
@@ -360,7 +313,7 @@ pub fn enemy_combat_system(
                 }
             },
             Action::UseMedKit => {
-                info!("Using MedKit!");
+                // info!("Using MedKit!");
             },
             _ => {} // Ignore other actions
         }
@@ -507,13 +460,13 @@ pub fn auto_reload_system(
                 weapon_state.reload_timer -= time.delta_secs();
                 if weapon_state.reload_timer <= 0.0 {
                     weapon_state.complete_reload();
-                    info!("Agent {:?} auto-reload completed: {}/{}", agent_entity, weapon_state.current_ammo, weapon_state.max_ammo);
+                    // info!("Agent {:?} auto-reload completed: {}/{}", agent_entity, weapon_state.current_ammo, weapon_state.max_ammo);
                 }
             }
             // Auto-reload when empty
             else if weapon_state.current_ammo == 0 {
                 weapon_state.start_reload();
-                info!("Agent {:?} starting auto-reload", agent_entity);
+                // info!("Agent {:?} starting auto-reload", agent_entity);
             }
         }
     }

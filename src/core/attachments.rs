@@ -147,3 +147,16 @@ impl AttachmentDatabase {
 pub struct UnlockedAttachments {
     pub attachments: std::collections::HashSet<String>,
 }
+
+// ===== MAIN.RS =====
+
+pub fn setup_attachments(mut commands: Commands) {
+    let attachment_db = AttachmentDatabase::load();
+    let mut unlocked = UnlockedAttachments::default();
+    unlocked.attachments.insert("red_dot".to_string());
+    unlocked.attachments.insert("iron_sights".to_string());
+    unlocked.attachments.insert("tactical_grip".to_string());
+
+    commands.insert_resource(attachment_db);
+    commands.insert_resource(unlocked);
+}

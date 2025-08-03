@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
+use bevy_light_2d::prelude::*;
+use bevy::{color::palettes::css::{BLUE, YELLOW}};
 
 use crate::core::*;
 use crate::core::factions::Faction;
@@ -538,6 +540,12 @@ pub fn spawn_power_station(
     entity
 }
 
+#[derive(Component)]
+struct YellowLight;
+
+#[derive(Component)]
+struct BlueLight;
+
 pub fn spawn_street_light(
     commands: &mut Commands,
     position: Vec2,
@@ -553,7 +561,16 @@ pub fn spawn_street_light(
     let entity = commands.spawn((
         build_sprite_transform_bundle(sprite, position, 1.0),
         StreetLight { brightness: 1.0 },
+        PointLight2d {
+            intensity: 3.0,
+            radius: 100.0,
+            falloff: 1.0,
+            cast_shadows: true,
+            color: Color::Srgba(YELLOW),
+        },
+
     )).id();
+
 
     make_hackable_networked(commands, entity, DeviceType::StreetLight, network_id, power_grid);
     entity

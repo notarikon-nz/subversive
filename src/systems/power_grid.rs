@@ -95,8 +95,10 @@ pub fn street_light_system(
     for (mut sprite, device_state) in street_lights.iter_mut() {
         if device_state.powered && device_state.operational {
             sprite.color = Color::srgb(0.9, 0.9, 0.7); // Bright
+            // enable light2d
         } else {
             sprite.color = Color::srgb(0.3, 0.3, 0.3); // Dark
+            // disable light2s
         }
     }
 }
@@ -119,14 +121,17 @@ pub fn traffic_light_system(
                 TrafficState::Green => {
                     traffic_light.timer = 3.0; // Yellow for 3 seconds
                     TrafficState::Yellow
+                    // CHANGE LIGHT COLOUR
                 },
                 TrafficState::Yellow => {
                     traffic_light.timer = 8.0; // Red for 8 seconds
                     TrafficState::Red
+                    // CHANGE LIGHT COLOUR
                 },
                 TrafficState::Red => {
                     traffic_light.timer = 10.0; // Green for 10 seconds
                     TrafficState::Green
+                    // CHANGE LIGHT COLOUR
                 },
                 TrafficState::Disabled => TrafficState::Green,
             };

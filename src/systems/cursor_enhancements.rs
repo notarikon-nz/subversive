@@ -2,8 +2,7 @@
 use bevy::prelude::*;
 use crate::core::*;
 use crate::systems::cursor::*;
-use crate::systems::cursor::{determine_cursor_type};
-use crate::systems::input::{get_weapon_range_simple};
+use crate::systems::cursor::{determine_cursor_type,get_weapon_range_simple};
 
 #[derive(Resource)]
 pub struct CursorSettings {

@@ -187,75 +187,6 @@ pub struct PowerGridEvent {
     pub source: Entity,
 }
 
-// === SYSTEMS ===
-pub fn hacking_system(
-    mut hack_attempts: EventReader<HackAttemptEvent>,
-    mut hack_completed: EventWriter<HackCompletedEvent>,
-    mut hackable_query: Query<(&mut Hackable, &mut DeviceState)>,
-    mut audio_events: EventWriter<AudioEvent>,
-    agent_inventory: Query<&Inventory, With<Agent>>,
-) {
-    for event in hack_attempts.read() {
-        let Ok((mut hackable, mut device_state)) = hackable_query.get_mut(event.target) else {
-            continue;
-        };
-
-        if hackable.is_hacked {
-            continue;
-        }
-
-        // Check tool requirement
-        if let (Ok(inventory), Some(required_tool)) = (agent_inventory.get(event.agent), &hackable.requires_tool) {
-            let has_tool = inventory.equipped_tools.iter().any(|tool| {
-                matches!((tool, required_tool), 
-                    (ToolType::Hacker, HackTool::BasicHacker | HackTool::AdvancedHacker)
-                )
-            });
-            if !has_tool {
-                continue;
-            }
-        }
-
-        // Execute hack
-        device_state.hack_timer = hackable.hack_time;
-        hackable.is_hacked = true;
-        device_state.operational = false;
-
-        // Apply effects
-        hackable.hack_effects.iter().for_each(|effect| {
-            apply_hack_effect(effect, &mut device_state, &hackable.device_type);
-        });
-
-        // Events
-        hack_completed.write(HackCompletedEvent {
-            agent: event.agent,
-            target: event.target,
-            device_type: hackable.device_type,
-            effects: hackable.hack_effects.clone(),
-        });
-
-        audio_events.write(AudioEvent {
-            sound: AudioType::TerminalAccess,
-            volume: 0.5,
-        });
-    }
-}
-
-fn apply_hack_effect(effect: &HackEffect, state: &mut DeviceState, device_type: &DeviceType) {
-    match effect {
-        HackEffect::Disable => state.operational = false,
-        HackEffect::PowerCut => state.powered = false,
-        HackEffect::TakeControl => {
-            state.current_function = match device_type {
-                DeviceType::Turret => DeviceFunction::Defense,
-                DeviceType::Drone => DeviceFunction::Surveillance,
-                DeviceType::Vehicle => DeviceFunction::Transport,
-                _ => state.original_function,
-            };
-        },
-        _ => {} // Other effects handled elsewhere
-    }
-}
 
 pub fn hack_recovery_system(
     mut hackable_query: Query<(Entity, &mut Hackable, &mut DeviceState)>,
@@ -340,10 +271,7 @@ pub fn make_hackable_networked(
         .insert(DeviceState::new(device_type));
 }
 
-// Simplified setup functions
-pub fn setup_hackable_camera(commands: &mut Commands, entity: Entity) {
-    make_hackable(commands, entity, DeviceType::Camera);
-}
+
 
 pub fn setup_hackable_turret(commands: &mut Commands, entity: Entity) {
     commands.entity(entity)
@@ -357,11 +285,3 @@ pub fn setup_hackable_door(commands: &mut Commands, entity: Entity) {
         .insert(DeviceState::new(DeviceType::Door));
 }
 
-pub fn add_hackable_to_vehicles(
-    mut commands: Commands,
-    vehicle_query: Query<Entity, (With<Vehicle>, Without<Hackable>)>,
-) {
-    for entity in vehicle_query.iter() {
-        make_hackable(&mut commands, entity, DeviceType::Vehicle);
-    }
-}
