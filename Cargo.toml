@@ -33,5 +33,5 @@ opt-level = 3
 
 [lints.rust]
 unused_variables = "allow"
-# unused_imports = "allow"
-dead_code = "warn"
+unused_imports = "allow"
+dead_code = "allow"

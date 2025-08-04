@@ -279,6 +279,8 @@ pub enum CyberneticType {
     TechInterface,
     ArmorPlating,
     ReflexEnhancer,
+    OpticalCamo,
+
 }
 
 use std::fmt;
@@ -293,6 +295,7 @@ impl fmt::Display for CyberneticType {
             CyberneticType::TechInterface => "Hacking Booster",
             CyberneticType::ArmorPlating => "Armor Plating",
             CyberneticType::ReflexEnhancer => "Reflex Enhancer",
+            CyberneticType::OpticalCamo => "Optical Camoflague",
         };
         write!(f, "{}", name)
     }
@@ -310,4 +313,9 @@ pub enum ToolType {
     SatelliteUplink,
     TacticalScanner,
     NetworkScanner,
+    AdvancedHacker,
+    DroneSwarm,
+    QuantumComm,
+    PrototypeArmor,
+
 }

@@ -95,7 +95,7 @@ pub fn cursor_system(
     );
 
     // Only update if cursor type or position changed significantly
-    if cursor_type != last_state.cursor_type || mouse_pos.distance(last_state.position) > 1.0 {
+    if cursor_type != last_state.cursor_type || mouse_pos.distance(last_state.position) > 0.5 {
         update_cursor_sprite(
             &mut commands,
             &cursor_sprites,

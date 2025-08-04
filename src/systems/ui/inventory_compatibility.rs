@@ -92,11 +92,15 @@ fn create_tool_item_compat(tool: &ToolType) -> Option<InventoryItem> {
         ToolType::MedKit => ("Medical Kit", "Emergency field medical supplies", ItemRarity::Common, 0.8, 120, 3),
         ToolType::Grenade => ("Fragmentation Grenade", "High-explosive fragmentation device", ItemRarity::Uncommon, 0.4, 200, 5),
         ToolType::TimeBomb => ("Time Bomb", "Delayed detonation explosive", ItemRarity::Rare, 1.2, 800, 2),
-        ToolType::Hacker => ("Hacking Device", "Advanced electronic warfare toolkit", ItemRarity::Epic, 0.3, 2500, 1),
+        ToolType::Hacker => ("Hacking Device", "Electronic warfare toolkit", ItemRarity::Epic, 0.3, 2500, 1),
+        ToolType::AdvancedHacker => ("Hacking Device", "Advanced electronic warfare toolkit", ItemRarity::Epic, 0.3, 3500, 1),
         ToolType::EnhancedSensors => ("Enhanced Sensors", "...", ItemRarity::Common, 0.3, 500, 1),
         ToolType::SatelliteUplink => ("Satellite Uplink", "...", ItemRarity::Uncommon, 0.3, 1000, 1),
         ToolType::TacticalScanner => ("Tactical Scanner", "...", ItemRarity::Rare, 0.3, 2000, 1),
         ToolType::NetworkScanner => ("Network Scanner", "...", ItemRarity::Epic, 0.3, 4500, 1),
+        ToolType::DroneSwarm => ("Drone Swarm", "Creates a swarm of drones", ItemRarity::Common, 0.1, 100, 1),
+        ToolType::QuantumComm => ("Quantum Communicator", "Non-interceptible quantum communication device", ItemRarity::Common, 0.1, 100, 1),
+        _ => ("Unknown Device", "An unknown technological device", ItemRarity::Common, 0.1, 100, 1),
     };
 
     Some(InventoryItem {
@@ -158,6 +162,12 @@ fn create_cybernetic_item_compat(cybernetic: &CyberneticType) -> Option<Inventor
             "Reflex Enhancement System",
             "Neural acceleration for improved reaction times",
             ItemStats { accuracy: 25, reload_speed: 20, ..Default::default() },
+            35000
+        ),
+        CyberneticType::OpticalCamo => (
+            "Optical Camoflague",
+            "Advanced optical cloaking system",
+            ItemStats { stealth: 40, hacking: 10, ..Default::default() },
             35000
         ),
     };
@@ -285,10 +295,14 @@ fn tool_stats(tool: &ToolType) -> ItemStats {
         ToolType::Grenade => ItemStats { damage: 75, ..Default::default() },
         ToolType::TimeBomb => ItemStats { damage: 150, ..Default::default() },
         ToolType::Hacker => ItemStats { hacking: 20, ..Default::default() },
+        ToolType::AdvancedHacker => ItemStats { hacking: 25, ..Default::default() },
         ToolType::EnhancedSensors => ItemStats {hacking: 30, ..Default::default() },
         ToolType::SatelliteUplink => ItemStats {hacking: 40, ..Default::default() },
         ToolType::TacticalScanner => ItemStats {hacking: 50, ..Default::default() },
         ToolType::NetworkScanner => ItemStats {hacking: 60, ..Default::default() },
+        ToolType::DroneSwarm => ItemStats {hacking: 10, ..Default::default() },
+        ToolType::QuantumComm => ItemStats {hacking: 10, ..Default::default() },
+        _ => ItemStats {hacking: 10, ..Default::default() },
     }
 }
 

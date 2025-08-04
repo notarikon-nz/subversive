@@ -37,6 +37,14 @@ pub enum LoreCategory {
     Research = 5,
     History = 6,
     Mission = 7,
+    Strategy = 8,
+    Intelligence = 9,
+    Treaty = 10,
+    Financial = 11,
+    Surveillance = 12,
+    Prophecy = 13,
+    Endgame = 14,
+    FinalMission = 15,
 }
 
 impl LoreCategory {

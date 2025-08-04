@@ -260,11 +260,14 @@ fn create_tool_item(tool: &ToolType) -> Option<InventoryItem> {
         ToolType::Grenade => (ItemRarity::Uncommon, "Explosive device", 0.3, 150),
         ToolType::TimeBomb => (ItemRarity::Rare, "Delayed explosive device", 0.8, 500),
         ToolType::Hacker => (ItemRarity::Rare, "Advanced hacking toolkit", 0.2, 1000),
+        ToolType::AdvancedHacker => (ItemRarity::Rare, "Advanced hacking toolkit", 0.2, 1500),
         ToolType::EnhancedSensors => (ItemRarity::Rare, "Enhanced Sensors", 0.2, 2000),
         ToolType::SatelliteUplink => (ItemRarity::Rare, "Satellite Uplink", 0.2, 4000),
         ToolType::TacticalScanner => (ItemRarity::Rare, "Tactical Scanner", 0.2, 8000),
         ToolType::NetworkScanner => (ItemRarity::Rare, "Network Scanner", 0.2, 16000),
-
+        ToolType::DroneSwarm => (ItemRarity::Common, "Drone Swarm", 0.1, 1000),
+        ToolType::QuantumComm => (ItemRarity::Common, "Quantum Communicator", 0.1, 1000),
+        _ => (ItemRarity::Common, "Unknown Device", 0.1, 1000),
     };
 
     Some(InventoryItem {
@@ -325,6 +328,11 @@ fn create_cybernetic_item(cybernetic: &CyberneticType) -> Option<InventoryItem> 
             "Enhanced reaction time and accuracy",
             ItemStats { accuracy: 20, reload_speed: 15, ..Default::default() }
         ),
+        CyberneticType::OpticalCamo => (
+            ItemRarity::Rare,
+            "Advanced stealth and infiltration cloaking system",
+            ItemStats { stealth: 40, hacking: 10, ..Default::default() }
+        ),        
     };
 
     Some(InventoryItem {
@@ -346,6 +354,7 @@ fn create_cybernetic_item(cybernetic: &CyberneticType) -> Option<InventoryItem> 
             CyberneticType::StealthModule => 25000,
             CyberneticType::ReflexEnhancer => 20000,
             CyberneticType::ArmorPlating => 15000,
+            CyberneticType::OpticalCamo => 30000,
         },
         is_favorited: false,
         is_locked: true, // Cybernetics should be locked by default

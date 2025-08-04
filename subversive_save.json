@@ -1,6 +1,6 @@
 {
   "credits": 5800,
-  "current_day": 54,
+  "current_day": 56,
   "agent_levels": [
     1,
     1,
@@ -126,9 +126,9 @@
     },
     "unlocked_cities": [
       "miami",
-      "new_york",
       "chicago",
-      "toronto"
+      "toronto",
+      "new_york"
     ]
   },
   "recruited_scientists": [],
@@ -139,7 +139,7 @@
     "total_daily_income": 0,
     "liberated_population": 0,
     "total_population": 0,
-    "corporate_alert_level": 0,
+    "corporate_alert_level": 1,
     "global_liberation_progress": 0.0
   },
   "progression_tracker": {
@@ -149,7 +149,7 @@
       "current_act": 1,
       "districts_liberated": 0,
       "total_credits_generated": 0,
-      "days_elapsed": 0,
+      "days_elapsed": 56,
       "population_freed": 0
     },
     "victory_conditions": {

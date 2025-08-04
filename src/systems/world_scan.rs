@@ -748,17 +748,3 @@ pub fn add_scanner_to_agent(commands: &mut Commands, agent_entity: Entity, scan_
     
     commands.entity(agent_entity).insert(scanner);
 }
-
-pub fn setup_world_scan_system(app: &mut App) {
-    app.init_resource::<WorldScanState>()
-       .add_event::<WorldScanEvent>()
-       .add_event::<EntityScannedEvent>()
-       .add_systems(Update, (
-           world_scan_input_system,
-           world_scan_execution_system,
-           world_scan_visualization_system,
-           scanner_energy_system,
-           scan_overlay_fade_system,
-       ).run_if(in_state(GameState::Mission)))
-       .add_systems(OnExit(GameState::Mission), cleanup_scan_overlays);
-}

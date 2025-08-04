@@ -200,7 +200,7 @@
       "prototype_available": true,
       "stolen_data_value": 0.7,
       "benefits": [
-        {"UnlockTool": "DroneSw arm"},
+        {"UnlockTool": "DroneSwarm"},
         {"AlertReduction": 2}
       ]
     },

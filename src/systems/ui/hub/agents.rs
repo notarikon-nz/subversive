@@ -128,6 +128,7 @@ fn show_agent_overview(ui: &mut egui::Ui, global_data: &GlobalData, agent_idx: u
                     CyberneticType::TechInterface => "Hacking Booster",
                     CyberneticType::ArmorPlating => "Armor Plating",
                     CyberneticType::ReflexEnhancer => "Reflex Enhancer",
+                    CyberneticType::OpticalCamo => "Optical Camoflague",
                 };
                 ui.colored_label(egui::Color32::LIGHT_BLUE, format!("• {}", cybernetic_name));
             }
