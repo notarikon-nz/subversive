@@ -19,7 +19,7 @@ use systems::explosion_decal_integration::*;
 use systems::ui::enhanced_inventory::*;
 use systems::ui::inventory_integration::*;
 use systems::ui::inventory_compatibility::*;
-
+use systems::ui::hub::singapore_map::{SingaporeMapState,SingaporeVectorMap};
 use systems::scenes::{spawn_fallback_isometric_mission};
 
 use systems::input::*;
@@ -177,6 +177,9 @@ fn main() {
         .init_resource::<TerritoryManager>()
         .init_resource::<CampaignProgressionTracker>()
         .insert_resource(NeoSingaporeCampaignDatabase::load())
+
+        .init_resource::<SingaporeMapState>()
+        .init_resource::<SingaporeVectorMap>()
 
         // older
         .add_event::<ActionEvent>()

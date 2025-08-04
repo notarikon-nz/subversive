@@ -12,11 +12,17 @@ pub mod research;
 pub mod manufacture;
 pub mod missions;
 pub mod global_map;
+pub mod singapore_map;
+
+pub use singapore_map::*;
 
 // Much simpler state management - no complex rebuilding needed
 #[derive(Resource, Default)]
 pub struct HubState {
     pub active_tab: HubTab,
+    pub singapore_map: Option<SingaporeVectorMap>,
+    pub map_ui_state: SingaporeMapState,
+    pub last_update_day: u32,    
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
@@ -103,7 +109,17 @@ pub fn hub_ui_system(
     mut unlocked_attachments: Res<UnlockedAttachments>,
     scientist_query: Query<(Entity, &Scientist)>,
     input: Res<ButtonInput<KeyCode>>,
+    mut territory_manager: ResMut<TerritoryManager>,
+    campaign_db: Res<NeoSingaporeCampaignDatabase>,    
 ) {
+    // Initialize map if needed
+    if hub_state.singapore_map.is_none() {
+        hub_state.singapore_map = Some(SingaporeVectorMap::new());
+    }
+
+    let singapore_map = hub_state.singapore_map.as_mut().unwrap();
+
+
     if let Ok(ctx) = contexts.ctx_mut() {
 
         // Apply cyberpunk theme
@@ -172,6 +188,13 @@ pub fn hub_ui_system(
             });
         });
     }
+
+    /*
+    if global_data.current_day != hub_state.last_update_day {
+        singapore_map.update_from_game_state(&territory_manager, &campaign_db);
+        hub_state.last_update_day = global_data.current_day;
+    }
+     */
 }
 
 // Main hub system - much simpler than before
@@ -190,21 +213,24 @@ pub fn hub_interaction_system(
     input: Res<ButtonInput<KeyCode>>,
     mut unlocked_attachments: ResMut<UnlockedAttachments>,
     scientist_query: Query<(Entity, &Scientist)>,
-
     mut resources: ParamSet<(
         (Res<HubDatabases>, Res<CampaignProgressionTracker>, Res<NeoSingaporeCampaignDatabase>, ResMut<TerritoryManager>),
+    )>,
+    mut map_resources: ParamSet<(
+        (ResMut<SingaporeMapState>, ResMut<SingaporeVectorMap>),
     )>,
 ) {
     if let Ok(ctx) = contexts.ctx_mut() {
 
 
         let (hub_databases, progression_tracker, campaign_db, mut territory_manager) = resources.p0();
-        
+        let (mut map_state, mut vector_map) = map_resources.p0();
 
         // Main content area
         egui::CentralPanel::default().show(ctx, |ui| {
 
             match hub_state.active_tab {
+                /*
                 HubTab::GlobalMap => global_map::show_global_map(
                     ui,
                     &mut global_data,
@@ -214,6 +240,23 @@ pub fn hub_interaction_system(
                     &cameras,
                     &mouse,
                     &city_query,
+                ),
+
+    ui: &mut egui::Ui,
+    global_data: &mut GlobalData,
+    territory_manager: &TerritoryManager,
+    campaign_db: &NeoSingaporeCampaignDatabase,
+    map_state: &mut SingaporeMapState,
+    singapore_map: &mut SingaporeVectorMap,                
+                */
+                HubTab::GlobalMap => singapore_map::show_singapore_map(
+                    ui,
+                    &mut global_data,
+                    &territory_manager,
+                    &campaign_db,
+                    &mut map_state,
+                    &mut vector_map,
+                    &input,
                 ),
                 HubTab::Territory => territory::show_territory_control(
                     ui,

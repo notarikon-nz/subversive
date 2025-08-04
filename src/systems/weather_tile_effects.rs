@@ -140,7 +140,7 @@ pub fn weather_tile_audio_system(
             if snow > 0.4 {
                 // Crunchy snow footsteps (less frequent to avoid spam)
                 if fastrand::f32() < 0.1 { // 10% chance per movement
-                    audio_events.send(crate::core::AudioEvent {
+                    audio_events.write(crate::core::AudioEvent {
                         sound: crate::core::AudioType::FootstepSnow,
                         volume: 0.3,
                     });
@@ -148,7 +148,7 @@ pub fn weather_tile_audio_system(
             } else if wetness > 0.5 {
                 // Splashing in puddles
                 if fastrand::f32() < 0.15 { // 15% chance
-                    audio_events.send(crate::core::AudioEvent {
+                    audio_events.write(crate::core::AudioEvent {
                         sound: crate::core::AudioType::FootstepWet,
                         volume: 0.4,
                     });
