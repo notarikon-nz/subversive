@@ -106,7 +106,6 @@ impl CitiesDatabase {
             Ok(content) => {
                 match serde_json::from_str::<CitiesDatabase>(&content) {
                     Ok(data) => {
-                        info!("Loaded {} cities from data/cities.json", data.cities.len());
                         data
                     },
                     Err(e) => {

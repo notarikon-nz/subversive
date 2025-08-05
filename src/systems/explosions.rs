@@ -26,6 +26,7 @@
 //    - Fire effect indicators
 
 use bevy::prelude::*;
+use bevy_light_2d::prelude::*;
 use crate::core::*;
 use crate::systems::*;
 
@@ -147,6 +148,12 @@ pub fn spawn_explosion(
             custom_size: Some(Vec2::splat(radius * 2.0)),
             ..default()
         },
+        PointLight2d {
+            color: color,
+            radius: radius * 4.0,
+            intensity: 5.0,
+            ..default()
+        },        
     ));
 }
 

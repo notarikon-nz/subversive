@@ -89,7 +89,6 @@ fn main() {
         .init_resource::<PostMissionResults>()
         .init_resource::<MissionState>()
         .init_resource::<DayNightCycle>()
-        // .init_resource::<PoliceEscalation>()
 
         .init_resource::<UrbanSecurity>()
         .init_resource::<UrbanSecurity>()
@@ -348,14 +347,14 @@ fn main() {
             ).after(setup_mission_tilemap),
         ))
 
-        /*
+        
         .add_systems(OnEnter(GameState::Mission), (
 
             // 0.2.13
             weather::setup_weather_system,
             weather::spawn_weather_overlay,
         ))
-        */
+        
         // 0.2.12
         .add_systems(Update, (
             // Research progression (daily)
@@ -784,6 +783,7 @@ pub fn setup_isometric_mission_scene(
     cities_db: Res<CitiesDatabase>,
     cities_progress: Res<CitiesProgress>,
     mut scene_cache: ResMut<SceneCache>,
+    mut banking_network: ResMut<BankingNetwork>,
     agents: Query<Entity, With<Agent>>,
     tilemap_settings: Option<Res<IsometricSettings>>,
     mut power_grid: ResMut<crate::core::PowerGrid>,
@@ -863,13 +863,17 @@ pub fn setup_isometric_mission_scene(
         Some(&mut power_grid)
     );
 
+
+    hacking_financial::setup_financial_district(&mut commands, power_grid, banking_network, Vec2::new(0.0, 0.0));
+
+    // setup_district_power_grid(&mut commands, power_grid, Vec2::new(300,300));
+
     // spawn_enhanced_colored_scene_lighting(&mut commands, &mut scene, power_grid);
 }
 
 // REPLACES setup_camera_and_input
 pub fn setup_input_mapping(mut commands: Commands) {
     // Setup isometric camera instead of regular 2D camera
-
 
     // Input map remains the same
     let input_map = InputMap::default()

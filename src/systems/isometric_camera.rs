@@ -40,7 +40,13 @@ pub fn setup_camera_lighting_and_physics(mut commands: Commands) {
     // Create isometric camera with appropriate projection
     commands.spawn((
         Camera2d,
-        Light2d::default(),
+        // Light2d::default(),
+        Light2d {
+            ambient_light: AmbientLight2d {
+                brightness: 0.3,
+                ..default()
+            },
+        },        
         Camera {
             hdr: true, // Important for Light2d!
             clear_color: ClearColorConfig::Custom(Color::srgb(0.1, 0.2, 0.1)), // Darker green background

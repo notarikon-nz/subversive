@@ -5,7 +5,6 @@ use crate::core::*;
 pub mod world;
 pub mod screens;
 pub mod hub;
-pub mod builder;
 pub mod main_menu;
 pub mod settings;
 pub mod credits;
@@ -42,13 +41,12 @@ pub fn cleanup_mission_ui(
     for entity in inventory_ui_query.iter() {
         commands.entity(entity).insert(MarkedForDespawn);
     }
-
 }
 
 pub fn cleanup_global_map_ui(
     mut commands: Commands,
     mut inventory_state: ResMut<InventoryState>,
-    inventory_ui_query: Query<Entity, With<InventoryUI>>,
+    inventory_ui_query: Query<Entity, (With<InventoryUI>, Without<MarkedForDespawn>)>,
 ) {
     inventory_state.ui_open = false;
     inventory_state.selected_agent = None;
@@ -56,5 +54,4 @@ pub fn cleanup_global_map_ui(
     for entity in inventory_ui_query.iter() {
         commands.entity(entity).insert(MarkedForDespawn);
     }
-
 }

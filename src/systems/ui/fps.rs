@@ -25,7 +25,7 @@ pub fn fps_system(
         .and_then(|fps| fps.smoothed())
         .unwrap_or(0.0);
     
-    let fps_text = format!("FPS: {:.1}", fps);
+    let fps_text = format!("{:.1}", fps);
     
     // Try to update existing text first
     if let Ok((_, mut text)) = fps_text_query.single_mut() {
@@ -35,7 +35,7 @@ pub fn fps_system(
         commands.spawn((
             Text::new(fps_text),
             TextFont {
-                font_size: 16.0,
+                font_size: 12.0,
                 ..default()
             },
             TextColor(Color::WHITE),

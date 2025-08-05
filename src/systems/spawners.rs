@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 use bevy_light_2d::prelude::*;
-use bevy::{color::palettes::css::{YELLOW}};
+use bevy::{color::palettes::css::{YELLOW,GREEN}};
 
 use crate::core::*;
 use crate::core::factions::Faction;
@@ -102,6 +102,11 @@ fn spawn_agent_internal(
         inventory,
         weapon_state,
         build_unit_physics(16.0, AGENT_GROUP),
+        LightOccluder2d {
+            shape: LightOccluder2dShape::Rectangle {
+                half_size: Vec2::splat(32.0),
+            },
+        } 
     ));
 
     if let Some(idx) = idx {
@@ -611,6 +616,13 @@ pub fn spawn_traffic_light(
         TrafficLight {
             state: TrafficState::Green,
             timer: 10.0,
+        },
+        PointLight2d {
+            intensity: 3.0,
+            radius: 100.0,
+            falloff: 1.0,
+            cast_shadows: true,
+            color: Color::Srgba(GREEN),
         },
     )).id();
 

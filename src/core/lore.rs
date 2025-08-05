@@ -83,7 +83,6 @@ impl LoreDatabase {
             })
             .map(|mut db| {
                 db.discovered_count = db.entries.values().filter(|e| e.discovered).count();
-                info!("Loaded {} lore entries ({} discovered)", db.entries.len(), db.discovered_count);
                 db
             })
             .unwrap_or_default()

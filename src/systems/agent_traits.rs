@@ -123,7 +123,7 @@ pub fn trait_visual_system(
     }
 }
 
-// Example trait effect in scenes.rs spawning:
+// Example trait effect in spawners.rs:
 /*
 fn spawn_agent_with_trait(
     commands: &mut Commands, 

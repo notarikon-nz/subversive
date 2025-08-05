@@ -302,9 +302,7 @@ pub fn apply_weather_effects_to_tiles(
     }
 }
 
-
 // === VISUAL WEATHER EFFECTS ===
-
 pub fn update_tile_visuals_for_weather(
     weather_grid: Res<WeatherTileGrid>,
     tilemap_query: Query<&TileStorage, With<crate::systems::tilemap::IsometricMap>>,
@@ -319,34 +317,35 @@ pub fn update_tile_visuals_for_weather(
     
     for y in 0..weather_grid.height {
         for x in 0..weather_grid.width {
-            let tile_pos = TilePos { x: x as u32, y: y as u32 };
+            let tile_pos = TilePos { 
+                x: x as u32, y: y as u32 
+            };
             
             if let Some(tile_entity) = tile_storage.get(&tile_pos) {
                 if let Ok(mut sprite) = tile_query.get_mut(tile_entity) {
                     let wetness = weather_grid.get_wetness(x, y);
                     let snow = weather_grid.get_snow(x, y);
             
-            // Play appropriate footstep sounds based on weather conditions
-            if snow > 0.4 {
-                // Crunchy snow footsteps (less frequent to avoid spam)
-                if fastrand::f32() < 0.1 { // 10% chance per movement
-                    audio_events.write(crate::core::AudioEvent { sound: crate::core::AudioType::FootstepSnow,volume: 0.3,});
-                }
-            } else if wetness > 0.5 {
-                // Splashing in puddles
-                if fastrand::f32() < 0.15 { // 15% chance
-                    audio_events.write(crate::core::AudioEvent {sound: crate::core::AudioType::FootstepWet, volume: 0.4,});
+                    // Play appropriate footstep sounds based on weather conditions
+                    if snow > 0.4 {
+                        // Crunchy snow footsteps (less frequent to avoid spam)
+                        if fastrand::f32() < 0.1 { // 10% chance per movement
+                            audio_events.write(crate::core::AudioEvent { sound: crate::core::AudioType::FootstepSnow,volume: 0.3,});
+                        }
+                    } else if wetness > 0.5 {
+                        // Splashing in puddles
+                        if fastrand::f32() < 0.15 { // 15% chance
+                            audio_events.write(crate::core::AudioEvent {sound: crate::core::AudioType::FootstepWet, volume: 0.4,});
+                        }
+                    }
                 }
             }
         }
     }
 }
-    }
-}
 
 
 // === CLEANUP SYSTEM ===
-
 pub fn cleanup_weather_tile_effects(
     mut commands: Commands,
     weather_affected_query: Query<Entity, With<WeatherAffectedTile>>,

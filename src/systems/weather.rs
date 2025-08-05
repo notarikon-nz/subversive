@@ -46,7 +46,6 @@ pub enum WeatherLayer {
     Foreground,
 }
 
-
 #[derive(Debug, Clone, Copy)]
 pub enum WeatherParticleType {
     Raindrop,

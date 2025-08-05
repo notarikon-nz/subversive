@@ -150,7 +150,6 @@ impl TraitsDatabase {
                     .map_err(|e| error!("Failed to parse traits.json: {}", e))
             })
             .map(|data| {
-                info!("Loaded {} traits from data/traits.json", data.traits.len());
                 data
             })
             .unwrap_or_else(|_| Self { traits: Vec::new() })

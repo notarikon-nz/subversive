@@ -19,6 +19,7 @@ fastrand = "2.3.0"
 ron = "0.10.1"
 bevy_egui = "0.35.1" 
 egui_plot = "0.33.0"
+
 bevy_ecs_tilemap = "0.16.0"
 nsvg = "0.5.1"
 
