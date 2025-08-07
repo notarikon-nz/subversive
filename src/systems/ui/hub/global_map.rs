@@ -2,6 +2,7 @@
 use bevy::prelude::*;
 use bevy_egui::egui;
 use crate::core::*;
+use crate::systems::input::{MenuInput};
 
 // Keep the InteractiveCity component for compatibility
 #[derive(Component)]
@@ -23,12 +24,15 @@ pub fn show_global_map(
     ui: &mut egui::Ui,
     global_data: &mut GlobalData,
     cities_db: &CitiesDatabase,
-    input: &ButtonInput<KeyCode>,
+    keyboard: &ButtonInput<KeyCode>,
+    gamepads: Query<&Gamepad>,
     windows: &Query<&Window>,
     cameras: &Query<(&Camera, &GlobalTransform)>,
     mouse: &ButtonInput<MouseButton>,
     city_query: &Query<(Entity, &Transform, &InteractiveCity)>,
 ) {
+    let input = MenuInput::new(&keyboard, &gamepads);
+
     // Create a local state for the map
     let mut map_state = GlobalMapState::default();
     map_state.selected_city = Some(global_data.cities_progress.current_city.clone());
@@ -45,7 +49,7 @@ pub fn show_global_map(
 
     // Wait day button - check keyboard availability
     let wait_clicked = ui.button("⏰ Wait Day (W)").clicked();
-    let wait_key = input.just_pressed(KeyCode::KeyW);
+    let wait_key = input.up;
 
     // Wait day button
     if wait_clicked || wait_key {

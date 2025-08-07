@@ -4,6 +4,7 @@ use bevy_egui::{egui, EguiContexts};
 // PLACEHOLDER
 use egui_plot::{Bar, BarChart, Line, PlotPoints}; /*Plot,*/ 
 use crate::core::*;
+use crate::systems::input::{MenuInput};
 
 #[derive(Resource, Default)]
 pub struct PostMissionUIState {
@@ -19,7 +20,7 @@ pub fn post_mission_ui_system(
     mut ui_state: ResMut<PostMissionUIState>,
     post_mission: Res<PostMissionResults>,
     global_data: Res<GlobalData>,
-    input: Res<ButtonInput<KeyCode>>,
+    keyboard: Res<ButtonInput<KeyCode>>,
     time: Res<Time>,
 ) {
 
@@ -28,13 +29,13 @@ pub fn post_mission_ui_system(
     }
 
     // Handle input
-    if input.just_pressed(KeyCode::KeyR) {
+    if keyboard.just_pressed(KeyCode::KeyR) {
         processed.0 = false;
         next_state.set(GameState::GlobalMap);
         return;
     }
     
-    if input.just_pressed(KeyCode::Escape) {
+    if keyboard.just_pressed(KeyCode::Escape) {
         std::process::exit(0);
     }
 
@@ -190,7 +191,7 @@ pub fn post_mission_ui_system(
                     // Action buttons
                     ui.vertical_centered(|ui| {
                         ui.horizontal(|ui| {
-                            if ui.button("🗺️ Return to Map (R)").clicked() || input.just_pressed(KeyCode::KeyR) {
+                            if ui.button("🗺️ Return to Map (R)").clicked() || keyboard.just_pressed(KeyCode::KeyR) {
                                 processed.0 = false;
                                 next_state.set(GameState::GlobalMap);
                             }

@@ -2,14 +2,25 @@
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts};
 use crate::core::*;
+use crate::systems::input::{MenuInput};
 
 pub fn settings_system_egui(
     mut contexts: EguiContexts,
     mut next_state: ResMut<NextState<GameState>>,
-    input: Res<ButtonInput<KeyCode>>,
+    keyboard: Res<ButtonInput<KeyCode>>,
+    gamepads: Query<&Gamepad>,
 ) {
-    if input.just_pressed(KeyCode::Escape) {
+
+    let input = MenuInput::new(&keyboard, &gamepads);
+    // Handle navigation
+    if input.up {
+
+    } else if input.down {
+
+    } else if input.back || keyboard.just_pressed(KeyCode::Escape) {
         next_state.set(GameState::MainMenu);
+    } else if input.select {
+
     }
 
     if let Ok(ctx) = contexts.ctx_mut() {

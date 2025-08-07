@@ -2,6 +2,7 @@
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts};
 use crate::core::*;
+use crate::systems::input::{MenuInput};
 
 // Simple pause system using egui modal dialog
 pub fn pause_system(
@@ -9,14 +10,15 @@ pub fn pause_system(
     mut next_state: ResMut<NextState<GameState>>,
     mut post_mission: ResMut<PostMissionResults>,
     game_mode: Res<GameMode>,
-    input: Res<ButtonInput<KeyCode>>,
+    keyboard: Res<ButtonInput<KeyCode>>,
+    gamepads: Query<&Gamepad>, 
     mission_data: Res<MissionData>,
 ) {
     if !game_mode.paused {
         return;
     }
 
-    
+    let input = MenuInput::new(&keyboard, &gamepads);
     
     // Create modal window
     if let Ok(ctx) = contexts.ctx_mut() {
@@ -60,13 +62,13 @@ pub fn pause_system(
             
             // Action buttons
             ui.vertical_centered(|ui| {
-                if ui.button("📋 Resume Mission (SPACE)").clicked() || input.just_pressed(KeyCode::Space) {
+                if ui.button("📋 Resume Mission (SPACE)").clicked() || input.select {
                     // Resume handled by existing game_mode.paused logic
                 }
                 
                 ui.separator();
                 
-                if ui.button("⚠️ Abort Mission (Q)").clicked() || input.just_pressed(KeyCode::KeyQ) {
+                if ui.button("⚠️ Abort Mission (Q)").clicked() || input.option {
                     // Set mission as failed/aborted
                     *post_mission = PostMissionResults {
                         success: false,

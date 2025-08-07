@@ -33,7 +33,6 @@ pub mod interactive_decals;
 pub mod explosion_decal_integration;
 pub mod interactive_decals_demo;
 pub mod pathfinding;
-
 pub mod urban_security;
 
 // 0.2.5.4
@@ -55,7 +54,8 @@ pub mod hacking_financial;
 pub use access_control::*;
 pub use hacking_financial::*;
 
-// 0.2.11
+pub mod ice;
+pub use ice::*;
 
 
 // 0.2.12

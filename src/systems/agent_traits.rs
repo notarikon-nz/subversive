@@ -72,7 +72,7 @@ pub fn trait_behavior_system(
     for (agent_entity, upgrades, agent_transform) in agent_query.iter() {
         for trait_data in &upgrades.traits {
             match trait_data.id.as_str() {
-                "berserker" => {
+                "berserker" => {option
                     // Berserker agents prefer close combat
                     let agent_pos = agent_transform.translation.truncate();
                     let nearby_enemies = enemy_query.iter()

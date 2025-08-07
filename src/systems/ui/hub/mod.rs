@@ -3,6 +3,7 @@ use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts};
 use crate::core::*;
 use serde::{Deserialize, Serialize};
+use crate::systems::input::{MenuInput};
 
 // 0.2.17
 pub mod territory;
@@ -72,10 +73,13 @@ impl CyberneticsDatabase {
 
 
 pub fn hub_input_system(
-    input: Res<ButtonInput<KeyCode>>,
+    keyboard: Res<ButtonInput<KeyCode>>,
+    gamepads: Query<&Gamepad>,
     mut hub_state: ResMut<HubState>,
 ) {
-    if input.just_pressed(KeyCode::KeyQ) {
+    let input = MenuInput::new(&keyboard, &gamepads);
+
+    if input.left {
         hub_state.active_tab = match hub_state.active_tab {
             HubTab::GlobalMap => HubTab::Missions,
             HubTab::Territory => HubTab::GlobalMap,
@@ -86,7 +90,7 @@ pub fn hub_input_system(
         };
     }
 
-    if input.just_pressed(KeyCode::KeyE) {
+    if input.right {
         hub_state.active_tab = match hub_state.active_tab {
             HubTab::GlobalMap => HubTab::Territory,
             HubTab::Territory => HubTab::Research,
@@ -97,7 +101,7 @@ pub fn hub_input_system(
         };
     }
 
-    if input.just_pressed(KeyCode::Escape) { std::process::exit(0); }
+    if keyboard.just_pressed(KeyCode::Escape) { std::process::exit(0); }
 }
 
 pub fn hub_ui_system(
@@ -108,7 +112,6 @@ pub fn hub_ui_system(
     research_progress: Res<ResearchProgress>,
     mut unlocked_attachments: Res<UnlockedAttachments>,
     scientist_query: Query<(Entity, &Scientist)>,
-    input: Res<ButtonInput<KeyCode>>,
     mut territory_manager: ResMut<TerritoryManager>,
     campaign_db: Res<NeoSingaporeCampaignDatabase>,    
 ) {
@@ -143,7 +146,7 @@ pub fn hub_ui_system(
                     egui::Layout::top_down(egui::Align::Center),
                     |ui| {
                         ui.horizontal_centered(|ui| {
-                            ui.label("Q");
+                            ui.label("W"); // change if controller detected
                             for tab in [HubTab::GlobalMap, HubTab::Territory, HubTab::Research, HubTab::Agents, HubTab::Manufacture, HubTab::Missions] {
                                 let is_active = hub_state.active_tab == tab;
                                 let text = match tab {
@@ -159,7 +162,7 @@ pub fn hub_ui_system(
                                     hub_state.active_tab = tab;
                                 }
                             }
-                            ui.label("E");
+                            ui.label("D");
                         });
                     }
                 );
@@ -179,7 +182,7 @@ pub fn hub_ui_system(
                 let controls = match hub_state.active_tab {
                     HubTab::GlobalMap => "Click Cities | W: Wait Day | ENTER: Mission | Q/E: Tabs",
                     HubTab::Territory => "PLACEHOLDER",
-                    HubTab::Research => "↑↓: Navigate | ENTER: Purchase | Q/E: Tabs",
+                    HubTab::Research => "↑↓: Navigate | ENTER: Purchase | W/D: Tabs",
                     HubTab::Agents => "←→: Agent | 1-3: View | ↑↓: Navigate | ENTER: Install | Q/E: Tabs",
                     HubTab::Manufacture => "1-3: Agent | ↑↓: Slots | ←→: Attachments | ENTER: Modify | Q/E: Tabs",
                     HubTab::Missions => "ENTER: Launch | Q/E: Tabs | ESC: Quit",
@@ -204,17 +207,17 @@ pub fn hub_interaction_system(
     mut next_state: ResMut<NextState<GameState>>,
     mut global_data: ResMut<GlobalData>,
     hub_state: Res<HubState>,
-    mut research_progress: ResMut<ResearchProgress>,
     windows: Query<&Window>,
     cameras: Query<(&Camera, &GlobalTransform)>,
-    mouse: Res<ButtonInput<MouseButton>>,
     city_query: Query<(Entity, &Transform, &global_map::InteractiveCity)>,
     mut agent_query: Query<&mut Inventory, With<Agent>>,
-    input: Res<ButtonInput<KeyCode>>,
+    keyboard: Res<ButtonInput<KeyCode>>, 
+    mouse: Res<ButtonInput<MouseButton>>,
+    gamepads: Query<&Gamepad>,
     mut unlocked_attachments: ResMut<UnlockedAttachments>,
     scientist_query: Query<(Entity, &Scientist)>,
     mut resources: ParamSet<(
-        (Res<HubDatabases>, Res<CampaignProgressionTracker>, Res<NeoSingaporeCampaignDatabase>, ResMut<TerritoryManager>),
+        (Res<HubDatabases>, Res<CampaignProgressionTracker>, Res<NeoSingaporeCampaignDatabase>, ResMut<TerritoryManager>, ResMut<ResearchProgress>),
     )>,
     mut map_resources: ParamSet<(
         (ResMut<SingaporeMapState>, ResMut<SingaporeVectorMap>),
@@ -222,8 +225,9 @@ pub fn hub_interaction_system(
 ) {
     if let Ok(ctx) = contexts.ctx_mut() {
 
+        let input = MenuInput::new(&keyboard, &gamepads);
 
-        let (hub_databases, progression_tracker, campaign_db, mut territory_manager) = resources.p0();
+        let (hub_databases, progression_tracker, campaign_db, mut territory_manager, mut research_progress) = resources.p0();
         let (mut map_state, mut vector_map) = map_resources.p0();
 
         // Main content area
@@ -256,7 +260,7 @@ pub fn hub_interaction_system(
                     &campaign_db,
                     &mut map_state,
                     &mut vector_map,
-                    &input,
+                    &keyboard,
                 ),
                 HubTab::Territory => territory::show_territory_control(
                     ui,
@@ -273,13 +277,13 @@ pub fn hub_interaction_system(
                     &hub_databases.research_db,
                     &mut unlocked_attachments,
                     &scientist_query,
-                    &input,
+                    &keyboard,
                 ),
                 HubTab::Agents => agents::show_agents(
                     ui,
                     &mut global_data,
                     &hub_databases.cybernetics_db,
-                    &input,
+                    &keyboard,
                 ),
                 HubTab::Manufacture => manufacture::show_manufacture(
                     ui,
@@ -287,7 +291,7 @@ pub fn hub_interaction_system(
                     &hub_databases.attachment_db,
                     &unlocked_attachments,
                     &mut agent_query,
-                    &input,
+                    &keyboard,
                 ),
                 HubTab::Missions => missions::show_missions(
                     ui,
@@ -295,7 +299,7 @@ pub fn hub_interaction_system(
                     &hub_databases.cities_db,
                     &mut commands,
                     &mut next_state,
-                    &input,
+                    &keyboard,
                 ),
             }
         });

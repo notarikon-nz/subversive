@@ -1,5 +1,11 @@
 // src/systems/isometric_camera.rs - Camera system for isometric view
-use bevy::prelude::*;
+use bevy::{
+    core_pipeline::{
+        bloom::{Bloom, BloomCompositeMode},
+        tonemapping::{DebandDither, Tonemapping},
+    },
+    prelude::*,
+};
 use bevy_light_2d::prelude::*;
 use crate::core::*;
 
@@ -65,6 +71,11 @@ pub fn setup_camera_lighting_and_physics(mut commands: Commands) {
         },
         // Enable smooth movement
         bevy_rapier2d::prelude::Velocity::default(),
+
+        // Bloom
+        Tonemapping::TonyMcMapface, // 2. Using a tonemapper that desaturates to white is recommended
+        Bloom::default(),           // 3. Enable bloom for the camera
+        DebandDither::Enabled,      // Optional: bloom causes gradients which cause banding        
     ));
 
     info!("Isometric camera initialized");

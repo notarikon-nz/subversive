@@ -3,6 +3,39 @@ use crate::core::*;
 use crate::systems::scanner::*;
 use crate::systems::npc_barks::*;
 
+// Input helper to reduce repetition
+pub struct MenuInput {
+    pub up: bool,
+    pub down: bool,
+    pub left: bool,
+    pub right: bool,
+    pub select: bool,
+    pub back: bool,
+    pub option: bool,
+}
+
+impl MenuInput {
+    pub fn new(keyboard: &ButtonInput<KeyCode>, gamepads: &Query<&Gamepad>) -> Self {
+        let gamepad_up = gamepads.iter().any(|g| g.just_pressed(GamepadButton::DPadUp));
+        let gamepad_down = gamepads.iter().any(|g| g.just_pressed(GamepadButton::DPadDown));
+        let gamepad_left = gamepads.iter().any(|g| g.just_pressed(GamepadButton::DPadLeft));
+        let gamepad_right = gamepads.iter().any(|g| g.just_pressed(GamepadButton::DPadRight));
+        let gamepad_select = gamepads.iter().any(|g| g.just_pressed(GamepadButton::South));
+        let gamepad_back = gamepads.iter().any(|g| g.just_pressed(GamepadButton::East));
+        let gamepad_option = gamepads.iter().any(|g| g.just_pressed(GamepadButton::West));
+
+        Self {
+            up: keyboard.just_pressed(KeyCode::KeyW) || keyboard.just_pressed(KeyCode::ArrowUp) || gamepad_up,
+            down: keyboard.just_pressed(KeyCode::KeyS) || keyboard.just_pressed(KeyCode::ArrowDown) || gamepad_down,
+            left: keyboard.just_pressed(KeyCode::KeyA) || keyboard.just_pressed(KeyCode::ArrowLeft) || gamepad_left,
+            right: keyboard.just_pressed(KeyCode::KeyD) || keyboard.just_pressed(KeyCode::ArrowRight) || gamepad_right,
+            select: keyboard.just_pressed(KeyCode::Space) || keyboard.just_pressed(KeyCode::Enter) || gamepad_select,
+            back: keyboard.just_pressed(KeyCode::Escape) || gamepad_back,
+            option: keyboard.just_pressed(KeyCode::KeyQ) || gamepad_option,
+        }
+    }
+}
+
 // Simplified input handler - remove duplicate movement handling
 pub fn handle_input(
     keyboard: Res<ButtonInput<KeyCode>>,

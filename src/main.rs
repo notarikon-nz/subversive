@@ -1,8 +1,15 @@
 // src/main.rs - Fixed system tuple parentheses
-use bevy::prelude::*;
+use bevy::{
+    core_pipeline::{
+        bloom::{Bloom, BloomCompositeMode},
+        tonemapping::{DebandDither, Tonemapping},
+    },
+    prelude::*,
+};
 use bevy_light_2d::prelude::*;
 use bevy::{color::palettes::css::{YELLOW}};
 
+// GOING
 use bevy_egui::{egui, EguiContexts, EguiPlugin};
 use bevy_ecs_tilemap::prelude::*;
 use bevy_rapier2d::prelude::*;
@@ -10,7 +17,7 @@ use bevy_rapier2d::prelude::*;
 use bevy::time::common_conditions::on_timer;
 
 use leafwing_input_manager::prelude::*;
-use std::sync::Arc; // fonts
+use std::sync::{Arc, Mutex};
 
 use systems::interactive_decals::*;
 use systems::explosion_decal_integration::*;
@@ -73,7 +80,6 @@ fn main() {
         .add_plugins(EguiPlugin::default()) // 0.2.5.4
         .add_plugins(TilemapPlugin)
         .add_plugins(Light2dPlugin)
-
         .register_type::<PlayerAction>()
         .register_type::<DecalDemoAction>()
 
@@ -229,9 +235,6 @@ fn main() {
             enhanced_pathfinding::setup_enhanced_pathfinding_grid, // 0.2.16 P2
         ))
         .add_systems(Startup, (
-
-            // urban_security::load_urban_config,
-
 //            setup_weather_tile_system,
 
             setup_cyberpunk2077_theme, // 0.2.5.4
@@ -1314,5 +1317,3 @@ pub fn spawn_hackable_test_objects(
 
     info!("Spawned hackable test objects: camera, ATM, turret, power station, 3 street lights, door");
 }
-
-

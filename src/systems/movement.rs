@@ -11,7 +11,7 @@ pub fn system(
         &MovementSpeed, 
         Option<&Enemy>,
         Option<&mut Patrol>,
-    )>,
+    ), Without<MarkedForDespawn>>,
     mut target_query: Query<&mut MoveTarget>,
     game_mode: Res<GameMode>,
     time: Res<Time>,

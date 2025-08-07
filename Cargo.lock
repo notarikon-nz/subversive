@@ -4934,6 +4934,7 @@ dependencies = [
  "bevy_egui",
  "bevy_light_2d",
  "bevy_rapier2d",
+ "bevy_ui",
  "egui_plot",
  "fastrand",
  "leafwing-input-manager",
