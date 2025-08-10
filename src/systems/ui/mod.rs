@@ -18,6 +18,8 @@ pub mod enhanced_inventory;
 pub mod inventory_integration;
 pub mod inventory_compatibility;
 
+pub mod layout;
+pub use layout::*;
 
 pub use screens::*;
 pub use hub::*;

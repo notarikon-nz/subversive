@@ -1,6 +1,6 @@
 [package]
 name = "subversive"
-version = "0.2.16"
+version = "0.2.17"
 edition = "2021"
 
 [dependencies]
@@ -24,6 +24,7 @@ bevy_ui = "0.16.1"
 
 bevy_ecs_tilemap = "0.16.0"
 nsvg = "0.5.1"
+bevy_asset = "0.16.1"
 # gamepads = "0.1.7"
 
 [profile.dev]

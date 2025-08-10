@@ -1,6 +1,6 @@
 {
   "credits": 14988,
-  "current_day": 77,
+  "current_day": 90,
   "agent_levels": [
     4,
     4,
@@ -125,10 +125,10 @@
       }
     },
     "unlocked_cities": [
-      "new_york",
       "chicago",
-      "toronto",
-      "miami"
+      "new_york",
+      "miami",
+      "toronto"
     ]
   },
   "recruited_scientists": [],

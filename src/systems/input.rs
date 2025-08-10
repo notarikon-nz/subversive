@@ -12,6 +12,8 @@ pub struct MenuInput {
     pub select: bool,
     pub back: bool,
     pub option: bool,
+    pub shoulder_left: bool,
+    pub shoulder_right: bool,
 }
 
 impl MenuInput {
@@ -23,6 +25,8 @@ impl MenuInput {
         let gamepad_select = gamepads.iter().any(|g| g.just_pressed(GamepadButton::South));
         let gamepad_back = gamepads.iter().any(|g| g.just_pressed(GamepadButton::East));
         let gamepad_option = gamepads.iter().any(|g| g.just_pressed(GamepadButton::West));
+        let gamepad_shoulder_left  = gamepads.iter().any(|g| g.just_pressed(GamepadButton::LeftTrigger));
+        let gamepad_shoulder_right = gamepads.iter().any(|g| g.just_pressed(GamepadButton::RightTrigger));
 
         Self {
             up: keyboard.just_pressed(KeyCode::KeyW) || keyboard.just_pressed(KeyCode::ArrowUp) || gamepad_up,
@@ -32,6 +36,8 @@ impl MenuInput {
             select: keyboard.just_pressed(KeyCode::Space) || keyboard.just_pressed(KeyCode::Enter) || gamepad_select,
             back: keyboard.just_pressed(KeyCode::Escape) || gamepad_back,
             option: keyboard.just_pressed(KeyCode::KeyQ) || gamepad_option,
+            shoulder_left: keyboard.just_pressed(KeyCode::Comma) || gamepad_shoulder_left,
+            shoulder_right: keyboard.just_pressed(KeyCode::Period) || gamepad_shoulder_right,
         }
     }
 }

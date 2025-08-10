@@ -57,7 +57,7 @@ pub enum RoadType {
     ParkingLot,
 }
 
-#[derive(Component)]
+#[derive(Component, Default)]
 pub struct TrafficFlow {
     pub current_lane: u8,
     pub target_lane: u8,

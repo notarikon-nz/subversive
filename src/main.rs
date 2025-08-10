@@ -37,7 +37,10 @@ use systems::input::*;
 // 0.2.17
 use crate::core::territory::*;
 use crate::systems::territory_events::{TerritoryControlEvent};
+use crate::systems::profiling::PerformanceMetrics;
 
+// XAML UI
+use crate::systems::ui::layout::{UILayoutCache, setup_ui_layout_system};
 mod core;
 mod systems;
 
@@ -50,7 +53,8 @@ use systems::explosions::*;
 use systems::projectiles::*;
 use systems::ui::{loading_system};
 use systems::world_scan::{WorldScanState, WorldScanEvent, EntityScannedEvent};
-
+use systems::ui::hub::research::{research_navigation_system,ResearchUIState};
+use systems::ui::settings::{GameSettings};
 // USER INTERFACE
 use systems::ui::hub::{CyberneticsDatabase, HubState, HubDatabases};
 use systems::ui::hub::agents::AgentManagementState;
@@ -70,13 +74,17 @@ fn main() {
             primary_window: Some(Window {
                 title: "Subversive".to_string(),
                 resolution: (1280.0, 720.0).into(),
+                // Add performance monitoring
+                present_mode: bevy::window::PresentMode::AutoVsync,                
                 ..default()
             }),
             ..default()
         }))
+        .add_plugins(ProfilingPlugin)
+
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.0))
         .add_plugins(InputManagerPlugin::<PlayerAction>::default())
-        .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin::default())
+        // .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin::default())
         .add_plugins(EguiPlugin::default()) // 0.2.5.4
         .add_plugins(TilemapPlugin)
         .add_plugins(Light2dPlugin)
@@ -85,6 +93,7 @@ fn main() {
 
         .init_state::<GameState>()
 
+        .init_resource::<GameSettings>()
         .init_resource::<GameMode>()
         .init_resource::<FontsLoaded>()
         .init_resource::<SelectionState>()
@@ -120,6 +129,7 @@ fn main() {
         .insert_resource(global_data)
         .insert_resource(research_progress)
 
+        .init_resource::<ResearchUIState>()
         .insert_resource(ResearchDatabase::load())
         .insert_resource(CyberneticsDatabase::load())
         .insert_resource(TraitsDatabase::load())
@@ -186,6 +196,9 @@ fn main() {
         .init_resource::<SingaporeMapState>()
         .init_resource::<SingaporeVectorMap>()
 
+        // XAML UI
+        .init_resource::<UILayoutCache>()
+
         // older
         .add_event::<ActionEvent>()
         .add_event::<CombatEvent>()
@@ -249,6 +262,9 @@ fn main() {
             // Initialize settings resources
             setup_cursor_settings,
             setup_prompt_settings,
+
+            // XAML UI
+            setup_ui_layout_system,
         ))
 
         .add_systems(PostStartup, (
@@ -281,6 +297,8 @@ fn main() {
 
             advanced_prompts::advanced_prompt_system,
             advanced_prompts::distance_fade_system,
+
+            despawn::despawn_marked_entities,
         ).chain())    // Leave .chain() to ensure proper execution order
 
         .add_systems(Update, (
@@ -294,24 +312,35 @@ fn main() {
         ).run_if(in_state(GameState::MainMenu)))
 
         // SETTINGS
+        .add_systems(OnEnter(GameState::Settings), (
+            settings::setup_settings_ui
+        ))
+
         .add_systems(Update, (
-            settings::settings_system_egui,
+            settings::settings_system_bevy_ui,
         ).run_if(in_state(GameState::Settings)))
 
+        .add_systems(OnExit(GameState::Settings), (
+            settings::cleanup_settings_ui
+        ))
+
+
+
+        
         // CREDITS
-        .add_systems(Update, (
-            credits::credits_system_egui,
-        ).run_if(in_state(GameState::Credits)))
+        .add_systems(OnEnter(GameState::Credits), (credits::setup_credits_ui))
+        .add_systems(Update, (credits::credits_system_bevy_ui,).run_if(in_state(GameState::Credits)))
+        .add_systems(OnExit(GameState::Credits), (credits::cleanup_credits_ui))
 
         // UI HUB
         .add_systems(OnEnter(GameState::GlobalMap), (
+
             ui::cleanup_global_map_ui,
             ui::reset_hub_to_global_map,
         ))
 
         .add_systems(Update,(
-
-            despawn::despawn_marked_entities,
+            research_navigation_system,
             // 0.2.17
             territory::territory_daily_update_system,
 
@@ -385,7 +414,9 @@ fn main() {
 
         // 0.2.16
         .add_systems(Update, (
-            movement::system,
+             
+            movement::system.pipe(profile_system("movement")),
+            
             // REPLACE: camera::movement,
             isometric_camera_movement, // USE THIS INSTEAD
             camera_edge_scrolling,
@@ -396,19 +427,18 @@ fn main() {
 
             selection::system,
             handle_input,
-            // handle_isometric_mouse_input, // removed, event system does it all
 
-            // ADD: Isometric depth sorting
-            isometric_depth_sorting,
+            tilemap_props::isometric_depth_sorting.pipe(profile_system("depth_sorting")),
+
         ).run_if(in_state(GameState::Mission)))
 
         // Core AI Systems
         .add_systems(Update, (
-            goap::goap_ai_system,
+            goap::goap_ai_system.pipe(profile_system("goap_ai")),
 
             ai::goap_sound_detection_system,
             ai::alert_system,
-            ai::legacy_enemy_ai_system,
+            ai::legacy_enemy_ai_system.pipe(profile_system("legacy_ai")),
             ai::sound_detection_system,
 
             morale::morale_system,
@@ -455,11 +485,10 @@ fn main() {
             // === ENHANCED PATHFINDING ===
             update_enhanced_pathfinding_system,
  
-            // REPLACE: pathfinding::pathfinding_movement_system,
-            enhanced_movement_system, // USE THIS INSTEAD
+            enhanced_pathfinding::enhanced_movement_system.pipe(profile_system("pathfinding")),
  
             // === VISION AND COVER ===
-            enhanced_vision_system,
+            enhanced_vision_system.pipe(profile_system("vision")),
             enhanced_cover_system,
  
         ).run_if(in_state(GameState::Mission)))
@@ -701,7 +730,7 @@ fn main() {
             mission::check_completion,
 
             // ALWAYS LAST
-            despawn::despawn_marked_entities,
+            
         ).run_if(in_state(GameState::Mission)))
 
         // 0.2.14
@@ -750,6 +779,26 @@ fn main() {
 
         .run();
 }
+
+// Helper function to profile systems
+fn profile_system<T>(name: &'static str) -> impl Fn(In<T>, ResMut<PerformanceMetrics>) -> T {
+    move |input: In<T>, mut metrics: ResMut<PerformanceMetrics>| {
+        let start = std::time::Instant::now();
+        let result = input.0;
+        
+        let elapsed = start.elapsed().as_secs_f32() * 1000.0;
+        match name {
+            "movement" => metrics.physics_ms = elapsed,
+            "depth_sorting" => metrics.depth_sort_ms = elapsed,
+            "goap_ai" | "legacy_ai" => metrics.ai_ms += elapsed,
+            "pathfinding" => metrics.pathfinding_ms = elapsed,
+            _ => {}
+        }
+        
+        result
+    }
+}
+
 
 // === TESTING SCENARIOS ===
 

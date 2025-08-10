@@ -1,8 +1,25 @@
-// src/systems/ui/hub/research.rs - Enhanced research UI with queue management and scientists
+// src/systems/ui/hub/research.rs - Fixed research UI without collapsing widgets
 use bevy::prelude::*;
 use bevy_egui::egui;
 use crate::core::*;
 use std::collections::HashMap;
+use crate::systems::input::{MenuInput};
+
+#[derive(Resource, Default)]
+pub struct ResearchUIState {
+    pub selected_section: ResearchSection,
+    pub selected_project: usize,
+    pub selected_scientist: usize,
+    pub scroll_position: f32,
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
+pub enum ResearchSection {
+    #[default]
+    Queue,
+    Available,
+    Scientists,
+}
 
 pub fn show_research(
     ui: &mut egui::Ui,
@@ -38,40 +55,26 @@ pub fn show_research(
     ui.columns(3, |columns| {
         // COLUMN 1: ACTIVE RESEARCH QUEUE
         columns[0].heading("ACTIVE RESEARCH");
-        show_research_queue(&mut columns[0], research_progress, research_db, scientist_query);
+        show_research_queue_flat(&mut columns[0], research_progress, research_db, scientist_query);
         
         // COLUMN 2: AVAILABLE PROJECTS  
         columns[1].heading("AVAILABLE PROJECTS");
-        show_available_projects(&mut columns[1], global_data, research_progress, research_db, scientist_query);
+        show_available_projects_flat(&mut columns[1], global_data, research_progress, research_db, scientist_query);
         
         // COLUMN 3: SCIENTISTS
         columns[2].heading("RESEARCH TEAM");
-        show_scientists(&mut columns[2], global_data, scientist_query);
+        show_scientists_flat(&mut columns[2], global_data, scientist_query);
     });
     
-    ui.separator();
-    
-    // === BOTTOM SECTION: ESPIONAGE DATA ===
+    // === BOTTOM SECTION: STOLEN DATA (Always Visible) ===
     if !research_progress.stolen_data.is_empty() {
-        ui.collapsing("STOLEN RESEARCH DATA", |ui| {
-            egui::ScrollArea::vertical().max_height(100.0).show(ui, |ui| {
-                for (project_id, progress) in &research_progress.stolen_data {
-                    if let Some(project) = research_db.get_project(project_id) {
-                        ui.horizontal(|ui| {
-                            ui.colored_label(egui::Color32::from_rgb(150, 100, 200), "📊");
-                            ui.label(&project.name);
-                            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                                ui.colored_label(egui::Color32::GREEN, format!("{:.0}% stolen", progress * 100.0));
-                            });
-                        });
-                    }
-                }
-            });
-        });
+        ui.separator();
+        ui.heading("STOLEN RESEARCH DATA");
+        show_stolen_data_flat(ui, research_progress, research_db);
     }
 }
 
-fn show_research_queue(
+fn show_research_queue_flat(
     ui: &mut egui::Ui,
     research_progress: &mut ResearchProgress,
     research_db: &ResearchDatabase,
@@ -82,62 +85,72 @@ fn show_research_queue(
         return;
     }
     
-    egui::ScrollArea::vertical().show(ui, |ui| {
-        for (i, active) in research_progress.active_queue.iter().enumerate() {
-            if let Some(project) = research_db.get_project(&active.project_id) {
-                ui.group(|ui| {
-                    // Project name and priority
-                    ui.horizontal(|ui| {
-                        let priority_color = match active.priority {
-                            ResearchPriority::Low => egui::Color32::GRAY,
-                            ResearchPriority::Normal => egui::Color32::WHITE,
-                            ResearchPriority::High => egui::Color32::YELLOW,
-                            ResearchPriority::Critical => egui::Color32::RED,
-                        };
-                        ui.colored_label(priority_color, format!("#{}", i + 1));
-                        ui.label(&project.name);
-                    });
-                    
-                    // Progress bar
-                    let progress_bar = egui::ProgressBar::new(active.progress)
-                        .text(format!("{:.0}%", active.progress * 100.0));
-                    ui.add(progress_bar);
-                    
-                    // Time and scientist info
-                    ui.horizontal(|ui| {
-                        ui.weak(format!("{:.1} days left", active.time_remaining));
+    egui::ScrollArea::vertical()
+        .max_height(400.0)
+        .show(ui, |ui| {
+            for (i, active) in research_progress.active_queue.iter().enumerate() {
+                if let Some(project) = research_db.get_project(&active.project_id) {
+                    ui.group(|ui| {
+                        // Project header with priority
+                        ui.horizontal(|ui| {
+                            let priority_color = match active.priority {
+                                ResearchPriority::Low => egui::Color32::GRAY,
+                                ResearchPriority::Normal => egui::Color32::WHITE,
+                                ResearchPriority::High => egui::Color32::YELLOW,
+                                ResearchPriority::Critical => egui::Color32::RED,
+                            };
+                            ui.colored_label(priority_color, format!("#{}", i + 1));
+                            ui.strong(&project.name);
+                        });
                         
+                        // Progress bar
+                        let progress_bar = egui::ProgressBar::new(active.progress)
+                            .text(format!("{:.0}%", active.progress * 100.0));
+                        ui.add(progress_bar);
+                        
+                        // Time remaining
+                        ui.label(format!("Days Left: {:.1}", active.time_remaining));
+                        
+                        // Assigned scientist info
                         if let Some(scientist_entity) = active.assigned_scientist {
                             if let Ok((_, scientist)) = scientist_query.get(scientist_entity) {
-                                ui.separator();
-                                ui.colored_label(egui::Color32::CYAN, &scientist.name);
-                                ui.weak(format!("({:.1}x speed)", scientist.productivity_bonus));
+                                ui.horizontal(|ui| {
+                                    ui.colored_label(egui::Color32::CYAN, format!("Scientist: {}", scientist.name));
+                                    ui.label(format!("Speed: {:.1}x", scientist.productivity_bonus));
+                                });
                             }
                         } else {
-                            ui.separator();
-                            ui.colored_label(egui::Color32::RED, "No scientist assigned");
+                            ui.colored_label(egui::Color32::RED, "⚠ No scientist assigned");
                         }
+                        
+                        // Project benefits (always visible)
+                        ui.label("Benefits:");
+                        ui.indent(format!("benefits_{}", i), |ui| {
+                            for benefit in &project.benefits {
+                                show_research_benefit_inline(ui, benefit);
+                            }
+                        });
+                        
+                        // Action buttons
+                        ui.horizontal(|ui| {
+                            if ui.small_button("↑ Priority").clicked() {
+                                // Priority increase logic
+                            }
+                            if ui.small_button("⏸ Pause").clicked() {
+                                // Pause logic
+                            }
+                            if ui.small_button("❌ Cancel").clicked() {
+                                // Cancel logic
+                            }
+                        });
                     });
-                    
-                    // Management buttons
-                    ui.horizontal(|ui| {
-                        if ui.small_button("↑ Priority").clicked() {
-                            // Increase priority logic here
-                        }
-                        if ui.small_button("⏸ Pause").clicked() {
-                            // Pause/resume logic here  
-                        }
-                        if ui.small_button("❌ Cancel").clicked() {
-                            // Cancel project logic here
-                        }
-                    });
-                });
+                    ui.add_space(4.0);
+                }
             }
-        }
-    });
+        });
 }
 
-fn show_available_projects(
+fn show_available_projects_flat(
     ui: &mut egui::Ui,
     global_data: &mut GlobalData,
     research_progress: &mut ResearchProgress,
@@ -152,94 +165,95 @@ fn show_available_projects(
         return;
     }
     
-    egui::ScrollArea::vertical().show(ui, |ui| {
-        for project in available_projects {
-            ui.group(|ui| {
-                // Header
-                ui.horizontal(|ui| {
-                    let category_color = get_category_color(project.category);
-                    ui.colored_label(category_color, format!("[{:?}]", project.category));
-                    ui.heading(&project.name);
-                });
-                
-                // Description and time
-                ui.label(&project.description);
-                ui.horizontal(|ui| {
-                    ui.weak(format!("Time: {:.1} days", project.base_time_days));
-                    ui.separator();
-                    ui.weak(format!("Difficulty: {:?}", project.difficulty));
-                });
-                
-                // Cost and stolen data bonus
-                ui.horizontal(|ui| {
-                    let can_afford = global_data.credits >= project.cost;
-                    let cost_color = if can_afford { egui::Color32::WHITE } else { egui::Color32::RED };
-                    ui.colored_label(cost_color, format!("Cost: ${}", project.cost));
+    egui::ScrollArea::vertical()
+        .max_height(400.0)
+        .show(ui, |ui| {
+            for (proj_idx, project) in available_projects.iter().enumerate() {
+                ui.group(|ui| {
+                    // Project header
+                    ui.horizontal(|ui| {
+                        let category_color = get_category_color(project.category);
+                        ui.colored_label(category_color, format!("{:?}", project.category));
+                        ui.strong(&project.name);
+                    });
                     
-                    if let Some(&stolen_progress) = research_progress.stolen_data.get(&project.id) {
+                    // Description
+                    ui.label(&project.description);
+                    
+                    // Stats row
+                    ui.horizontal(|ui| {
+                        ui.label(format!("Time: {:.1} days", project.base_time_days));
                         ui.separator();
-                        ui.colored_label(egui::Color32::GREEN, format!("Data: {:.0}%", stolen_progress * 100.0));
-                    }
-                });
-                
-                // Benefits preview
-                ui.collapsing("Benefits", |ui| {
-                    for benefit in &project.benefits {
-                        show_research_benefit(ui, benefit);
-                    }
-                });
-                
-                // Action buttons
-                ui.horizontal(|ui| {
-                    let can_start = global_data.credits >= project.cost && 
-                                  research_progress.active_queue.len() < 5;
+                        ui.label(format!("Difficulty: {:?}", project.difficulty));
+                    });
                     
-                    // Start Research button
-                    if ui.add_enabled(can_start, egui::Button::new("🔬 Start Research")).clicked() {
-                        start_research_project(
-                            &project.id,
-                            find_best_scientist(&project.category, scientist_query),
-                            global_data,
-                            research_progress,
-                            research_db,
-                        );
-                    }
-                    
-                    // Prototype button (if available)
-                    if project.prototype_available && !research_progress.prototypes.contains(&project.id) {
-                        let prototype_cost = project.cost * 3;
-                        let can_prototype = global_data.credits >= prototype_cost;
+                    // Cost and stolen data
+                    ui.horizontal(|ui| {
+                        let can_afford = global_data.credits >= project.cost;
+                        let cost_color = if can_afford { egui::Color32::WHITE } else { egui::Color32::RED };
+                        ui.colored_label(cost_color, format!("Cost: ${}", project.cost));
                         
-                        if ui.add_enabled(can_prototype, egui::Button::new("⚡ Prototype")).clicked() {
-                            // Prototype acquisition logic would go here
-                            if global_data.credits >= prototype_cost {
-                                global_data.credits -= prototype_cost;
-                                research_progress.prototypes.insert(project.id.clone());
-                                info!("Acquired prototype: {}", project.name);
-                            }
-                        }
-                        
-                        if ui.small_button("?").on_hover_text("Use immediately at 3x cost, risky but fast").clicked() {}
-                    }
-                });
-                
-                // Prerequisites warning
-                if !project.prerequisites.is_empty() {
-                    ui.collapsing("Prerequisites", |ui| {
-                        for req in &project.prerequisites {
-                            let completed = research_progress.completed.contains(req);
-                            let color = if completed { egui::Color32::GREEN } else { egui::Color32::RED };
-                            let icon = if completed { "✓" } else { "✗" };
-                            ui.colored_label(color, format!("{} {}", icon, req));
+                        if let Some(&stolen_progress) = research_progress.stolen_data.get(&project.id) {
+                            ui.separator();
+                            ui.colored_label(egui::Color32::GREEN, format!("Stolen Data: {:.0}%", stolen_progress * 100.0));
                         }
                     });
-                }
-            });
-        }
-    });
+                    
+                    // Benefits (always visible, no collapsing)
+                    ui.label("Benefits:");
+                    ui.indent(format!("proj_benefits_{}", proj_idx), |ui| {
+                        for benefit in &project.benefits {
+                            show_research_benefit_inline(ui, benefit);
+                        }
+                    });
+                    
+                    // Prerequisites (if any)
+                    if !project.prerequisites.is_empty() {
+                        ui.label("Prerequisites:");
+                        ui.indent(format!("proj_prereq_{}", proj_idx), |ui| {
+                            for req in &project.prerequisites {
+                                let completed = research_progress.completed.contains(req);
+                                let (icon, color) = if completed { ("✓", egui::Color32::GREEN) } else { ("✗", egui::Color32::RED) };
+                                ui.colored_label(color, format!("{} {}", icon, req));
+                            }
+                        });
+                    }
+                    
+                    // Action buttons
+                    ui.horizontal(|ui| {
+                        let can_start = global_data.credits >= project.cost && research_progress.active_queue.len() < 5;
+                        
+                        if ui.add_enabled(can_start, egui::Button::new("🔬 Start Research")).clicked() {
+                            start_research_project(
+                                &project.id,
+                                find_best_scientist(&project.category, scientist_query),
+                                global_data,
+                                research_progress,
+                                research_db,
+                            );
+                        }
+                        
+                        // Prototype button
+                        if project.prototype_available && !research_progress.prototypes.contains(&project.id) {
+                            let prototype_cost = project.cost * 3;
+                            let can_prototype = global_data.credits >= prototype_cost;
+                            
+                            if ui.add_enabled(can_prototype, egui::Button::new(format!("⚡ Prototype (${}))", prototype_cost))).clicked() {
+                                if global_data.credits >= prototype_cost {
+                                    global_data.credits -= prototype_cost;
+                                    research_progress.prototypes.insert(project.id.clone());
+                                    info!("Acquired prototype: {}", project.name);
+                                }
+                            }
+                        }
+                    });
+                });
+                ui.add_space(4.0);
+            }
+        });
 }
 
-fn show_scientists(
+fn show_scientists_flat(
     ui: &mut egui::Ui,
     global_data: &mut GlobalData,
     scientist_query: &Query<(Entity, &Scientist)>,
@@ -254,74 +268,98 @@ fn show_scientists(
         return;
     }
     
-    egui::ScrollArea::vertical().show(ui, |ui| {
-        for (entity, scientist) in recruited_scientists {
-            ui.group(|ui| {
-                // Scientist name and specialization
-                ui.horizontal(|ui| {
-                    let spec_color = get_category_color(scientist.specialization);
-                    ui.colored_label(spec_color, &scientist.name);
-                    ui.weak(format!("({:?})", scientist.specialization));
-                });
-                
-                // Stats
-                ui.horizontal(|ui| {
-                    ui.weak(format!("Productivity: {:.1}x", scientist.productivity_bonus));
-                    ui.separator();
-                    ui.weak(format!("Loyalty: {:.0}%", scientist.loyalty * 100.0));
-                    ui.separator();
-                    ui.weak(format!("Salary: ${}/day", scientist.daily_salary));
-                });
-                
-                // Current assignment
-                if let Some(project_id) = &scientist.current_project {
-                    ui.colored_label(egui::Color32::GREEN, format!("Working on: {}", project_id));
-                } else {
-                    ui.colored_label(egui::Color32::YELLOW, "Available for assignment");
-                }
-                
-                // Management buttons
-                ui.horizontal(|ui| {
-                    if ui.small_button("📋 Assign").clicked() {
-                        // Assignment logic here
+    egui::ScrollArea::vertical()
+        .max_height(200.0)
+        .show(ui, |ui| {
+            for (entity, scientist) in recruited_scientists {
+                ui.group(|ui| {
+                    // Name and specialization
+                    ui.horizontal(|ui| {
+                        let spec_color = get_category_color(scientist.specialization);
+                        ui.colored_label(spec_color, &scientist.name);
+                        ui.weak(format!("({:?})", scientist.specialization));
+                    });
+                    
+                    // Stats in readable format
+                    ui.label(format!("Productivity: {:.1}x", scientist.productivity_bonus));
+                    ui.label(format!("Loyalty: {:.0}%", scientist.loyalty * 100.0));
+                    ui.label(format!("Salary: ${}/day", scientist.daily_salary));
+                    
+                    // Assignment status
+                    if let Some(project_id) = &scientist.current_project {
+                        ui.colored_label(egui::Color32::GREEN, format!("Working: {}", project_id));
+                    } else {
+                        ui.colored_label(egui::Color32::YELLOW, "Available");
                     }
-                    if ui.small_button("💰 Bonus").clicked() {
-                        // Loyalty bonus logic here
-                    }
+                    
+                    // Quick actions
+                    ui.horizontal(|ui| {
+                        if ui.small_button("📋 Assign").clicked() {
+                            // Assignment logic
+                        }
+                        if ui.small_button("💰 Bonus").clicked() {
+                            // Loyalty bonus
+                        }
+                    });
                 });
-            });
-        }
-    });
+                ui.add_space(2.0);
+            }
+        });
     
-    // Show unrecruited scientists found in world
+    // Show discovered but unrecruited scientists
     let unrecruited_scientists: Vec<_> = scientist_query.iter()
         .filter(|(_, s)| !s.is_recruited)
         .collect();
     
     if !unrecruited_scientists.is_empty() {
         ui.separator();
-        ui.collapsing(format!("DISCOVERED SCIENTISTS ({})", unrecruited_scientists.len()), |ui| {
-            for (entity, scientist) in unrecruited_scientists {
-                ui.horizontal(|ui| {
-                    let spec_color = get_category_color(scientist.specialization);
-                    ui.colored_label(spec_color, &scientist.name);
-                    ui.weak(format!("({:?})", scientist.specialization));
-                    
-                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        let can_recruit = global_data.credits >= scientist.recruitment_cost;
-                        if ui.add_enabled(can_recruit, egui::Button::new("Recruit")).clicked() {
-                            // Recruitment would be handled by event system
-                            info!("Attempting to recruit: {}", scientist.name);
-                        }
-                        ui.weak(format!("${}", scientist.recruitment_cost));
+        ui.strong(format!("DISCOVERED SCIENTISTS ({})", unrecruited_scientists.len()));
+        
+        egui::ScrollArea::vertical()
+            .max_height(150.0)
+            .show(ui, |ui| {
+                for (entity, scientist) in unrecruited_scientists {
+                    ui.horizontal(|ui| {
+                        let spec_color = get_category_color(scientist.specialization);
+                        ui.colored_label(spec_color, &scientist.name);
+                        ui.weak(format!("({:?})", scientist.specialization));
+                        
+                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                            let can_recruit = global_data.credits >= scientist.recruitment_cost;
+                            if ui.add_enabled(can_recruit, egui::Button::new("Recruit")).clicked() {
+                                info!("Attempting to recruit: {}", scientist.name);
+                            }
+                            ui.weak(format!("${}", scientist.recruitment_cost));
+                        });
                     });
-                });
-            }
-        });
+                }
+            });
     }
 }
 
-fn show_research_benefit(ui: &mut egui::Ui, benefit: &ResearchBenefit) {
+fn show_stolen_data_flat(
+    ui: &mut egui::Ui,
+    research_progress: &ResearchProgress,
+    research_db: &ResearchDatabase,
+) {
+    egui::ScrollArea::vertical()
+        .max_height(100.0)
+        .show(ui, |ui| {
+            for (project_id, progress) in &research_progress.stolen_data {
+                if let Some(project) = research_db.get_project(project_id) {
+                    ui.horizontal(|ui| {
+                        ui.colored_label(egui::Color32::from_rgb(150, 100, 200), "📊");
+                        ui.label(&project.name);
+                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                            ui.colored_label(egui::Color32::GREEN, format!("{:.0}% stolen", progress * 100.0));
+                        });
+                    });
+                }
+            }
+        });
+}
+
+fn show_research_benefit_inline(ui: &mut egui::Ui, benefit: &ResearchBenefit) {
     let (icon, text, color) = match benefit {
         ResearchBenefit::UnlockAttachment(id) => 
             ("🔧", format!("Unlock attachment: {}", id), egui::Color32::from_rgb(150, 200, 150)),
@@ -364,154 +402,77 @@ fn find_best_scientist(
         .map(|(entity, _)| entity)
 }
 
-// === ADVANCED RESEARCH UI FEATURES ===
-
-pub fn show_technology_tree(
-    ui: &mut egui::Ui,
-    research_progress: &ResearchProgress,
+fn start_research_project(
+    project_id: &str,
+    scientist_entity: Option<Entity>,
+    global_data: &mut GlobalData,
+    research_progress: &mut ResearchProgress,
     research_db: &ResearchDatabase,
 ) {
-    ui.heading("TECHNOLOGY TREE");
-    
-    // Group projects by category - use explicit HashMap import
-    let mut categories: HashMap<ResearchCategory, Vec<&ResearchProject>> = HashMap::new();
-    
-    for project in &research_db.projects {
-        categories.entry(project.category).or_insert_with(Vec::new).push(project);
-    }
-    
-    // Show each category as a column
-    ui.columns(4, |columns| {
-        let cats = [ResearchCategory::Weapons, ResearchCategory::Equipment, 
-                   ResearchCategory::Cybernetics, ResearchCategory::Intelligence];
-        
-        for (i, &category) in cats.iter().enumerate() {
-            columns[i].vertical(|ui| {
-                ui.colored_label(get_category_color(category), format!("{:?}", category));
-                ui.separator();
-                
-                if let Some(projects) = categories.get(&category) {
-                    for project in projects {
-                        let status = if research_progress.completed.contains(&project.id) {
-                            ("✓", egui::Color32::GREEN)
-                        } else if research_progress.active_queue.iter().any(|a| a.project_id == project.id) {
-                            ("⏳", egui::Color32::YELLOW)  
-                        } else if research_db.projects.iter().find(|p| p.id == project.id)
-                            .map_or(false, |p| p.prerequisites.iter().all(|req| research_progress.completed.contains(req))) {
-                            ("○", egui::Color32::WHITE)
-                        } else {
-                            ("🔒", egui::Color32::GRAY)
-                        };
-                        
-                        ui.horizontal(|ui| {
-                            ui.colored_label(status.1, status.0);
-                            ui.weak(&project.name);
-                        });
-                    }
-                }
-            });
-        }
-    });
-}
-
-pub fn show_research_analytics(
-    ui: &mut egui::Ui,
-    research_progress: &ResearchProgress,
-    scientist_query: &Query<(Entity, &Scientist)>,
-) {
-    ui.collapsing("RESEARCH ANALYTICS", |ui| {
-        // Investment summary
-        ui.horizontal(|ui| {
-            ui.label("Total Investment:");
-            ui.colored_label(egui::Color32::YELLOW, format!("${}", research_progress.credits_invested));
-            ui.separator();
+    if let Some(project) = research_db.get_project(project_id) {
+        if global_data.credits >= project.cost && research_progress.active_queue.len() < 5 {
+            global_data.credits -= project.cost;
             
-            let daily_salaries: u32 = scientist_query.iter()
-                .filter(|(_, s)| s.is_recruited)
-                .map(|(_, s)| s.daily_salary)
-                .sum();
-            ui.label("Daily Costs:");
-            ui.colored_label(egui::Color32::RED, format!("${}/day", daily_salaries));
-        });
-        
-        // Productivity metrics
-        let avg_productivity: f32 = scientist_query.iter()
-            .filter(|(_, s)| s.is_recruited)
-            .map(|(_, s)| s.productivity_bonus)
-            .sum::<f32>() / scientist_query.iter().filter(|(_, s)| s.is_recruited).count().max(1) as f32;
-        
-        ui.horizontal(|ui| {
-            ui.label("Team Productivity:");
-            ui.colored_label(egui::Color32::CYAN, format!("{:.2}x average", avg_productivity));
-        });
-        
-        // Queue efficiency
-        if !research_progress.active_queue.is_empty() {
-            let total_progress: f32 = research_progress.active_queue.iter().map(|a| a.progress).sum();
-            let avg_progress = total_progress / research_progress.active_queue.len() as f32;
+            let active_research = ActiveResearch {
+                project_id: project_id.to_string(),
+                progress: 0.0,
+                time_remaining: project.base_time_days,
+                completion_time: project.base_time_days,
+                assigned_scientist: scientist_entity,
+                priority: ResearchPriority::Normal,
+            };
             
-            ui.horizontal(|ui| {
-                ui.label("Queue Progress:");
-                ui.colored_label(egui::Color32::GREEN, format!("{:.1}% average", avg_progress * 100.0));
-            });
+            research_progress.active_queue.push(active_research);
+            info!("Started research project: {}", project.name);
         }
-    });
+    }
 }
 
-
-// TO BE ADDED
-pub fn auto_assign_scientists(
-    mut research_progress: ResMut<ResearchProgress>,
-    scientist_query: Query<(Entity, &Scientist)>,
-    research_db: Res<ResearchDatabase>,
+// Keyboard/Gamepad navigation system (add to your main systems)
+pub fn research_navigation_system(
+    mut ui_state: ResMut<ResearchUIState>,
+    keyboard: Res<ButtonInput<KeyCode>>,
+    gamepads: Query<&Gamepad>,
 ) {
-    // Auto-assign available scientists to unassigned projects
-    for active in &mut research_progress.active_queue {
-        if active.assigned_scientist.is_none() {
-            if let Some(project) = research_db.get_project(&active.project_id) {
-                // Find best available scientist for this category
-                let best_scientist = scientist_query.iter()
-                    .filter(|(_, s)| {
-                        s.is_recruited && 
-                        s.current_project.is_none() &&
-                        s.specialization == project.category
-                    })
-                    .max_by(|(_, a), (_, b)| {
-                        a.productivity_bonus.partial_cmp(&b.productivity_bonus).unwrap()
-                    });
-                
-                if let Some((entity, _)) = best_scientist {
-                    active.assigned_scientist = Some(entity);
-                    info!("Auto-assigned scientist to {}", active.project_id);
-                }
-            }
+    let input = MenuInput::new(&keyboard, &gamepads);
+
+    // Tab navigation with Q/E or shoulder buttons
+    if input.option {
+        ui_state.selected_section = match ui_state.selected_section {
+            ResearchSection::Queue => ResearchSection::Scientists,
+            ResearchSection::Available => ResearchSection::Queue,
+            ResearchSection::Scientists => ResearchSection::Available,
+        };
+    }
+    
+    if keyboard.just_pressed(KeyCode::KeyE) {
+        ui_state.selected_section = match ui_state.selected_section {
+            ResearchSection::Queue => ResearchSection::Available,
+            ResearchSection::Available => ResearchSection::Scientists,
+            ResearchSection::Scientists => ResearchSection::Queue,
+        };
+    }
+    
+    // Vertical navigation with arrow keys or D-pad
+    if input.up {
+        match ui_state.selected_section {
+            ResearchSection::Queue => ui_state.selected_project = ui_state.selected_project.saturating_sub(1),
+            ResearchSection::Available => ui_state.selected_project = ui_state.selected_project.saturating_sub(1),
+            ResearchSection::Scientists => ui_state.selected_scientist = ui_state.selected_scientist.saturating_sub(1),
         }
     }
+    
+    if input.down {
+        match ui_state.selected_section {
+            ResearchSection::Queue => ui_state.selected_project = ui_state.selected_project.saturating_add(1),
+            ResearchSection::Available => ui_state.selected_project = ui_state.selected_project.saturating_add(1),
+            ResearchSection::Scientists => ui_state.selected_scientist = ui_state.selected_scientist.saturating_add(1),
+        }
+    }
+    
+    // Action with Space/Enter or A button
+    if input.select || keyboard.just_pressed(KeyCode::Enter) {
+        // Trigger action based on current selection
+        info!("Action triggered for selected item in {:?} section", ui_state.selected_section);
+    }
 }
-
-pub fn research_recommendations(
-    research_progress: &ResearchProgress,
-    research_db: &ResearchDatabase,
-    global_data: &GlobalData,
-) -> Vec<String> {
-    let mut recommendations = Vec::new();
-    
-    // Recommend based on current credits
-    if global_data.credits > 5000 {
-        recommendations.push("Consider high-value Intelligence research".to_string());
-    }
-    
-    // Recommend based on mission difficulty
-    if global_data.alert_level > 3 {
-        recommendations.push("Focus on stealth and counter-surveillance tech".to_string());
-    }
-    
-    // Recommend prerequisite completion
-    let available = research_db.get_available_projects(research_progress);
-    if available.is_empty() {
-        recommendations.push("Complete current research to unlock new projects".to_string());
-    }
-    
-    recommendations
-}
-

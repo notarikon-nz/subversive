@@ -1,0 +1,157 @@
+{
+  "name": "settings",
+  "variables": {
+    "screen_title": "SETTINGS",
+    "back_button_text": "Back to Menu (ESC)",
+    "panel_width": "500px"
+  },
+  "actions": {
+    "back_action": {
+      "component": "BackButton"
+    },
+    "volume_action": {
+      "component": "VolumeControl"
+    },
+    "quality_action": {
+      "component": "QualityControl"
+    }
+  },
+"root": {
+      "type": "container",
+      "component": "SettingsUI",
+      "style": {
+        "width": "100%",
+        "height": "100%",
+        "justify_content": "center",
+        "align_items": "center",
+        "flex_direction": "column",
+        "background_color": "rgba(25, 25, 51, 230)"
+      },
+      "children": [
+        {
+          "type": "text",
+          "text": "{screen_title}",
+          "style": {
+            "font_size": 48,
+            "text_color": "yellow",
+            "margin": "0 0 50px 0"
+          }
+        },
+        {
+          "type": "panel",
+          "style": {
+            "width": "{panel_width}",
+            "padding": "20px",
+            "margin": "20px",
+            "flex_direction": "column",
+            "gap": "15px",
+            "background_color": "rgba(38, 38, 76, 204)",
+            "border_radius": "8px"
+          },
+          "children": [
+            {
+              "type": "container",
+              "style": {
+                "flex_direction": "row",
+                "justify_content": "space-between",
+                "align_items": "center"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "text": "Master Volume:",
+                  "style": {
+                    "font_size": 18,
+                    "text_color": "white"
+                  }
+                },
+                {
+                  "type": "button",
+                  "action": "volume_action",
+                  "style": {
+                    "width": "200px",
+                    "height": "20px",
+                    "background_color": "rgba(76, 76, 76, 255)"
+                  },
+                  "children": [
+                    {
+                      "type": "container",
+                      "component": "VolumeBar",
+                      "style": {
+                        "width": "70%",
+                        "height": "100%",
+                        "background_color": "yellow"
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "container",
+              "style": {
+                "flex_direction": "row",
+                "justify_content": "space-between",
+                "align_items": "center"
+              },
+              "children": [
+                {
+                  "type": "text",
+                  "text": "Graphics Quality:",
+                  "style": {
+                    "font_size": 18,
+                    "text_color": "white"
+                  }
+                },
+                {
+                  "type": "button",
+                  "action": "quality_action",
+                  "style": {
+                    "width": "100px",
+                    "height": "30px",
+                    "justify_content": "center",
+                    "align_items": "center",
+                    "background_color": "rgba(51, 51, 102, 204)",
+                    "border_radius": "4px"
+                  },
+                  "children": [
+                    {
+                      "type": "text",
+                      "text": "High",
+                      "style": {
+                        "font_size": 16,
+                        "text_color": "white"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "button",
+          "action": "back_action",
+          "style": {
+            "width": "200px",
+            "height": "50px",
+            "justify_content": "center",
+            "align_items": "center",
+            "margin": "30px 0 0 0",
+            "background_color": "rgba(51, 51, 102, 204)",
+            "border_radius": "4px"
+          },
+          "children": [
+            {
+              "type": "text",
+              "text": "{back_button_text}",
+              "style": {
+                "font_size": 16,
+                "text_color": "white"
+              }
+            }
+          ]
+        }
+      ]
+    }
+}

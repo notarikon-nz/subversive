@@ -1,0 +1,89 @@
+{
+  "name": "credits",
+  "variables": {
+    "screen_title": "CREDITS",
+    "back_button_text": "Back to Menu (ESC)",
+    "panel_width": "500px"
+  },
+  "actions": {
+    "back_action": {
+      "component": "BackButton"
+    },
+    "volume_action": {
+      "component": "VolumeControl"
+    },
+    "quality_action": {
+      "component": "QualityControl"
+    }
+  },
+"root": {
+      "type": "container",
+      "component": "SettingsUI",
+      "style": {
+        "width": "100%",
+        "height": "100%",
+        "justify_content": "center",
+        "align_items": "center",
+        "flex_direction": "column",
+        "background_color": "rgba(25, 25, 51, 230)"
+      },
+      "children": [
+        {
+          "type": "text",
+          "text": "{screen_title}",
+          "style": {
+            "font_size": 48,
+            "text_color": "yellow",
+            "margin": "0 0 50px 0"
+          }
+        },
+        {
+          "type": "panel",
+          "style": {
+            "width": "500px",
+            "max_height": "400px",
+            "padding": "20px",
+            "margin": "20px",
+            "justify_content": "center",
+            "align_items": "center",
+            "background_color": "rgba(38, 38, 76, 204)",
+            "border_radius": "8px"
+          },
+          "children": [
+            {
+              "type": "text",
+              "text": "{game_title}\n\n{copyright}\n\n{tech_stack}\n\nSpecial Thanks:\n\n• Bevy Community\n• egui Contributors\n\nMusic Credits:\n• Various Artists\n\nAdditional Thanks:\n• Beta Testers\n• Community Feedback\n• Open Source Contributors",
+              "style": {
+                "font_size": 14,
+                "text_color": "white",
+                "justify_content": "center"
+              }
+            }
+          ]
+        },
+        {
+          "type": "button",
+          "action": "back_action",
+          "style": {
+            "width": "200px",
+            "height": "50px",
+            "justify_content": "center",
+            "align_items": "center",
+            "margin": "50px 0 0 0",
+            "background_color": "rgba(51, 51, 102, 204)",
+            "border_radius": "4px"
+          },
+          "children": [
+            {
+              "type": "text",
+              "text": "Back (ESC)",
+              "style": {
+                "font_size": 16,
+                "text_color": "white"
+              }
+            }
+          ]
+        }
+      ]
+    }
+}

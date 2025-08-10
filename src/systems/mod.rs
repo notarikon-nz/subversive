@@ -92,6 +92,11 @@ pub use colored_lighting::*;
 
 // 0.2.17
 pub mod territory_events;
+pub mod profiling;
+pub use profiling::{ProfilingPlugin};
+
+pub mod tilemap_props;
+pub use tilemap_props::*;
 
 pub use urban_security::*;
 

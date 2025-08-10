@@ -4927,9 +4927,10 @@ dependencies = [
 
 [[package]]
 name = "subversive"
-version = "0.2.16"
+version = "0.2.17"
 dependencies = [
  "bevy",
+ "bevy_asset",
  "bevy_ecs_tilemap",
  "bevy_egui",
  "bevy_light_2d",
